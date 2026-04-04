@@ -21,14 +21,22 @@ from typing import Optional
 # Lowest priority: overridden by config file, then by CLI flags.
 DEFAULTS: dict = {
     "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
-    "lora_weights": None,
+    # pipeline_type is intentionally NOT listed here — it must be set
+    # explicitly in every config file. Omitting it causes a clear error.
+    # Valid values: "sd" | "sdxl" | "anima"
+    "adapter_id": None,    # optional: HF repo ID / local path for an adapter (ControlNet, refiner, …)
+    "lora_id": None,       # optional: HF repo ID / local path for LoRA weights
     "lora_scale": 0.9,
+    "trigger_word": None,  # optional: token that must appear in the prompt for the LoRA/model to activate
     "num_inference_steps": 30,
     "guidance_scale": 7.5,
+    "width": 1024,
+    "height": 1024,
     "output_dir": "outputs",
     "cache_dir": "models",
     # Offload model submodules to CPU between steps to save GPU/MPS memory.
     # Slower, but necessary for SDXL on machines with ≤16 GB unified memory.
+    # Ignored for the anima pipeline_type.
     "sequential_cpu_offload": False,
 }
 # ─────────────────────────────────────────────────────────────────────────────
@@ -124,12 +132,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-id",
         metavar="REPO_ID",
-        help="Hugging Face model ID or local path. Overrides config.",
+        help="Hugging Face base model ID or local path. Overrides config.",
     )
     parser.add_argument(
-        "--lora-weights",
+        "--adapter-id",
         metavar="REPO_ID",
-        help="Hugging Face LoRA repo ID or local path. Overrides config.",
+        help="Hugging Face adapter (ControlNet, refiner, …) ID or local path. Overrides config.",
+    )
+    parser.add_argument(
+        "--lora-id",
+        metavar="REPO_ID",
+        help="Hugging Face LoRA weights ID or local path. Overrides config.",
     )
     parser.add_argument(
         "--lora-scale",
@@ -169,11 +182,21 @@ def build_config(args: argparse.Namespace) -> tuple[dict, str]:
     # 1. Load config file on top of defaults
     cfg = load_config(args.config)
 
-    # 2. Apply explicit CLI overrides (only when the user actually passed them)
+    # 2. Validate mandatory field — every config file must declare pipeline_type
+    if "pipeline_type" not in cfg:
+        raise KeyError(
+            "'pipeline_type' is missing from the config file.\n"
+            "Add it to your JSON config, e.g.:\n"
+            '  "pipeline_type": "sd"   # or "sdxl" / "anima"'
+        )
+
+    # 3. Apply explicit CLI overrides (only when the user actually passed them)
     if args.model_id is not None:
         cfg["model_id"] = args.model_id
-    if args.lora_weights is not None:
-        cfg["lora_weights"] = args.lora_weights
+    if args.adapter_id is not None:
+        cfg["adapter_id"] = args.adapter_id
+    if args.lora_id is not None:
+        cfg["lora_id"] = args.lora_id
     if args.lora_scale is not None:
         cfg["lora_scale"] = args.lora_scale
     if args.steps is not None:
@@ -181,7 +204,18 @@ def build_config(args: argparse.Namespace) -> tuple[dict, str]:
     if args.guidance_scale is not None:
         cfg["guidance_scale"] = args.guidance_scale
 
-    # 3. Resolve output path and ensure the directory exists
+    # 4. Trigger-word check — prepend automatically if missing from the prompt
+    trigger: Optional[str] = cfg.get("trigger_word") or None
+    prompt: str = args.prompt
+    if trigger and trigger.lower() not in prompt.lower():
+        print(
+            f"⚠️  Trigger word {trigger!r} not found in prompt — "
+            f"prepending it automatically."
+        )
+        prompt = f"{trigger} {prompt}"
+    cfg["_effective_prompt"] = prompt  # resolved prompt passed to the pipeline
+
+    # 5. Resolve output path and ensure the directory exists
     if args.output:
         output_path = args.output
     else:
@@ -202,13 +236,22 @@ def print_config(cfg: dict, args: argparse.Namespace, output_path: str) -> None:
         output_path: Resolved output file path.
     """
     print("── Effective configuration ──────────────────────────────────────")
+    if cfg.get("description"):
+        print(f"  description       : {cfg['description']}")
+    print(f"  pipeline_type     : {cfg.get('pipeline_type', 'sd')}")
     print(f"  model_id          : {cfg['model_id']}")
-    print(f"  lora_weights      : {cfg['lora_weights'] or '(none)'}")
+    print(f"  adapter_id        : {cfg['adapter_id'] or '(none)'}")
+    print(f"  lora_id           : {cfg['lora_id'] or '(none)'}")
     print(f"  lora_scale        : {cfg['lora_scale']}")
+    if cfg.get("trigger_word"):
+        print(f"  trigger_word      : {cfg['trigger_word']!r}")
     print(f"  steps             : {cfg['num_inference_steps']}")
     print(f"  guidance_scale    : {cfg['guidance_scale']}")
+    print(f"  width x height    : {cfg.get('width', 512)} x {cfg.get('height', 512)}")
     print(f"  cpu_offload       : {cfg['sequential_cpu_offload']}")
-    print(f"  prompt            : {args.prompt!r}")
+    print(f"  prompt            : {cfg['_effective_prompt']!r}")
+    if cfg["_effective_prompt"] != args.prompt:
+        print(f"  prompt (original) : {args.prompt!r}")
     print(f"  negative_prompt   : {args.negative_prompt!r}")
     print(f"  output            : {output_path}")
     print("─────────────────────────────────────────────────────────────────")

@@ -1,0 +1,23 @@
+{
+    "description": "SDXL 1.0 + Storyboard Sketch LoRA — grayscale film/TV storyboard style",
+    "_comment": "LoRA by blink7630. Trained on 60 grayscale storyboard sketches at 21:9, 16:9 and 1:1 ratios.",
+    "_comment_trigger": "TRIGGER WORD REQUIRED: prefix every prompt with 'storyboard sketch of ...'",
+    "_comment_scale": "1.0 = most abstract sketch; 0.8 = best balance of style + coherence; 0.5 = detailed/realistic.",
+    "_comment_steps": "30 steps is sufficient. More steps do not noticeably improve sketch quality.",
+    "_comment_cfg": "CFG 7–8. Higher values increase prompt adherence but can over-sharpen lines.",
+    "_comment_ar": "21:9 (e.g. 1344x576) and 16:9 (1344x768) match the training data aspect ratios.",
+    "_comment_size": "SDXL native resolution 1024x1024; widescreen ratios are also well-supported.",
+    "pipeline_type": "sdxl",
+    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
+    "adapter_id": null,
+    "lora_id": "blink7630/storyboard-sketch",
+    "lora_scale": 0.8,
+    "trigger_word": "storyboard sketch of",
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "width": 1024,
+    "height": 1024,
+    "output_dir": "outputs",
+    "cache_dir": "models",
+    "sequential_cpu_offload": true
+}
