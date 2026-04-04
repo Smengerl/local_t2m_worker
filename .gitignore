@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Hugging Face token – NEVER commit this
+.hf_token
+
+# Generated outputs
+outputs/
+
+# Downloaded model weights
+models/
+
+# macOS
+.DS_Store
