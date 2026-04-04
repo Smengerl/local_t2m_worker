@@ -1,0 +1,11 @@
+{
+    "_comment": "Stable Diffusion 1.5 — default config, no LoRA, ~4 GB RAM",
+    "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+    "lora_weights": null,
+    "lora_scale": 0.9,
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "output_dir": "outputs",
+    "cache_dir": "models",
+    "sequential_cpu_offload": false
+}

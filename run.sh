@@ -4,6 +4,39 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV="$SCRIPT_DIR/.venv"
 
+# ── Usage hint ────────────────────────────────────────────────────────────────
+usage() {
+  cat <<EOF
+Usage: $0 [OPTIONS] "your prompt here"
+
+Options:
+  -c, --config FILE          JSON config file (default: configs/sd15_default.json)
+  -n, --negative-prompt TEXT Negative prompt
+  -o, --output FILE          Output PNG path (default: outputs/<timestamp>.png)
+      --model-id REPO_ID     Override model ID from config
+      --lora-weights REPO_ID Override LoRA weights from config
+      --lora-scale FLOAT     Override LoRA scale from config
+      --steps N              Override inference steps from config
+      --guidance-scale FLOAT Override guidance scale from config
+  -h, --help                 Show this help
+
+Examples:
+  $0 "a sunset over the ocean"
+  $0 -c configs/sdxl_graffiti_lora.json -o outputs/dragon.png "graffiti mural of a dragon"
+  $0 -c configs/sd15_default.json --steps 50 --guidance-scale 8.0 "a cat"
+EOF
+  exit 0
+}
+
+# Show help if no arguments provided
+[[ $# -eq 0 ]] && usage
+
+# Pass --help through to Python (which prints its own help) or handle -h here
+for arg in "$@"; do
+  [[ "$arg" == "-h" || "$arg" == "--help" ]] && usage
+done
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── Activate virtual environment ─────────────────────────────────────────────
 if [[ ! -f "$VENV/bin/activate" ]]; then
   echo "Virtual environment not found. Creating it now..."
@@ -53,4 +86,17 @@ fi
 
 # ── Run the generator ─────────────────────────────────────────────────────────
 echo "Python: $(which python)"
-python "$SCRIPT_DIR/generate.py" "$@"
+
+# If no --config flag was given by the user, inject the default config
+has_config=0
+for arg in "$@"; do
+  [[ "$arg" == "--config" || "$arg" == "-c" ]] && has_config=1 && break
+done
+
+if [[ $has_config -eq 0 ]]; then
+  DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
+  echo "ℹ️  No --config specified, using default: $DEFAULT_CONFIG"
+  python "$SCRIPT_DIR/generate.py" --config "$DEFAULT_CONFIG" "$@"
+else
+  python "$SCRIPT_DIR/generate.py" "$@"
+fi

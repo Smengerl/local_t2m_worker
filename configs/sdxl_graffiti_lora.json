@@ -1,0 +1,12 @@
+{
+    "_comment": "SDXL base model with Graffiti LoRA — requires ~10 GB RAM",
+    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
+    "lora_weights": "linoyts/lora-xl-graffiti-0.0001-5e-05-1000-1-None",
+    "lora_scale": 0.9,
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "output_dir": "outputs",
+    "cache_dir": "models",
+    "_comment_offload": "Enable sequential_cpu_offload on low-VRAM machines (e.g. 16 GB MacBook Air). Slower but avoids OOM.",
+    "sequential_cpu_offload": true
+}

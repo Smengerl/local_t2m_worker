@@ -1,30 +1,26 @@
 """
 Text-to-Image generation using Hugging Face Diffusers.
-Uses Stable Diffusion 1.5 by default (~4 GB RAM, runs on MPS/CUDA/CPU).
-To use FLUX models, you need at least 24 GB RAM.
+
+Supports:
+  - Stable Diffusion 1.5  (~4 GB RAM, runs on MPS/CUDA/CPU)
+  - Stable Diffusion XL   (~10 GB RAM, recommended for SDXL LoRAs)
+  - Optional LoRA weights  loaded on top of any base model
+
+Run via run.sh or directly:
+    python generate.py --config configs/sd15_default.json --prompt "..."
+    python generate.py --help
 """
 
-import os
+from typing import Optional, Union
+
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion import StableDiffusionPipeline
+from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipeline
 from PIL import Image
 
-# ── Configuration ────────────────────────────────────────────────────────────
-# Default: SD 1.5 — public, no token needed, ~4 GB RAM
-MODEL_ID = "stable-diffusion-v1-5/stable-diffusion-v1-5"
+from cli import build_config, parse_args, print_config
 
-# FLUX models (require 24+ GB RAM — NOT suitable for 16 GB machines):
-# MODEL_ID = "kpsss34/FHDR_Uncensored"
-
-CACHE_DIR = "models"
-OUTPUT_DIR = "outputs"
-
-PROMPT = "A futuristic city at sunset, digital art, highly detailed"
-NEGATIVE_PROMPT = "blurry, low quality, deformed, ugly"
-
-NUM_INFERENCE_STEPS = 30
-GUIDANCE_SCALE = 7.5
-# ─────────────────────────────────────────────────────────────────────────────
+PipelineType = Union[StableDiffusionPipeline, StableDiffusionXLPipeline]
 
 
 def get_device() -> torch.device:
@@ -39,25 +35,83 @@ def get_device() -> torch.device:
     return torch.device("cpu")
 
 
-def load_pipeline(model_id: str, device: torch.device) -> StableDiffusionPipeline:
-    """Load a Stable Diffusion pipeline."""
-    print(f"Loading model: {model_id} ...")
+def _is_xl_model(model_id: str) -> bool:
+    """Heuristic: treat a model as SDXL when its ID contains 'xl'."""
+    return "xl" in model_id.lower()
+
+
+def load_pipeline(
+    model_id: str,
+    device: torch.device,
+    cache_dir: str,
+    lora_weights: Optional[str] = None,
+    lora_scale: float = 0.9,
+    sequential_cpu_offload: bool = False,
+) -> PipelineType:
+    """Load a Stable Diffusion (XL) pipeline and optionally attach LoRA weights.
+
+    Args:
+        model_id: Hugging Face repo ID or local path of the base model.
+        device: Target torch device.
+        cache_dir: Directory used to cache downloaded model weights.
+        lora_weights: Hugging Face repo ID / local path of LoRA weights, or
+            None to skip LoRA loading.
+        lora_scale: Blending scale applied to the LoRA adapter (0–1).
+        sequential_cpu_offload: If True, offload model submodules to CPU between
+            steps. Reduces peak memory usage at the cost of speed. Recommended
+            for SDXL on machines with ≤16 GB unified memory.
+
+    Returns:
+        A ready-to-use diffusers pipeline moved to *device*.
+    """
+    is_xl = _is_xl_model(model_id)
+    pipeline_cls = StableDiffusionXLPipeline if is_xl else StableDiffusionPipeline
+
+    print(f"Loading {'SDXL' if is_xl else 'SD'} base model: {model_id} ...")
+
     # float16 on MPS can produce NaN values → black images; float32 is stable
     dtype = torch.float16 if device.type == "cuda" else torch.float32
-    pipe = StableDiffusionPipeline.from_pretrained(
-        model_id,
+
+    kwargs: dict = dict(
         torch_dtype=dtype,
-        cache_dir=CACHE_DIR,
-        safety_checker=None,
-        requires_safety_checker=False,
+        cache_dir=cache_dir,
     )
-    pipe = pipe.to(device)
+    # Safety checker only exists on SD 1.x pipelines
+    if not is_xl:
+        kwargs["safety_checker"] = None
+        kwargs["requires_safety_checker"] = False
+
+    pipe = pipeline_cls.from_pretrained(model_id, **kwargs)
+
+    if sequential_cpu_offload:
+        # enable_sequential_cpu_offload moves submodules to CPU between ops,
+        # cutting peak MPS/CUDA memory by ~50 %. Must be called BEFORE .to().
+        print("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
+        pipe.enable_sequential_cpu_offload()
+    else:
+        pipe = pipe.to(device)
+
     pipe.enable_attention_slicing()
+    # Tile the VAE decode pass to avoid large contiguous memory allocations.
+    # Critical on MPS (Apple Silicon) where SDXL VAE decode easily OOMs.
+    pipe.vae.enable_tiling()
+    pipe.vae.enable_slicing()
+
+    if lora_weights:
+        print(f"Loading LoRA weights: {lora_weights}  (scale={lora_scale}) ...")
+        # load_lora_weights accepts a repo ID, a local directory, or a single
+        # .safetensors / .bin file.
+        pipe.load_lora_weights(lora_weights, cache_dir=cache_dir)
+        # fuse_lora bakes the LoRA into the model weights with the given scale,
+        # which avoids extra overhead during inference.
+        pipe.fuse_lora(lora_scale=lora_scale)
+        print("LoRA weights fused successfully.")
+
     return pipe
 
 
 def generate_image(
-    pipe: StableDiffusionPipeline,
+    pipe: PipelineType,
     prompt: str,
     negative_prompt: str = "",
     steps: int = 30,
@@ -74,21 +128,30 @@ def generate_image(
 
 
 def main() -> None:
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    args = parse_args()
+
+    # Merge defaults → config file → CLI flags; resolve output path
+    cfg, output_path = build_config(args)
+    print_config(cfg, args, output_path)
 
     device = get_device()
-    pipe = load_pipeline(MODEL_ID, device)
-
-    print(f"Prompt: {PROMPT!r}")
-    image = generate_image(
-        pipe,
-        prompt=PROMPT,
-        negative_prompt=NEGATIVE_PROMPT,
-        steps=NUM_INFERENCE_STEPS,
-        guidance_scale=GUIDANCE_SCALE,
+    pipe = load_pipeline(
+        model_id=cfg["model_id"],
+        device=device,
+        cache_dir=cfg["cache_dir"],
+        lora_weights=cfg["lora_weights"] or None,
+        lora_scale=float(cfg["lora_scale"]),
+        sequential_cpu_offload=bool(cfg["sequential_cpu_offload"]),
     )
 
-    output_path = os.path.join(OUTPUT_DIR, "output.png")
+    image = generate_image(
+        pipe,
+        prompt=args.prompt,
+        negative_prompt=args.negative_prompt,
+        steps=int(cfg["num_inference_steps"]),
+        guidance_scale=float(cfg["guidance_scale"]),
+    )
+
     image.save(output_path)
     print(f"✅ Image saved to: {output_path}")
 
