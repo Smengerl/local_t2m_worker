@@ -18,7 +18,5 @@
     "guidance_scale": 7.5,
     "width": 1024,
     "height": 1024,
-    "output_dir": "outputs",
-    "cache_dir": "models",
     "sequential_cpu_offload": true
 }

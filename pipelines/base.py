@@ -7,6 +7,7 @@ Every concrete pipeline must:
 """
 
 from abc import ABC, abstractmethod
+from typing import Callable, Optional
 
 from PIL import Image
 
@@ -23,12 +24,20 @@ class BasePipeline(ABC):
         self.cfg = cfg
 
     @abstractmethod
-    def generate(self, prompt: str, negative_prompt: str = "") -> Image.Image:
+    def generate(
+        self,
+        prompt: str,
+        negative_prompt: str = "",
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+    ) -> Image.Image:
         """Run inference and return a PIL Image.
 
         Args:
             prompt: Text description of the image to generate.
             negative_prompt: Things to avoid in the image.
+            progress_callback: Optional callable(step, total_steps) invoked
+                after each denoising step. Used by the batch worker to write
+                live progress into the queue. May be None (direct CLI use).
 
         Returns:
             Generated PIL Image.

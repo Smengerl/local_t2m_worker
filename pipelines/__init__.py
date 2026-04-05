@@ -18,9 +18,10 @@ from pipelines.base import BasePipeline
 # Import the classes lazily inside create_pipeline to avoid loading heavy
 # dependencies (torch, diffusers) until they are actually needed.
 _REGISTRY: dict[str, str] = {
-    "sd":    "pipelines.sd_pipeline.StableDiffusionBackend",
-    "sdxl":  "pipelines.sd_pipeline.StableDiffusionBackend",
-    "anima": "pipelines.anima_pipeline.AnimaPipeline",
+    "sd":     "pipelines.sd_pipeline.StableDiffusionBackend",
+    "sdxl":   "pipelines.sd_pipeline.StableDiffusionBackend",
+    "anima":  "pipelines.anima_pipeline.AnimaPipeline",
+    "zimage": "pipelines.zimage_pipeline.ZImageBackend",
 }
 
 

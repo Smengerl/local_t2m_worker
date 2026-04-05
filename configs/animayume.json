@@ -19,7 +19,5 @@
     "num_inference_steps": 30,
     "guidance_scale": 5.0,
     "width": 1024,
-    "height": 1024,
-    "output_dir": "outputs",
-    "cache_dir": "models"
+    "height": 1024
 }

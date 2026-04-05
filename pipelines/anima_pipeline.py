@@ -37,7 +37,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from huggingface_hub import hf_hub_download, list_repo_files
 from PIL import Image
@@ -61,7 +61,12 @@ class AnimaPipeline(BasePipeline):
 
     # ── public ───────────────────────────────────────────────────────────────
 
-    def generate(self, prompt: str, negative_prompt: str = "") -> Image.Image:
+    def generate(
+        self,
+        prompt: str,
+        negative_prompt: str = "",
+        progress_callback: Optional[Callable[[int, int], None]] = None,  # not used — subprocess
+    ) -> Image.Image:
         cfg = self.cfg
         lora_id: Optional[str] = cfg.get("lora_id") or None
         lora_scale: float = float(cfg.get("lora_scale", 0.9))

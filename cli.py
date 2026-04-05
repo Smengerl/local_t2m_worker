@@ -124,7 +124,23 @@ def parse_args() -> argparse.Namespace:
         metavar="FILE",
         help=(
             "Output file path (PNG). "
-            "Defaults to <output_dir>/output.png as set in the config."
+            f"Defaults to <output_dir>/YYYYMMDD_HHMMSS.png (default output_dir: outputs/)."
+        ),
+    )
+    parser.add_argument(
+        "--output-dir",
+        metavar="DIR",
+        help=(
+            "Directory for generated images. "
+            f"Default: outputs/. Overrides the built-in default."
+        ),
+    )
+    parser.add_argument(
+        "--cache-dir",
+        metavar="DIR",
+        help=(
+            "Directory for downloaded model weights. "
+            f"Default: models/. Overrides the built-in default."
         ),
     )
 
@@ -203,6 +219,10 @@ def build_config(args: argparse.Namespace) -> tuple[dict, str]:
         cfg["num_inference_steps"] = args.steps
     if args.guidance_scale is not None:
         cfg["guidance_scale"] = args.guidance_scale
+    if args.output_dir is not None:
+        cfg["output_dir"] = args.output_dir
+    if args.cache_dir is not None:
+        cfg["cache_dir"] = args.cache_dir
 
     # 4. Trigger-word check — prepend automatically if missing from the prompt
     trigger: Optional[str] = cfg.get("trigger_word") or None

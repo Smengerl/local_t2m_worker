@@ -21,7 +21,7 @@ Required config keys:
   sequential_cpu_offload bool  enable on MPS/CUDA with ≤16 GB unified memory
 """
 
-from typing import Optional
+from typing import Callable, Optional
 
 import torch
 from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
@@ -41,15 +41,29 @@ class StableDiffusionBackend(BasePipeline):
 
     # ── public ───────────────────────────────────────────────────────────────
 
-    def generate(self, prompt: str, negative_prompt: str = "") -> Image.Image:
-        result = self._pipe(
-            prompt,
+    def generate(
+        self,
+        prompt: str,
+        negative_prompt: str = "",
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+    ) -> Image.Image:
+        total = int(self.cfg["num_inference_steps"])
+        kwargs: dict = dict(
+            prompt=prompt,
             negative_prompt=negative_prompt,
-            num_inference_steps=int(self.cfg["num_inference_steps"]),
+            num_inference_steps=total,
             guidance_scale=float(self.cfg["guidance_scale"]),
             width=int(self.cfg.get("width", 512)),
             height=int(self.cfg.get("height", 512)),
         )
+
+        if progress_callback is not None:
+            def _cb(pipe, step_index: int, timestep, callback_kwargs: dict) -> dict:
+                progress_callback(step_index + 1, total)  # 0-based → 1-based
+                return callback_kwargs
+            kwargs["callback_on_step_end"] = _cb
+
+        result = self._pipe(**kwargs)
         return result.images[0]  # type: ignore[index]
 
     # ── private ──────────────────────────────────────────────────────────────

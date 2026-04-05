@@ -1,0 +1,21 @@
+{
+    "description": "Inkpunk Diffusion — ink/punk illustration style fine-tune of SD 1.5 (DreamBooth)",
+    "_comment": "DreamBooth fine-tune by Envvi. Vaguely inspired by Gorillaz, FLCL, and Yoji Shinkawa.",
+    "_comment_trigger": "TRIGGER WORD REQUIRED: include 'nvinkpunk' in every prompt (the DreamBooth subject token).",
+    "_comment_prompt": "Examples: 'nvinkpunk portrait of a warrior', 'nvinkpunk robot in a city', 'nvinkpunk woman with flowing hair'.",
+    "_comment_negative": "Suggested: 'deformed, ugly, blurry, bad anatomy, disfigured, poorly drawn face, mutation'.",
+    "_comment_steps": "50 steps gives cleaner results than 30 for DreamBooth fine-tunes; SD 1.5 model card uses 50 PLMS.",
+    "_comment_cfg": "CFG 7–8 per SD 1.5 evaluations. Lower (5–6) gives a looser, more painterly result.",
+    "_comment_size": "SD 1.5 native resolution is 512x512. Larger sizes (640x640, 768x768) work but may produce distortions.",
+    "pipeline_type": "sd",
+    "model_id": "Envvi/Inkpunk-Diffusion",
+    "adapter_id": null,
+    "lora_id": null,
+    "lora_scale": 0.9,
+    "trigger_word": "nvinkpunk",
+    "num_inference_steps": 50,
+    "guidance_scale": 7.5,
+    "width": 512,
+    "height": 512,
+    "sequential_cpu_offload": false
+}
