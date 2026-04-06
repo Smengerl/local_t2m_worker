@@ -17,3 +17,6 @@ models/
 
 # macOS
 .DS_Store
+
+# internal cache
+queue.jsonl
