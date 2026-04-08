@@ -1,0 +1,21 @@
+{
+    "description": "LazyMix+ v4.0 — realistic amateur photography, SD 1.5 checkpoint",
+    "_comment_model": "SD 1.5 DreamBooth checkpoint by KayLazy, pruned fp16 version by Erquint (~2 GB vs 5 GB original).",
+    "_comment_style": "Optimised for candid, unposed, amateur-style realistic photography. No trigger word needed.",
+    "_comment_steps": "28–35 steps recommended for SD 1.5 realistic checkpoints. Higher than generic SD 1.5 default (30) for added detail.",
+    "_comment_cfg": "5.0–7.0. Lower CFG (5–6) produces more natural, less 'overcooked' looking results — typical for photorealistic SD 1.5 models.",
+    "_comment_size": "SD 1.5 native resolution is 512x512. 512x768 (portrait) and 768x512 (landscape) work well for figures.",
+    "_comment_negative": "Suggest using a strong negative prompt: 'cartoon, anime, painting, illustration, 3d render, cgi, unrealistic, deformed'",
+    "pipeline_type": "sd",
+    "model_id": "Erquint/lazymixRealAmateur_v40_pruned_fp16",
+    "weight_name": "lazymixRealAmateur_v4.0_pruned_fp16.safetensors",
+    "adapter_id": null,
+    "lora_id": null,
+    "lora_scale": 0.9,
+    "trigger_word": null,
+    "num_inference_steps": 30,
+    "guidance_scale": 6.0,
+    "width": 512,
+    "height": 768,
+    "sequential_cpu_offload": false
+}

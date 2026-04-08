@@ -1,0 +1,21 @@
+{
+    "description": "DreamShaper v8 (Lykon) — versatile SD 1.5 fine-tune for fantasy, portraits, and realism",
+    "_comment": "Fine-tuned on SD 1.5. Excels at fantasy illustrations, portraits, and stylised realism. V8 improves LoRA support and NSFW compared to v7. Uses DEISMultistepScheduler for 25 steps.",
+    "_comment_steps": "Model card example uses 25 steps with DEISMultistepScheduler. 20–30 is the practical range; 25 is the documented sweet spot.",
+    "_comment_cfg": "Model card example uses default CFG (7.5). Range 5–10 works well. Higher values increase contrast and prompt adherence.",
+    "_comment_size": "Native SD 1.5 resolution is 512x512. DreamShaper v8 is trained to handle up to 768x768 without major artifacts.",
+    "_comment_vae": "Model is fine-tuned from runwayml/stable-diffusion-v1-5 and includes its own VAE. No external VAE needed.",
+    "_comment_negative": "Recommended: 'ugly, poorly drawn hands, extra fingers, deformed, blurry, bad anatomy, text, watermark'",
+    "_comment_scheduler": "DEISMultistepScheduler gives best results per model card. diffusers default (PNDM) also works.",
+    "pipeline_type": "sd",
+    "model_id": "Lykon/dreamshaper-8",
+    "adapter_id": null,
+    "lora_id": null,
+    "lora_scale": 0.9,
+    "trigger_word": null,
+    "num_inference_steps": 25,
+    "guidance_scale": 7.5,
+    "width": 512,
+    "height": 512,
+    "sequential_cpu_offload": false
+}

@@ -1,0 +1,20 @@
+{
+    "description": "Comic-Diffusion V2 — Charlie Bo artstyle",
+    "_comment": "SD 1.5 fine-tune by ogkalu. V2 trains all 6 comic styles simultaneously; each style is activated by its own trigger word.",
+    "_comment_model": "SD 1.5 fine-tune trained on Charlie Bo's comic artstyles (ogkalu/Comic-Diffusion).",
+    "_comment_trigger": "Trigger word for this style: 'charliebo artstyle'. Must appear in your prompt.",
+    "_comment_steps": "20–30 steps sufficient for SD 1.5. More steps rarely improve comic-style outputs.",
+    "_comment_cfg": "7–8 recommended. Higher values increase style adherence but reduce prompt flexibility.",
+    "_comment_size": "SD 1.5 native resolution is 512x512. 768x512 works well for landscape compositions.",
+    "pipeline_type": "sd",
+    "model_id": "ogkalu/Comic-Diffusion",
+    "adapter_id": null,
+    "lora_id": null,
+    "lora_scale": 0.9,
+    "trigger_word": "charliebo artstyle",
+    "num_inference_steps": 25,
+    "guidance_scale": 7.5,
+    "width": 512,
+    "height": 512,
+    "sequential_cpu_offload": false
+}

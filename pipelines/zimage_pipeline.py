@@ -1,7 +1,23 @@
 """
-Z-Image pipeline backend (Tongyi-MAI/Z-Image-Turbo and compatible LoRAs).
+Z-Image pipeline backend (Tongyi-MAI/Z-Image-Turbo and compatibl        self._log(f"Loading Z-Image model: {self.model_id} ...")
+        pipe = ZImagePipeline.from_pretrained(
+            self.model_id,
+            torch_dtype=dtype,
+            cache_dir=self.cache_dir,
+        )
 
-Z-Image-Turbo is a distilled single-stream DiT model that uses ZImagePipeline
+        if self.sequential_cpu_offload:
+            self._log("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
+            pipe.enable_model_cpu_offload()
+        else:
+            pipe = pipe.to(device)
+
+        if self.lora_id:
+            self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
+            try:
+                pipe.load_lora_weights(self.lora_id, cache_dir=self.cache_dir)
+                pipe.fuse_lora(lora_scale=self.lora_scale)
+                self._log("LoRA weights fused successfully.")-Turbo is a distilled single-stream DiT model that uses ZImagePipeline
 from diffusers (requires diffusers installed from source or ≥ 0.33.0).
 
 Key differences from standard SD/SDXL:
@@ -10,17 +26,6 @@ Key differences from standard SD/SDXL:
   - dtype: bfloat16 (float16 can produce artefacts on some hardware)
   - Resolution: up to ~1 MP (1024×1024 or 1152×896 etc.)
   - LoRA loading works identically to diffusers LoRA API
-
-Required config keys:
-  model_id              str    HF repo ID or local path (default: Tongyi-MAI/Z-Image-Turbo)
-  pipeline_type         str    "zimage"
-  lora_id               str|null
-  lora_scale            float
-  num_inference_steps   int    (8–16 recommended; 9 means 8 DiT forwards)
-  guidance_scale        float  (must be 0.0 for Turbo)
-  width / height        int
-  cache_dir             str
-  sequential_cpu_offload bool
 """
 
 import torch
@@ -28,14 +33,15 @@ from PIL import Image
 from typing import Callable, Optional
 
 from pipelines.base import BasePipeline
+from pipeline_config import PipelineConfig
 
 
 class ZImageBackend(BasePipeline):
     """Diffusers-based backend for Tongyi-MAI/Z-Image-Turbo (and LoRAs)."""
 
-    def __init__(self, cfg: dict) -> None:
+    def __init__(self, cfg: PipelineConfig) -> None:
         super().__init__(cfg)
-        self._pipe = self._load(cfg)
+        self._pipe = self._load()
 
     # ── public ───────────────────────────────────────────────────────────────
 
@@ -45,13 +51,13 @@ class ZImageBackend(BasePipeline):
         negative_prompt: str = "",
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Image.Image:
-        total = int(self.cfg["num_inference_steps"])
+        total = self.num_inference_steps
         kwargs: dict = dict(
             prompt=prompt,
-            height=int(self.cfg.get("height", 1024)),
-            width=int(self.cfg.get("width", 1024)),
+            height=self.height,
+            width=self.width,
             num_inference_steps=total,
-            guidance_scale=float(self.cfg["guidance_scale"]),
+            guidance_scale=self.guidance_scale,
         )
         if negative_prompt:
             kwargs["negative_prompt"] = negative_prompt
@@ -67,25 +73,8 @@ class ZImageBackend(BasePipeline):
 
     # ── private ──────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _get_device() -> torch.device:
-        if torch.cuda.is_available():
-            print("Using device: CUDA")
-            return torch.device("cuda")
-        if torch.backends.mps.is_available():
-            print("Using device: MPS (Apple Silicon)")
-            return torch.device("mps")
-        print("Using device: CPU (this will be slow)")
-        return torch.device("cpu")
-
-    def _load(self, cfg: dict):  # type: ignore[return]
+    def _load(self):  # type: ignore[return]
         from diffusers import ZImagePipeline  # requires diffusers ≥ 0.33 or source
-
-        model_id: str = cfg.get("model_id") or "Tongyi-MAI/Z-Image-Turbo"
-        cache_dir: str = cfg["cache_dir"]
-        lora_id: str | None = cfg.get("lora_id") or None
-        lora_scale: float = float(cfg.get("lora_scale", 0.9))
-        sequential_offload: bool = bool(cfg.get("sequential_cpu_offload", False))
 
         device = self._get_device()
 
@@ -93,23 +82,34 @@ class ZImageBackend(BasePipeline):
         # fall back to float32 on CPU (no bfloat16 support in many setups)
         dtype = torch.bfloat16 if device.type in ("cuda", "mps") else torch.float32
 
-        print(f"Loading Z-Image model: {model_id} ...")
+        self._log(f"Loading Z-Image model: {self.model_id} ...")
         pipe = ZImagePipeline.from_pretrained(
-            model_id,
+            self.model_id,
             torch_dtype=dtype,
-            cache_dir=cache_dir,
+            cache_dir=self.cache_dir,
         )
 
-        if sequential_offload:
-            print("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
+        if self.sequential_cpu_offload:
+            self._log("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
             pipe.enable_model_cpu_offload()
         else:
             pipe = pipe.to(device)
 
-        if lora_id:
-            print(f"Loading LoRA weights: {lora_id}  (scale={lora_scale}) ...")
-            pipe.load_lora_weights(lora_id, cache_dir=cache_dir)
-            pipe.fuse_lora(lora_scale=lora_scale)
-            print("LoRA weights fused successfully.")
+        if self.lora_id:
+            self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
+            try:
+                pipe.load_lora_weights(self.lora_id, cache_dir=self.cache_dir)
+                pipe.fuse_lora(lora_scale=self.lora_scale)
+                self._log("LoRA weights fused successfully.")
+            except ValueError as exc:
+                # LoRA target modules don't match this model's architecture.
+                # Common cause: LoRA was trained for Flux/Qwen but loaded onto Z-Image-Turbo.
+                raise ValueError(
+                    f"LoRA '{self.lora_id}' is incompatible with base model '{self.model_id}'.\n"
+                    f"The LoRA's target modules do not exist in the base model's architecture.\n"
+                    f"This usually means the LoRA was trained for a different model family "
+                    f"(e.g. Flux or Qwen) and cannot be used with Z-Image-Turbo.\n"
+                    f"Original error: {exc}"
+                ) from exc
 
         return pipe

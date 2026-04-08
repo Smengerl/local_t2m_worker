@@ -3,25 +3,20 @@ Persistent FIFO job queue backed by a JSONL file.
 
 Each line in the file is one JSON object representing a job:
   {
-    "id":              str,       # UUID4
-    "status":          str,       # "pending" | "running" | "done" | "failed"
-    "added_at":        str,       # ISO-8601 timestamp
-    "started_at":      str|null,
-    "finished_at":     str|null,
-    "config":          str,       # path to JSON config file
-    "prompt":          str,
-    "negative_prompt": str,
-    "output":          str|null,  # explicit output path, or null (auto-generated)
-    "model_id":        str|null,  # CLI override, or null
-    "adapter_id":      str|null,
-    "lora_id":         str|null,
-    "lora_scale":      float|null,
-    "steps":           int|null,
-    "guidance_scale":  float|null,
-    "progress_step":   int,       # current denoising step (updated live by worker)
-    "progress_total":  int,       # total denoising steps (0 = not started / unknown)
-    "result_path":     str|null,  # set by worker when done
-    "error":           str|null   # set by worker when failed
+    "id":               str,        # UUID4
+    "status":           str,        # "pending" | "running" | "done" | "failed"
+    "added_at":         str,        # ISO-8601 timestamp
+    "started_at":       str|null,
+    "finished_at":      str|null,
+    "pipeline_config":  dict,       # serialised PipelineConfig (all pipeline params)
+    "prompt":           str,
+    "negative_prompt":  str,
+    "output":           str|null,   # explicit output path, or null (auto-generated)
+    "progress_step":    int,        # current denoising step (updated live by worker)
+    "progress_total":   int,        # total denoising steps (0 = not started / unknown)
+    "worker_pid":       int|null,   # PID of the worker process while running, else null
+    "result_path":      str|null,   # set by worker when done
+    "error":            str|null    # set by worker when failed
   }
 
 Thread-/process-safety is provided by filelock so the web server and the
@@ -29,12 +24,19 @@ worker can access the queue file concurrently without corruption.
 """
 
 import json
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 from filelock import FileLock
+
+_ROOT = Path(__file__).parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from pipeline_config import PipelineConfig
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _PROJECT_ROOT = Path(__file__).parent.parent
@@ -77,16 +79,10 @@ def _write_all(jobs: list[dict[str, Any]]) -> None:
 
 def enqueue(
     *,
-    config: str,
+    cfg: PipelineConfig,
     prompt: str,
     negative_prompt: str = "",
     output: Optional[str] = None,
-    model_id: Optional[str] = None,
-    adapter_id: Optional[str] = None,
-    lora_id: Optional[str] = None,
-    lora_scale: Optional[float] = None,
-    steps: Optional[int] = None,
-    guidance_scale: Optional[float] = None,
 ) -> dict[str, Any]:
     """Append a new pending job to the queue and return it."""
     job: dict[str, Any] = {
@@ -95,19 +91,14 @@ def enqueue(
         "added_at":        _now(),
         "started_at":      None,
         "finished_at":     None,
-        "config":          config,
+        "pipeline_config": cfg.to_dict(),
         "prompt":          prompt,
         "negative_prompt": negative_prompt,
         "output":          output,
-        "model_id":        model_id,
-        "adapter_id":      adapter_id,
-        "lora_id":         lora_id,
-        "lora_scale":      lora_scale,
-        "steps":           steps,
-        "guidance_scale":  guidance_scale,
         "progress_step":   0,
         "progress_total":  0,
         "log_lines":       [],
+        "worker_pid":      None,
         "result_path":     None,
         "error":           None,
     }
@@ -155,7 +146,12 @@ def update_job(job_id: str, **fields: Any) -> Optional[dict[str, Any]]:
 
 
 def append_log(job_id: str, line: str, max_lines: int = 300) -> None:
-    """Append a log line to a job's log_lines list (capped at max_lines)."""
+    """Append a log line to a job's log_lines list (capped at max_lines).
+
+    Note: this rewrites the entire queue file on every call.  It is called
+    frequently during job execution (every denoising step + tqdm lines), so
+    keep max_lines small to bound write amplification.
+    """
     with _lock():
         jobs = _read_all()
         for job in jobs:
@@ -170,16 +166,23 @@ def append_log(job_id: str, line: str, max_lines: int = 300) -> None:
 
 def mark_running(job_id: str) -> Optional[dict[str, Any]]:
     return update_job(job_id, status="running", started_at=_now(),
-                      progress_step=0, progress_total=0, log_lines=[])
+                      progress_step=0, progress_total=0, log_lines=[],
+                      worker_pid=None)
 
 
 def mark_done(job_id: str, result_path: str) -> Optional[dict[str, Any]]:
-    return update_job(job_id, status="done", finished_at=_now(), result_path=result_path)
+    return update_job(job_id, status="done", finished_at=_now(),
+                      result_path=result_path, worker_pid=None)
 
 
 def mark_failed(job_id: str, error: str) -> Optional[dict[str, Any]]:
     return update_job(job_id, status="failed", finished_at=_now(), error=error,
-                      progress_step=0, progress_total=0)
+                      progress_step=0, progress_total=0, worker_pid=None)
+
+
+def set_worker_pid(job_id: str, pid: int) -> Optional[dict[str, Any]]:
+    """Store the PID of the worker process handling this job."""
+    return update_job(job_id, worker_pid=pid)
 
 
 def delete_job(job_id: str) -> bool:

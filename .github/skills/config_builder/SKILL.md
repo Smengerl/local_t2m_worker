@@ -36,7 +36,7 @@ value is not stated, use the heuristics in parentheses:
 
 | Field to find | Where to look / heuristic |
 |---|---|
-| **Architecture** | Model card tags, name, or "Model Description" — e.g. SD 1.x, SD 2.x, SDXL, SD3, FLUX, DiT, Z-Image, Qwen-Image, Cosmos, AnimaYume |
+| **Architecture** | Model card tags, name, or "Model Description" — e.g. SD 1.x, SD 2.x, SDXL, SD3, FLUX, DiT, Z-Image, Qwen-Image |
 | **Base model** | "Base model:" line or tags. Needed when model is a LoRA or DreamBooth fine-tune. |
 | **Trigger word(s)** | "Trigger word", "Activation word", or "Usage" section. `null` if none. |
 | **Recommended steps** | Model card example code or "Usage" section. Fallback: architecture defaults below. |
@@ -58,7 +58,6 @@ value is not stated, use the heuristics in parentheses:
 | FLUX (dev / schnell) | `flux` | 20–28 | 3.5 | 1024×1024 |
 | Z-Image-Turbo | `zimage` | 12 | 0.0 | 1024×1024 |
 | Qwen-Image | `qwen` | 20 | — (`true_cfg_scale` 4.0) | 1328×1328 |
-| AnimaYume / Cosmos | `anima` | 30 | 7.5 | 1024×1024 |
 
 ---
 
@@ -73,7 +72,7 @@ _REGISTRY = {
     "sd":     "pipelines.sd_pipeline.StableDiffusionBackend",
     "sdxl":   "pipelines.sd_pipeline.StableDiffusionBackend",
     "sd3":    "pipelines.sd_pipeline.StableDiffusionBackend",
-    "anima":  "pipelines.anima_pipeline.AnimaPipeline",
+    "flux":   "pipelines.flux_pipeline.FluxBackend",
     "zimage": "pipelines.zimage_pipeline.ZImageBackend",
     "qwen":   "pipelines.qwen_pipeline.QwenImageBackend",
 }
@@ -112,7 +111,7 @@ by selecting the matching diffusers class internally.
 
 Use the pattern `<arch>_<short-description>.json`:
 
-- Architecture prefix: `sd15_`, `sd21_`, `sdxl_`, `sd3_`, `flux_`, `zimage_`, `qwen_`, `anima_`
+- Architecture prefix: `sd15_`, `sd21_`, `sdxl_`, `sd3_`, `flux_`, `zimage_`, `qwen_`
 - Short description in `snake_case`: model name, style, or LoRA name (max ~25 chars)
 - Examples: `sdxl_realism_engine_lora.json`, `flux_schnell_default.json`, `sd15_van_gogh_lora.json`
 
@@ -204,7 +203,7 @@ Add a new row. Match the existing table format:
 | `configs/<slug>.json` | `<pipeline_type>` | `<description value>` |
 ```
 
-Keep the rows sorted: `sd15_*` → `sd21_*` → `sdxl_*` → `sd3_*` → `flux_*` → `zimage_*` → `qwen_*` → `anima_*`.
+Keep the rows sorted: `sd15_*` → `sd21_*` → `sdxl_*` → `sd3_*` → `flux_*` → `zimage_*` → `qwen_*`.
 
 ### 6b — "Supported backends" table (only if a new pipeline was added)
 

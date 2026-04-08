@@ -1,0 +1,22 @@
+{
+    "description": "Qwen-Image + HMFemme LoRA — candid-style realistic female photography",
+    "_comment": "LoRA by burnerbaby (HearmemanAI), trained for realistic candid female photography on Qwen/Qwen-Image.",
+    "_comment_model": "Base model: Qwen/Qwen-Image (QwenImagePipeline via DiffusionPipeline). LoRA was trained for this architecture.",
+    "_comment_trigger": "TRIGGER WORD: prompts should start with 'HMFemme, an amateur photo taken from a smartphone camera'.",
+    "_comment_prompting": "Use very descriptive prompts. Include lighting, pose, clothing, setting, camera angle for best results.",
+    "_comment_cfg": "Qwen-Image uses true_cfg_scale (not guidance_scale). 4.0 is the recommended default.",
+    "_comment_steps": "50 steps recommended (Qwen-Image is not a distilled model). Author recommends pairing with Qwen Breasts LoRA.",
+    "_comment_size": "1328x1328 is the native 1:1 resolution. 1664x928 (16:9) and 928x1664 (9:16) also supported.",
+    "pipeline_type": "qwen",
+    "model_id": "Qwen/Qwen-Image",
+    "adapter_id": null,
+    "lora_id": "burnerbaby/hmfemme-realistic-1girl-lora-for-qwen",
+    "lora_scale": 0.9,
+    "trigger_word": "HMFemme, an amateur photo taken from a smartphone camera",
+    "num_inference_steps": 50,
+    "true_cfg_scale": 4.0,
+    "width": 1328,
+    "height": 1328,
+    "_comment_offload": "Enable on ≤16 GB VRAM. Qwen-Image is a large model (~20B params), offload strongly recommended.",
+    "sequential_cpu_offload": true
+}

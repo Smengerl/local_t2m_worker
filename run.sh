@@ -19,12 +19,14 @@ Options:
       --lora-scale FLOAT     Override LoRA scale from config
       --steps N              Override inference steps from config
       --guidance-scale FLOAT Override guidance scale from config
+      --queue                Add job to batch queue instead of generating immediately
   -h, --help                 Show this help
 
 Examples:
   $0 "a sunset over the ocean"
   $0 -c configs/sdxl_graffiti_lora.json -o outputs/dragon.png "graffiti mural of a dragon"
   $0 -c configs/sd15_default.json --steps 50 --guidance-scale 8.0 "a cat"
+  $0 --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
 EOF
   exit 0
 }
@@ -50,54 +52,85 @@ else
   source "$VENV/bin/activate"
 fi
 
-# ── Optional: HF token login (needed for gated models) ───────────────────────
-# Priority order:
-#   1. .hf_token file in project root  (one line: your token)
-#   2. HF_TOKEN environment variable
-#   3. Interactive huggingface-cli login (if not already logged in)
+# ── Optional: HF token (needed for gated models like FLUX, SD3) ──────────────
+# diffusers reads HF_TOKEN from the environment automatically — no CLI login needed.
+# Priority: .hf_token file > HF_TOKEN env var > already cached credentials
 TOKEN_FILE="$SCRIPT_DIR/.hf_token"
-HF_CLI="$VENV/bin/huggingface-cli"
-
-if [[ ! -f "$HF_CLI" ]]; then
-  echo "⚠️  huggingface-cli not found – installing huggingface_hub..."
-  pip install huggingface_hub -q
-fi
 
 if [[ -f "$TOKEN_FILE" ]]; then
-  echo "🔑 Using HF token from .hf_token file..."
-  HF_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
-  "$HF_CLI" login --token "$HF_TOKEN" 2>/dev/null \
-    && echo "✅ Logged in to Hugging Face." \
-    || echo "⚠️  Token login failed – check .hf_token."
-elif [[ -n "$HF_TOKEN" ]]; then
-  echo "🔑 Using HF_TOKEN from environment..."
-  "$HF_CLI" login --token "$HF_TOKEN" 2>/dev/null \
-    && echo "✅ Logged in to Hugging Face." \
-    || echo "⚠️  Token login failed – check HF_TOKEN."
+  export HF_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
+  echo "🔑 HF token loaded from .hf_token."
+elif [[ -n "${HF_TOKEN:-}" ]]; then
+  echo "🔑 HF token found in environment."
 else
-  if ! "$HF_CLI" whoami &>/dev/null; then
-    echo "ℹ️  No HF token found. Launching interactive login..."
-    echo "    (skip with Ctrl+C if you only use public models)"
-    "$HF_CLI" login || true
-  else
-    echo "✅ Already logged in to Hugging Face ($("$HF_CLI" whoami 2>/dev/null | head -1))."
-  fi
+  echo "ℹ️  No HF token found — gated models (FLUX, SD3) will not be accessible."
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Run the generator ─────────────────────────────────────────────────────────
 echo "Python: $(which python)"
 
+# ── Strip --queue flag and collect remaining args ─────────────────────────────
+QUEUE=false
+PASSTHROUGH_ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "--queue" ]]; then
+    QUEUE=true
+  else
+    PASSTHROUGH_ARGS+=("$arg")
+  fi
+done
+
 # If no --config flag was given by the user, inject the default config
 has_config=0
-for arg in "$@"; do
+for arg in "${PASSTHROUGH_ARGS[@]}"; do
   [[ "$arg" == "--config" || "$arg" == "-c" ]] && has_config=1 && break
 done
 
-if [[ $has_config -eq 0 ]]; then
-  DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
-  echo "ℹ️  No --config specified, using default: $DEFAULT_CONFIG"
-  python "$SCRIPT_DIR/generate.py" --config "$DEFAULT_CONFIG" "$@"
+if [[ "$QUEUE" == true ]]; then
+  # ── Queue mode: ensure worker is running, then hand off ───────────────────
+  WORKER_PID_FILE="$SCRIPT_DIR/batch/worker.pid"
+  WORKER_LOG="$SCRIPT_DIR/batch/worker.log"
+
+  _worker_running() {
+    [[ -f "$WORKER_PID_FILE" ]] || return 1
+    local pid
+    pid=$(cat "$WORKER_PID_FILE")
+    kill -0 "$pid" 2>/dev/null
+  }
+
+  if _worker_running; then
+    echo "✅ Worker already running (pid $(cat "$WORKER_PID_FILE"))."
+  else
+    echo "🚀 Worker not running — starting it in the background..."
+    nohup python -m batch.worker >> "$WORKER_LOG" 2>&1 &
+    STARTED_WORKER_PID=$!
+    # Give it a moment to write its PID file before we proceed
+    for i in {1..10}; do
+      sleep 0.3
+      _worker_running && break
+    done
+    if _worker_running; then
+      echo "✅ Worker started (pid $(cat "$WORKER_PID_FILE"), log: $WORKER_LOG)."
+    else
+      echo "⚠️  Worker may not have started correctly — check $WORKER_LOG"
+    fi
+  fi
+
+  echo "📋 Adding job to batch queue..."
+  if [[ $has_config -eq 0 ]]; then
+    DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
+    python -m batch.enqueue --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
+  else
+    python -m batch.enqueue "${PASSTHROUGH_ARGS[@]}"
+  fi
 else
-  python "$SCRIPT_DIR/generate.py" "$@"
+  # ── Direct mode: generate immediately ─────────────────────────────────────
+  if [[ $has_config -eq 0 ]]; then
+    DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
+    echo "ℹ️  No --config specified, using default: $DEFAULT_CONFIG"
+    python "$SCRIPT_DIR/generate.py" --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
+  else
+    python "$SCRIPT_DIR/generate.py" "${PASSTHROUGH_ARGS[@]}"
+  fi
 fi

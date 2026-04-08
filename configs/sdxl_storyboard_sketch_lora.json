@@ -2,7 +2,7 @@
     "description": "SDXL 1.0 + Storyboard Sketch LoRA — grayscale film/TV storyboard style",
     "_comment": "LoRA by blink7630. Trained on 60 grayscale storyboard sketches at 21:9, 16:9 and 1:1 ratios.",
     "_comment_trigger": "TRIGGER WORD REQUIRED: prefix every prompt with 'storyboard sketch of ...'",
-    "_comment_scale": "1.0 = most abstract sketch; 0.8 = best balance of style + coherence; 0.5 = detailed/realistic.",
+    "_comment_lora_scale": "1.0 = most abstract sketch; 0.8 = best balance of style + coherence; 0.5 = detailed/realistic.",
     "_comment_steps": "30 steps is sufficient. More steps do not noticeably improve sketch quality.",
     "_comment_cfg": "CFG 7–8. Higher values increase prompt adherence but can over-sharpen lines.",
     "_comment_ar": "21:9 (e.g. 1344x576) and 16:9 (1344x768) match the training data aspect ratios.",

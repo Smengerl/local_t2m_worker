@@ -1,0 +1,23 @@
+{
+    "description": "SDXL 1.0 + Watercolor Style LoRA (ostris) — converts any prompt into a watercolor painting",
+    "_comment": "LoRA trained by ostris on SDXL 1.0 base. Transforms any subject into watercolor art without requiring a trigger word.",
+    "_comment_trigger": "No trigger word needed — the LoRA activates on any prompt at lora_scale 1.0.",
+    "_comment_lora_scale": "1.0 is the recommended default per model card. Increase or decrease as needed for stronger/subtler style.",
+    "_comment_steps": "SDXL default range 30–50 steps. 30 is sufficient for LoRA styles.",
+    "_comment_cfg": "CFG 7.5 is a safe SDXL default. Range 5–9 works well.",
+    "_comment_negative": "Negatives are generally not needed. 'blurry, low quality' can help if quality is poor.",
+    "_comment_size": "SDXL native resolution is 1024x1024.",
+    "_comment_offload": "Enable on ≤16 GB unified memory to avoid OOM.",
+    "_comment_license": "apache-2.0 — commercial use allowed.",
+    "pipeline_type": "sdxl",
+    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
+    "adapter_id": null,
+    "lora_id": "ostris/watercolor_style_lora_sdxl",
+    "lora_scale": 1.0,
+    "trigger_word": null,
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "width": 1024,
+    "height": 1024,
+    "sequential_cpu_offload": true
+}

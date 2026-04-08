@@ -1,0 +1,23 @@
+{
+    "description": "ColoringBook Redmond (artificialguybr) — coloring book / line art LoRA for SD 2.1",
+    "_comment": "LoRA by artificialguybr. Trained on SD 2.1 base (512px). Outputs clean coloring-book line art with blank fill areas.",
+    "_comment_model": "Original stabilityai/stable-diffusion-2-1-base repo was removed by Stability AI. Using community mirror Manojb/stable-diffusion-2-1-base (55k downloads/month).",
+    "_comment_trigger": "Trigger words: include both 'Coloring Book' and 'ColoringBookAF' in every prompt.",
+    "_comment_prompt": "Use simple subject descriptions: 'A cute owl, Coloring Book, ColoringBookAF', 'A lion, Coloring Book, ColoringBookAF', 'Mandala, Coloring Book, ColoringBookAF'.",
+    "_comment_negative": "Not required; 'shaded, colored, gradients' can help enforce clean black-and-white line output.",
+    "_comment_steps": "30 steps is the recommended default per the model card examples.",
+    "_comment_cfg": "CFG 7.5 per model card examples. Range 6–9 works.",
+    "_comment_lora_scale": "Default 0.9. Lower values (0.7) reduce line-art effect; 1.0 gives maximum coloring-book look.",
+    "_comment_size": "SD 2.1 base native resolution is 512x512. 768x768 also supported.",
+    "pipeline_type": "sd",
+    "model_id": "Manojb/stable-diffusion-2-1-base",
+    "adapter_id": null,
+    "lora_id": "artificialguybr/coloringbook-redmond-2-1v-coloring-book-lora-for-freedomredmond-sd-2-1",
+    "lora_scale": 0.9,
+    "trigger_word": "Coloring Book, ColoringBookAF",
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "width": 512,
+    "height": 512,
+    "sequential_cpu_offload": false
+}

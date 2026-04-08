@@ -4,7 +4,12 @@ Pipeline factory — maps pipeline_type strings to concrete BasePipeline classes
 Usage:
     from pipelines import create_pipeline
 
-    pipeline = create_pipeline(cfg)
+    pipeline = create_pipeline(
+        pipeline_type="sd",
+        model_id="stable-diffusion-v1-5/stable-diffusion-v1-5",
+        cache_dir="models",
+        ...
+    )
     image = pipeline.generate(prompt, negative_prompt)
 
 Adding a new backend:
@@ -12,6 +17,10 @@ Adding a new backend:
   2. Add an entry to _REGISTRY below
 """
 
+import importlib
+from typing import Optional
+
+from pipeline_config import PipelineConfig
 from pipelines.base import BasePipeline
 
 # Maps the "pipeline_type" config value to its implementation class.
@@ -20,38 +29,39 @@ from pipelines.base import BasePipeline
 _REGISTRY: dict[str, str] = {
     "sd":     "pipelines.sd_pipeline.StableDiffusionBackend",
     "sdxl":   "pipelines.sd_pipeline.StableDiffusionBackend",
-    "anima":  "pipelines.anima_pipeline.AnimaPipeline",
+    "sd3":    "pipelines.sd_pipeline.StableDiffusionBackend",
+    "flux":   "pipelines.flux_pipeline.FluxBackend",
     "zimage": "pipelines.zimage_pipeline.ZImageBackend",
+    "qwen":   "pipelines.qwen_pipeline.QwenImageBackend",
 }
 
 
-def create_pipeline(cfg: dict) -> BasePipeline:
-    """Instantiate and return the pipeline requested by cfg["pipeline_type"].
+def create_pipeline(cfg: PipelineConfig) -> BasePipeline:
+    """Instantiate and return the pipeline described by *cfg*.
+
+    The concrete class is selected from ``_REGISTRY`` using
+    ``cfg.pipeline_type`` and loaded lazily to avoid importing heavy
+    dependencies (torch, diffusers) until actually needed.
 
     Args:
-        cfg: Fully resolved configuration dict (from cli.build_config).
-             Must contain the key "pipeline_type".
+        cfg: Fully resolved pipeline configuration.
 
     Returns:
         A ready-to-use BasePipeline instance.
 
     Raises:
-        KeyError: If "pipeline_type" is missing from cfg.
-        ValueError: If the pipeline_type value is not registered.
+        ValueError: If ``cfg.pipeline_type`` is not registered.
     """
-    pipeline_type: str = cfg["pipeline_type"].lower()
-
-    dotted = _REGISTRY.get(pipeline_type)
+    dotted = _REGISTRY.get(cfg.pipeline_type)
     if dotted is None:
         known = ", ".join(sorted(_REGISTRY))
         raise ValueError(
-            f"Unknown pipeline_type {pipeline_type!r}. "
+            f"Unknown pipeline_type {cfg.pipeline_type!r}. "
             f"Known types: {known}"
         )
 
     # Lazy import: split "module.path.ClassName" and import on demand
     module_path, class_name = dotted.rsplit(".", 1)
-    import importlib
     module = importlib.import_module(module_path)
     cls: type[BasePipeline] = getattr(module, class_name)
 

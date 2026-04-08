@@ -1,0 +1,22 @@
+{
+    "description": "FLUX.1-schnell (Black Forest Labs) — 12B rectified-flow transformer, 4-step distillation",
+    "_comment": "FLUX.1-schnell is a 12-billion parameter rectified-flow DiT distilled for 1–4 step inference. Apache-2.0 license — commercial use allowed. Gated model: requires accepting license on HuggingFace and a valid HF token in .hf_token.",
+    "_comment_guidance": "CRITICAL: guidance_scale MUST be 0.0 for FLUX.1-schnell. It is latent-adversarial-distilled (same principle as SDXL-Turbo) — any positive CFG scale degrades quality.",
+    "_comment_steps": "Model card: 1–4 steps. 4 steps gives the best quality/speed balance. 1 step is sufficient for rough drafts.",
+    "_comment_size": "FLUX natively supports arbitrary resolutions up to ~1 MP. 1024x1024 is the standard. 512x512–1024x1024 all work well.",
+    "_comment_dtype": "bfloat16 is used automatically (hardcoded in flux_pipeline.py). Avoids NaN instabilities that float16 can cause in the FLUX transformer.",
+    "_comment_offload": "STRONGLY RECOMMENDED on ≤16 GB unified memory. The FLUX transformer is ~12 GB in bfloat16. With sequential offload generation runs at ~16 GB peak at the cost of throughput.",
+    "_comment_token": "Gated model — you must agree to the license on https://huggingface.co/black-forest-labs/FLUX.1-schnell and store your HF token in .hf_token before first use.",
+    "_comment_negative": "Negative prompts have no effect at guidance_scale=0.0 and are silently ignored.",
+    "pipeline_type": "flux",
+    "model_id": "black-forest-labs/FLUX.1-schnell",
+    "adapter_id": null,
+    "lora_id": null,
+    "lora_scale": 0.9,
+    "trigger_word": null,
+    "num_inference_steps": 4,
+    "guidance_scale": 0.0,
+    "width": 1024,
+    "height": 1024,
+    "sequential_cpu_offload": true
+}

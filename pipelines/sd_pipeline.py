@@ -1,43 +1,33 @@
 """
-Stable Diffusion pipeline backend (SD 1.5 and SDXL).
+Stable Diffusion pipeline backend (SD 1.5, SDXL, and SD3).
 
-Handles both pipeline variants via a model_id heuristic:
-  - model_id containing "xl"  →  StableDiffusionXLPipeline
-  - everything else           →  StableDiffusionPipeline
+Handles pipeline variants via pipeline_type or model_id heuristic:
+  - pipeline_type "sd3"        →  StableDiffusion3Pipeline
+  - model_id containing "xl"   →  StableDiffusionXLPipeline
+  - everything else             →  StableDiffusionPipeline
 
 Supports optional LoRA weights and memory-saving CPU offload mode.
-
-Required config keys:
-  model_id              str   HF repo ID or local path of the base model
-  pipeline_type         str   "sd" or "sdxl"
-  adapter_id            str|null  HF repo ID / local path for an adapter (ControlNet, refiner, …), or null
-  lora_id               str|null  HF repo ID / local path for LoRA weights, or null
-  lora_scale            float  LoRA blending strength (0–1)
-  num_inference_steps   int
-  guidance_scale        float
-  width                 int
-  height                int
-  cache_dir             str
-  sequential_cpu_offload bool  enable on MPS/CUDA with ≤16 GB unified memory
 """
 
 from typing import Callable, Optional
 
 import torch
-from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
+from diffusers import StableDiffusion3Pipeline, StableDiffusionPipeline, StableDiffusionXLPipeline
+from huggingface_hub import hf_hub_download
 from PIL import Image
 
 from pipelines.base import BasePipeline
+from pipeline_config import PipelineConfig
 
-_DiffusersPipe = StableDiffusionPipeline | StableDiffusionXLPipeline
+_DiffusersPipe = StableDiffusionPipeline | StableDiffusionXLPipeline | StableDiffusion3Pipeline
 
 
 class StableDiffusionBackend(BasePipeline):
     """Diffusers-based backend for SD 1.5 and Stable Diffusion XL."""
 
-    def __init__(self, cfg: dict) -> None:
+    def __init__(self, cfg: PipelineConfig) -> None:
         super().__init__(cfg)
-        self._pipe = self._load(cfg)
+        self._pipe = self._load()
 
     # ── public ───────────────────────────────────────────────────────────────
 
@@ -47,14 +37,14 @@ class StableDiffusionBackend(BasePipeline):
         negative_prompt: str = "",
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Image.Image:
-        total = int(self.cfg["num_inference_steps"])
+        total = self.num_inference_steps
         kwargs: dict = dict(
             prompt=prompt,
             negative_prompt=negative_prompt,
             num_inference_steps=total,
-            guidance_scale=float(self.cfg["guidance_scale"]),
-            width=int(self.cfg.get("width", 512)),
-            height=int(self.cfg.get("height", 512)),
+            guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
         )
 
         if progress_callback is not None:
@@ -68,50 +58,68 @@ class StableDiffusionBackend(BasePipeline):
 
     # ── private ──────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _get_device() -> torch.device:
-        if torch.cuda.is_available():
-            print("Using device: CUDA")
-            return torch.device("cuda")
-        if torch.backends.mps.is_available():
-            print("Using device: MPS (Apple Silicon)")
-            return torch.device("mps")
-        print("Using device: CPU (this will be slow)")
-        return torch.device("cpu")
+    def _is_sd3(self) -> bool:
+        return self.pipeline_type == "sd3"
 
     @staticmethod
     def _is_xl(model_id: str) -> bool:
         return "xl" in model_id.lower()
 
-    def _load(self, cfg: dict) -> _DiffusersPipe:
-        model_id: str = cfg["model_id"]
-        cache_dir: str = cfg["cache_dir"]
-        adapter_id: Optional[str] = cfg.get("adapter_id") or None
-        lora_id: Optional[str] = cfg.get("lora_id") or None
-        lora_scale: float = float(cfg.get("lora_scale", 0.9))
-        sequential_offload: bool = bool(cfg.get("sequential_cpu_offload", False))
+    def _load(self) -> _DiffusersPipe:
+        if self.adapter_id:
+            self._log(f"⚠️  adapter_id={self.adapter_id!r} is set but adapter support is not yet implemented — ignored.")
 
-        is_xl = self._is_xl(model_id)
-        pipeline_cls = StableDiffusionXLPipeline if is_xl else StableDiffusionPipeline
-        label = "SDXL" if is_xl else "SD"
+        is_sd3 = self._is_sd3()
+        is_xl = (not is_sd3) and self._is_xl(self.model_id)
+
+        if is_sd3:
+            pipeline_cls: type = StableDiffusion3Pipeline
+            label = "SD3"
+        elif is_xl:
+            pipeline_cls = StableDiffusionXLPipeline
+            label = "SDXL"
+        else:
+            pipeline_cls = StableDiffusionPipeline
+            label = "SD"
+
         device = self._get_device()
 
-        print(f"Loading {label} base model: {model_id} ...")
+        self._log(f"Loading {label} base model: {self.model_id} ...")
 
-        # float16 on MPS can produce NaN values → black images; float32 is stable
-        dtype = torch.float16 if device.type == "cuda" else torch.float32
+        # SD3 on MPS: float16 is best supported; float32 would OOM on 16 GB
+        # SD/SDXL on MPS: float16 can produce NaN → use float32
+        if device.type == "cuda":
+            dtype = torch.float16
+        elif is_sd3 and device.type == "mps":
+            dtype = torch.float16
+        else:
+            dtype = torch.float32
 
-        kwargs: dict = dict(torch_dtype=dtype, cache_dir=cache_dir)
-        if not is_xl:
-            kwargs["safety_checker"] = None
-            kwargs["requires_safety_checker"] = False
+        load_kwargs: dict = dict(torch_dtype=dtype, cache_dir=self.cache_dir)
+        if not is_xl and not is_sd3:
+            load_kwargs["safety_checker"] = None
+            load_kwargs["requires_safety_checker"] = False
 
-        pipe = pipeline_cls.from_pretrained(model_id, **kwargs)
+        if self.weight_name:
+            # Single-file checkpoint — download to local cache first, then load
+            # from the local path. from_single_file() with a URL internally calls
+            # _get_model_file(repo_id, weights_name) which re-appends resolve/main/,
+            # causing a double-path 404. Using hf_hub_download avoids this.
+            self._log(f"Downloading single-file checkpoint: {self.model_id}/{self.weight_name} ...")
+            local_path = hf_hub_download(
+                repo_id=self.model_id,
+                filename=self.weight_name,
+                cache_dir=self.cache_dir,
+            )
+            self._log(f"Loading from local cache: {local_path} ...")
+            pipe = pipeline_cls.from_single_file(local_path, **load_kwargs)
+        else:
+            pipe = pipeline_cls.from_pretrained(self.model_id, **load_kwargs)
 
-        if sequential_offload:
+        if self.sequential_cpu_offload:
             # Offloads submodules to CPU between ops; cuts peak memory ~50 %.
             # Must be called before .to(device).
-            print("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
+            self._log("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
             pipe.enable_sequential_cpu_offload()
         else:
             pipe = pipe.to(device)
@@ -120,10 +128,56 @@ class StableDiffusionBackend(BasePipeline):
         pipe.vae.enable_tiling()
         pipe.vae.enable_slicing()
 
-        if lora_id:
-            print(f"Loading LoRA weights: {lora_id}  (scale={lora_scale}) ...")
-            pipe.load_lora_weights(lora_id, cache_dir=cache_dir)
-            pipe.fuse_lora(lora_scale=lora_scale)
-            print("LoRA weights fused successfully.")
+        if self.lora_id:
+            self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
+            lora_kwargs: dict = {"cache_dir": self.cache_dir}
+            if self.weight_name:
+                lora_kwargs["weight_name"] = self.weight_name
+                self._log(f"  Using specific weight file: {self.weight_name}")
+            try:
+                pipe.load_lora_weights(self.lora_id, **lora_kwargs)
+            except RuntimeError as exc:
+                if "size mismatch" not in str(exc):
+                    raise
+                # Legacy LoRA files (old diffusers) store proj_in/proj_out as
+                # 4-D conv tensors [out, in, 1, 1] instead of 2-D linear [out, in].
+                # Download, squeeze the extra dimensions, save to a temp file, then reload.
+                self._log("⚠️  Legacy LoRA format detected (4-D conv weights). Patching and retrying ...")
+                patched_path = self._download_and_patch_lora(self.lora_id)
+                pipe.load_lora_weights(patched_path)
+            pipe.fuse_lora(lora_scale=self.lora_scale)
+            self._log("LoRA weights fused successfully.")
 
         return pipe
+
+    def _download_and_patch_lora(self, lora_id: str) -> str:
+        """Download a legacy LoRA (4-D conv proj weights) and return a path to a
+        patched copy with squeezed 2-D linear weights that modern diffusers expects."""
+        import tempfile
+        from huggingface_hub import hf_hub_download, list_repo_files
+        from safetensors.torch import load_file, save_file
+
+        # Find the first .safetensors file in the repo
+        safetensors_files = [f for f in list_repo_files(lora_id) if f.endswith(".safetensors")]
+        if not safetensors_files:
+            raise RuntimeError(f"No .safetensors file found in LoRA repo: {lora_id}")
+        weight_name = safetensors_files[0]
+
+        local_path = hf_hub_download(
+            repo_id=lora_id,
+            filename=weight_name,
+            cache_dir=self.cache_dir,
+        )
+
+        state_dict = load_file(local_path)
+        patched: dict[str, torch.Tensor] = {}
+        for key, tensor in state_dict.items():
+            # Squeeze trailing 1x1 spatial dims: [out, in, 1, 1] → [out, in]
+            if tensor.ndim == 4 and tensor.shape[-2:] == (1, 1):
+                tensor = tensor.squeeze(-1).squeeze(-1)
+            patched[key] = tensor
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".safetensors", delete=False)
+        save_file(patched, tmp.name)
+        self._log(f"Patched LoRA saved to temp file: {tmp.name}")
+        return tmp.name

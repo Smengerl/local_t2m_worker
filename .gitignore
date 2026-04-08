@@ -20,3 +20,5 @@ models/
 
 # internal cache
 queue.jsonl
+batch/worker.log
+batch/worker.pid

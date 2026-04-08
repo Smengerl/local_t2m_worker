@@ -6,7 +6,7 @@
     "_comment_negative": "Negatives usually not needed; 'blurry, low quality' can help if output is soft.",
     "_comment_steps": "30 steps at CFG 7.5 is the recommended starting point per the model card.",
     "_comment_cfg": "CFG 5–8. The model card examples use 7.5; lower values give softer lines.",
-    "_comment_scale": "lora_scale 1.0 gives the strongest IKEA style effect per model card.",
+    "_comment_lora_scale": "lora_scale 1.0 gives the strongest IKEA style effect per model card.",
     "_comment_size": "SDXL native resolution 1024x1024.",
     "pipeline_type": "sdxl",
     "model_id": "stabilityai/stable-diffusion-xl-base-1.0",

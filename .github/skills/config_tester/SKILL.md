@@ -58,7 +58,6 @@ fields from the config as guidance.
 | Style suggests manga / black & white | `"a samurai in a bamboo forest, black and white manga style"` |
 | `pipeline_type` is `zimage` | `"a close-up portrait of a person, sharp focus, photorealistic"` |
 | `pipeline_type` is `qwen` | `"a scenic landscape at sunrise, soft light, high detail"` |
-| `pipeline_type` is `anima` | `"a fantasy character in an enchanted forest, anime style"` |
 
 Keep the prompt under 30 words to minimise generation time.
 

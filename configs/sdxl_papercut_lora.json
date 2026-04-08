@@ -1,0 +1,22 @@
+{
+    "description": "SDXL 1.0 + Papercut LoRA (TheLastBen) — paper-cut / scherenschnitt craft style",
+    "_comment": "SDXL LoRA trained by TheLastBen using fast-stable-diffusion SDXL trainer. Renders subjects in a decorative paper-cut / scherenschnitt craft aesthetic.",
+    "_comment_trigger": "TRIGGER WORD: prepend 'papercut' before the subject. Format: 'papercut <subject/scene>'. Example: 'papercut forest with deer'.",
+    "_comment_steps": "SDXL default range 30–50 steps. 30 is sufficient for LoRA styles.",
+    "_comment_cfg": "CFG 7.5 is a safe SDXL default.",
+    "_comment_lora_scale": "0.9 is a safe default. 1.0 gives maximum papercut effect.",
+    "_comment_size": "SDXL native resolution is 1024x1024.",
+    "_comment_offload": "Enable on ≤16 GB unified memory to avoid OOM.",
+    "_comment_license": "creativeml-openrail-m",
+    "pipeline_type": "sdxl",
+    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
+    "adapter_id": null,
+    "lora_id": "TheLastBen/Papercut_SDXL",
+    "lora_scale": 0.9,
+    "trigger_word": "papercut",
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "width": 1024,
+    "height": 1024,
+    "sequential_cpu_offload": true
+}

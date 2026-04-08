@@ -8,6 +8,7 @@
     "_comment_cfg": "CFG 7.5 per official diffusers example. Range 5–9 works.",
     "_comment_size": "768x768 is the recommended output size per the model card (the 768 version).",
     "_comment_downscale": "For authentic sprites: downscale the 768x768 output by 8x to 96x96 in any image editor.",
+    "_comment_lora_scale": "lora_scale 1.0 gives the full sprite style. Lower values (0.8–0.9) blend trainer features with the base SDXL style.",
     "pipeline_type": "sdxl",
     "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
     "adapter_id": null,

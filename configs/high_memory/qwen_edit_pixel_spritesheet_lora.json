@@ -1,0 +1,23 @@
+{
+    "description": "Qwen-Image-Edit-2511 + pixel spritesheet LoRA — 32×48 RPG walk/combat spritesheets",
+    "_comment": "LoRA by svntax-dev. Generates 6×4 pixel art spritesheets (walk 4 directions + 2 attack + 1 hurt frames per row) for 32×48 game characters.",
+    "_comment_model": "Base model: Qwen/Qwen-Image-Edit-2511 (QwenImageEditPlusPipeline). This is an IMAGE-TO-IMAGE model — it requires an input reference image. NOT supported by the current 'qwen' pipeline type (which uses QwenImagePipeline for text-to-image). Needs a new 'qwen_edit' pipeline_type.",
+    "_comment_trigger": "No fixed trigger word. Describe the spritesheet layout explicitly in the prompt (see _comment_prompt).",
+    "_comment_prompt": "Full layout prompt: 'Create a pixel art spritesheet of the character in the image. Keep the appearance the same. The spritesheet is a 6 by 4 grid of four rows and six columns of frames - First row is 3 walking frames facing down, 2 arm swing attack frames facing down, and 1 hurt frame facing down. Second row is 3 walking frames facing left, 2 arm swing attack frames facing left, and 1 hurt frame facing left. Third row is 3 walking frames facing right, 2 arm swing attack frames facing right, and 1 hurt frame facing right. Fourth row is 3 walking frames back view facing up, 2 arm swing attack frames back view facing up, and 1 hurt frame back view facing up.'",
+    "_comment_size": "768×768 is the training resolution for the spritesheets. For pixel-perfect output, downscale by 4× to 192×192 using k-centroid scaling.",
+    "_comment_cfg": "Qwen-Image-Edit uses true_cfg_scale=4.0 and guidance_scale=1.0 per official model card.",
+    "_comment_steps": "40 steps recommended per official Qwen-Image-Edit-2511 model card.",
+    "_comment_offload": "Qwen-Image-Edit-2511 is a large model (~20B params). Sequential CPU offload required on ≤16 GB VRAM.",
+    "pipeline_type": "qwen_edit",
+    "model_id": "Qwen/Qwen-Image-Edit-2511",
+    "adapter_id": null,
+    "lora_id": "svntax-dev/pixel_spritesheet_4walk_combat_32x48_v1",
+    "lora_scale": 0.9,
+    "trigger_word": null,
+    "num_inference_steps": 40,
+    "true_cfg_scale": 4.0,
+    "guidance_scale": 1.0,
+    "width": 768,
+    "height": 768,
+    "sequential_cpu_offload": true
+}

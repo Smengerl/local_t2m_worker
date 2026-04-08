@@ -17,22 +17,23 @@ Usage:
 
 import argparse
 import logging
+import os
 import re
 import sys
 import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # ── Make sure the project root is on sys.path when run as a module ────────────
 _ROOT = Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from batch.queue import mark_done, mark_failed, mark_running, next_pending, update_job, append_log
-from cli import build_config, load_config
-from pipelines import create_pipeline
+from batch.queue import mark_done, mark_failed, mark_running, next_pending, update_job, append_log, set_worker_pid
+from generate import generate_image
+from pipeline_config import PipelineConfig
 
 logging.basicConfig(
     level=logging.INFO,
@@ -136,43 +137,14 @@ class _StderrCapture:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _cache_key(job: dict[str, Any]) -> tuple:
-    """Key that identifies a unique pipeline configuration."""
-    return (
-        job["config"],
-        job.get("model_id"),
-        job.get("adapter_id"),
-        job.get("lora_id"),
-        job.get("lora_scale"),
-    )
-
-
-def _build_fake_args(job: dict[str, Any]):
-    """Build an argparse.Namespace from a queue job (mirrors parse_args output)."""
-    import argparse
-    return argparse.Namespace(
-        config=job["config"],
-        prompt=job["prompt"],
-        negative_prompt=job.get("negative_prompt") or "",
-        output=job.get("output"),
-        output_dir=job.get("output_dir"),
-        cache_dir=job.get("cache_dir"),
-        model_id=job.get("model_id"),
-        adapter_id=job.get("adapter_id"),
-        lora_id=job.get("lora_id"),
-        lora_scale=job.get("lora_scale"),
-        steps=job.get("steps"),
-        guidance_scale=job.get("guidance_scale"),
-    )
-
-
 def process_job(
     job: dict[str, Any],
     pipeline_cache: dict[tuple, Any],
 ) -> str:
     """Run a single job. Returns the result path. Raises on failure."""
-    log.info("Starting job %s  prompt=%r  config=%s", job["id"][:8], job["prompt"], job["config"])
+    log.info("Starting job %s  prompt=%r", job["id"][:8], job["prompt"])
     mark_running(job["id"])
+    set_worker_pid(job["id"], os.getpid())
 
     # ── attach per-job log handler to the root logger (captures all libs) ──
     job_handler = _JobLogHandler(job["id"])
@@ -185,32 +157,25 @@ def process_job(
     sys.stderr = _StderrCapture(job["id"], real_stderr)
 
     try:
-        args = _build_fake_args(job)
-        cfg, output_path = build_config(args)
+        cfg = PipelineConfig.from_dict(job["pipeline_config"])
 
-        key = _cache_key(job)
-        if key not in pipeline_cache:
-            log.info("Loading pipeline for key %s ...", key)
-            pipeline_cache.clear()           # free memory before loading new model
-            pipeline_cache[key] = create_pipeline(cfg)
-            log.info("Pipeline loaded.")
+        # Resolve output path: use explicit path from job or auto-generate.
+        if job.get("output"):
+            output_path = job["output"]
         else:
-            log.info("Reusing cached pipeline.")
+            from datetime import datetime
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = str(Path(cfg.output_dir) / f"{ts}.png")
 
-        pipeline = pipeline_cache[key]
+        effective_prompt = job["prompt"]
+        negative_prompt = job.get("negative_prompt") or ""
 
-        # ── progress callback: writes live step counter into queue.jsonl ──────
         job_id = job["id"]
 
         def _progress(step: int, total: int) -> None:
             update_job(job_id, progress_step=step, progress_total=total)
 
-        image = pipeline.generate(
-            prompt=cfg["_effective_prompt"],
-            negative_prompt=args.negative_prompt,
-            progress_callback=_progress,
-        )
-        image.save(output_path)
+        generate_image(cfg, output_path, effective_prompt, negative_prompt, pipeline_cache=pipeline_cache, progress_callback=_progress)
         log.info("Job %s done → %s", job["id"][:8], output_path)
         return output_path
     finally:
@@ -221,6 +186,18 @@ def process_job(
 def run_worker(poll_interval: int = 5, run_once: bool = False) -> None:
     """Main worker loop."""
     log.info("Worker started (poll_interval=%ds, run_once=%s)", poll_interval, run_once)
+
+    # Write PID file so external tools (e.g. run.sh) can check if we're alive.
+    pid_file = _ROOT / "batch" / "worker.pid"
+    pid_file.write_text(str(os.getpid()))
+    try:
+        _run_worker_loop(poll_interval=poll_interval, run_once=run_once)
+    finally:
+        pid_file.unlink(missing_ok=True)
+
+
+def _run_worker_loop(poll_interval: int = 5, run_once: bool = False) -> None:
+    """Inner worker loop (separated so the PID file teardown is always clean)."""
     pipeline_cache: dict[tuple, Any] = {}
 
     while True:

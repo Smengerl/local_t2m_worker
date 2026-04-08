@@ -1,0 +1,21 @@
+{
+    "description": "Realistic Vision V6.0 B1 (SG161222) — hyperrealistic SD 1.5 fine-tune for photorealistic portraits",
+    "_comment": "SD 1.5 fine-tune aimed at photorealism and hyperrealism. 'B1' is the first beta of V6; the model card states it will be refined in future betas.",
+    "_comment_vae": "IMPORTANT: This is the noVAE variant — the baked VAE is stripped. Must be used with external VAE: stabilityai/sd-vae-ft-mse-original. Without it expect colour shifts and artifacts. (Not yet wired in this config — load manually or use the full-VAE variant when available.)",
+    "_comment_steps": "Model card recommends DPM++ SDE Karras with 25+ steps or DPM++ 2M SDE with 50+ steps. 30 steps is a solid default for good quality without being too slow.",
+    "_comment_cfg": "7.0 is a safe default. The model card does not specify a recommended CFG; common community range is 5–9.",
+    "_comment_size": "Model card recommends 896x896 for portraits, 768x1024 for half-body, 640x1152 for full body. 512x512 still works for drafts.",
+    "_comment_negative": "Model card recommended negative: '(deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime), text, cropped, out of frame, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck'",
+    "_comment_resolution_note": "Higher resolutions (768x1024, 896x896) give better quality per model card, but require more RAM. Use 512x512 if memory is tight.",
+    "pipeline_type": "sd",
+    "model_id": "SG161222/Realistic_Vision_V6.0_B1_noVAE",
+    "adapter_id": null,
+    "lora_id": null,
+    "lora_scale": 0.9,
+    "trigger_word": null,
+    "num_inference_steps": 30,
+    "guidance_scale": 7.0,
+    "width": 768,
+    "height": 768,
+    "sequential_cpu_offload": false
+}

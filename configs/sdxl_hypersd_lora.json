@@ -1,0 +1,14 @@
+{
+    "_comment": "Hyper-SD 8-step CFG-preserved LoRA for SDXL. Monorepo requires weight_name to pick the correct .safetensors. lora_scale=0.125 per model card recommendation. Ideal scheduler is DDIMScheduler with timestep_spacing='trailing' but the default SDXL scheduler also works. guidance_scale 5–8 is the valid range for this CFG-preserved variant.",
+    "description": "Hyper-SD 8-step acceleration LoRA for SDXL (CFG-preserved variant). Drastically reduces inference steps while keeping guidance scale support.",
+    "pipeline_type": "sdxl",
+    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
+    "lora_id": "ByteDance/Hyper-SD",
+    "weight_name": "Hyper-SDXL-8steps-CFG-lora.safetensors",
+    "lora_scale": 0.125,
+    "num_inference_steps": 8,
+    "guidance_scale": 5.0,
+    "width": 1024,
+    "height": 1024,
+    "sequential_cpu_offload": true
+}

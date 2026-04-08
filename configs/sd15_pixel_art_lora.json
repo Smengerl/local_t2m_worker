@@ -1,9 +1,9 @@
 {
     "description": "SD 1.5 + Pixel Art LoRA — pixel-art / 16-bit retro style",
     "_comment": "LoRA by SedatAl, trained on jainr3/diffusiondb-pixelart dataset using SD 1.5.",
-    "_comment_base": "Base model: stable-diffusion-v1-5/stable-diffusion-v1-5.",
+    "_comment_model": "Base model: stable-diffusion-v1-5/stable-diffusion-v1-5.",
     "_comment_trigger": "No dedicated trigger word. Use descriptive pixel-art vocabulary: 'pixel art', '16 bit', 'retro game sprite', '8-bit', etc.",
-    "_comment_prompt_examples": "Examples: 'pixel art dragon on a mountain', 'pixel art thor holding hammer', 'pixel art portrait, 16 bit, retro RPG'.",
+    "_comment_prompt": "Examples: 'pixel art dragon on a mountain', 'pixel art thor holding hammer', 'pixel art portrait, 16 bit, retro RPG'.",
     "_comment_steps": "50 steps for crisp pixel edges; 30 is sufficient for quick tests.",
     "_comment_cfg": "CFG 7–8 works well for SD 1.5 LoRAs.",
     "_comment_size": "SD 1.5 native resolution is 512x512. 640x640 and 768x768 also work.",

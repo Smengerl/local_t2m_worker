@@ -17,13 +17,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from pipeline_config import PipelineConfig
+
 # ── Default values ────────────────────────────────────────────────────────────
 # Lowest priority: overridden by config file, then by CLI flags.
 DEFAULTS: dict = {
     "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
     # pipeline_type is intentionally NOT listed here — it must be set
     # explicitly in every config file. Omitting it causes a clear error.
-    # Valid values: "sd" | "sdxl" | "anima"
+    # Valid values: "sd" | "sdxl" | "sd3" | "flux" | "zimage" | "qwen"
     "adapter_id": None,    # optional: HF repo ID / local path for an adapter (ControlNet, refiner, …)
     "lora_id": None,       # optional: HF repo ID / local path for LoRA weights
     "lora_scale": 0.9,
@@ -35,8 +37,7 @@ DEFAULTS: dict = {
     "output_dir": "outputs",
     "cache_dir": "models",
     # Offload model submodules to CPU between steps to save GPU/MPS memory.
-    # Slower, but necessary for SDXL on machines with ≤16 GB unified memory.
-    # Ignored for the anima pipeline_type.
+    # Slower, but necessary for SDXL / FLUX / SD3 on machines with ≤16 GB unified memory.
     "sequential_cpu_offload": False,
 }
 # ─────────────────────────────────────────────────────────────────────────────
@@ -184,94 +185,131 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_config(args: argparse.Namespace) -> tuple[dict, str]:
-    """Merge defaults → config file → CLI flags into a single config dict.
+def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, str]:
+    """Merge defaults → config file → CLI flags into a PipelineConfig.
 
     Args:
         args: Parsed argument namespace returned by parse_args().
 
     Returns:
-        A tuple of (cfg, output_path) where:
-          - cfg is the fully resolved configuration dict.
+        A tuple of (cfg, output_path, effective_prompt, negative_prompt) where:
+          - cfg is a PipelineConfig with all static pipeline parameters.
           - output_path is the resolved path for the output PNG file.
+          - effective_prompt is the prompt passed to the pipeline (trigger word
+            prepended if needed).
+          - negative_prompt is the negative prompt as supplied by the caller.
     """
     # 1. Load config file on top of defaults
-    cfg = load_config(args.config)
+    raw = load_config(args.config)
 
     # 2. Validate mandatory field — every config file must declare pipeline_type
-    if "pipeline_type" not in cfg:
+    if "pipeline_type" not in raw:
         raise KeyError(
             "'pipeline_type' is missing from the config file.\n"
             "Add it to your JSON config, e.g.:\n"
-            '  "pipeline_type": "sd"   # or "sdxl" / "anima"'
+            '  "pipeline_type": "sd"   # or "sdxl" / "sd3" / "flux" / "zimage" / "qwen"'
         )
 
     # 3. Apply explicit CLI overrides (only when the user actually passed them)
     if args.model_id is not None:
-        cfg["model_id"] = args.model_id
+        raw["model_id"] = args.model_id
     if args.adapter_id is not None:
-        cfg["adapter_id"] = args.adapter_id
+        raw["adapter_id"] = args.adapter_id
     if args.lora_id is not None:
-        cfg["lora_id"] = args.lora_id
+        raw["lora_id"] = args.lora_id
     if args.lora_scale is not None:
-        cfg["lora_scale"] = args.lora_scale
+        raw["lora_scale"] = args.lora_scale
     if args.steps is not None:
-        cfg["num_inference_steps"] = args.steps
+        raw["num_inference_steps"] = args.steps
     if args.guidance_scale is not None:
-        cfg["guidance_scale"] = args.guidance_scale
+        raw["guidance_scale"] = args.guidance_scale
     if args.output_dir is not None:
-        cfg["output_dir"] = args.output_dir
+        raw["output_dir"] = args.output_dir
     if args.cache_dir is not None:
-        cfg["cache_dir"] = args.cache_dir
+        raw["cache_dir"] = args.cache_dir
 
-    # 4. Trigger-word check — prepend automatically if missing from the prompt
-    trigger: Optional[str] = cfg.get("trigger_word") or None
-    prompt: str = args.prompt
-    if trigger and trigger.lower() not in prompt.lower():
+    # 4. Build the typed config from resolved values
+    cfg = PipelineConfig(
+        pipeline_type=str(raw["pipeline_type"]),
+        model_id=str(raw["model_id"]),
+        cache_dir=str(raw["cache_dir"]),
+        output_dir=str(raw["output_dir"]),
+        num_inference_steps=int(raw["num_inference_steps"]),
+        guidance_scale=float(raw["guidance_scale"]),
+        width=int(raw["width"]),
+        height=int(raw["height"]),
+        lora_scale=float(raw["lora_scale"]),
+        sequential_cpu_offload=bool(raw["sequential_cpu_offload"]),
+        adapter_id=raw.get("adapter_id") or None,
+        lora_id=raw.get("lora_id") or None,
+        trigger_word=raw.get("trigger_word") or None,
+        description=raw.get("description") or None,
+        true_cfg_scale=float(raw["true_cfg_scale"]) if raw.get("true_cfg_scale") is not None else None,
+        seed=int(raw["seed"]) if raw.get("seed") is not None else None,
+        weight_name=raw.get("weight_name") or None,
+    )
+
+    # 5. Trigger-word check — prepend automatically if missing from the prompt
+    effective_prompt: str = args.prompt
+    if cfg.trigger_word and cfg.trigger_word.lower() not in effective_prompt.lower():
         print(
-            f"⚠️  Trigger word {trigger!r} not found in prompt — "
+            f"⚠️  Trigger word {cfg.trigger_word!r} not found in prompt — "
             f"prepending it automatically."
         )
-        prompt = f"{trigger} {prompt}"
-    cfg["_effective_prompt"] = prompt  # resolved prompt passed to the pipeline
+        effective_prompt = f"{cfg.trigger_word} {effective_prompt}"
 
-    # 5. Resolve output path and ensure the directory exists
+    negative_prompt: str = args.negative_prompt
+
+    # 6. Resolve output path and ensure the directory exists
     if args.output:
         output_path = args.output
     else:
         # Auto-generate a timestamped filename so runs never overwrite each other.
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = os.path.join(cfg["output_dir"], f"{timestamp}.png")
+        output_path = os.path.join(cfg.output_dir, f"{timestamp}.png")
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
-    return cfg, output_path
+    return cfg, output_path, effective_prompt, negative_prompt
 
 
-def print_config(cfg: dict, args: argparse.Namespace, output_path: str) -> None:
+def print_config(
+    cfg: PipelineConfig,
+    output_path: str,
+    effective_prompt: str,
+    negative_prompt: str,
+    original_prompt: str,
+) -> None:
     """Print a human-readable summary of the effective configuration.
 
     Args:
-        cfg: Fully resolved configuration dict (from build_config).
-        args: Parsed argument namespace (for prompt / negative_prompt).
+        cfg: PipelineConfig (from build_config).
         output_path: Resolved output file path.
+        effective_prompt: Prompt passed to the pipeline (may have trigger word prepended).
+        negative_prompt: Negative prompt as supplied by the caller.
+        original_prompt: Prompt as supplied by the caller, before trigger-word prepend.
     """
-    print("── Effective configuration ──────────────────────────────────────")
-    if cfg.get("description"):
-        print(f"  description       : {cfg['description']}")
-    print(f"  pipeline_type     : {cfg.get('pipeline_type', 'sd')}")
-    print(f"  model_id          : {cfg['model_id']}")
-    print(f"  adapter_id        : {cfg['adapter_id'] or '(none)'}")
-    print(f"  lora_id           : {cfg['lora_id'] or '(none)'}")
-    print(f"  lora_scale        : {cfg['lora_scale']}")
-    if cfg.get("trigger_word"):
-        print(f"  trigger_word      : {cfg['trigger_word']!r}")
-    print(f"  steps             : {cfg['num_inference_steps']}")
-    print(f"  guidance_scale    : {cfg['guidance_scale']}")
-    print(f"  width x height    : {cfg.get('width', 512)} x {cfg.get('height', 512)}")
-    print(f"  cpu_offload       : {cfg['sequential_cpu_offload']}")
-    print(f"  prompt            : {cfg['_effective_prompt']!r}")
-    if cfg["_effective_prompt"] != args.prompt:
-        print(f"  prompt (original) : {args.prompt!r}")
-    print(f"  negative_prompt   : {args.negative_prompt!r}")
+    print("── Prompt ───────────────────────────────────────────────────────")
+    print(f"  prompt            : {effective_prompt!r}")
+    if effective_prompt != original_prompt:
+        print(f"  prompt (original) : {original_prompt!r}")
+    print(f"  negative_prompt   : {negative_prompt!r}")
+    print("── Output file ──────────────────────────────────────────────────")
     print(f"  output            : {output_path}")
+    print("── Pipeline configuration ───────────────────────────────────────")
+    if cfg.description:
+        print(f"  description       : {cfg.description}")
+    print(f"  pipeline_type     : {cfg.pipeline_type}")
+    print(f"  model_id          : {cfg.model_id}")
+    print(f"  adapter_id        : {cfg.adapter_id or '(none)'}")
+    print(f"  lora_id           : {cfg.lora_id or '(none)'}")
+    print(f"  lora_scale        : {cfg.lora_scale}")
+    if cfg.trigger_word:
+        print(f"  trigger_word      : {cfg.trigger_word!r}")
+    print(f"  steps             : {cfg.num_inference_steps}")
+    if cfg.true_cfg_scale is not None:
+        print(f"  true_cfg_scale    : {cfg.true_cfg_scale}")
+    else:
+        print(f"  guidance_scale    : {cfg.guidance_scale}")
+    print(f"  width x height    : {cfg.width} x {cfg.height}")
+    print(f"  cpu_offload       : {cfg.sequential_cpu_offload}")
     print("─────────────────────────────────────────────────────────────────")

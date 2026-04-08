@@ -1,0 +1,22 @@
+{
+    "description": "Z-Image-Turbo + Pornmaster LoRA — NSFW realism LoRA for Z-Image-Turbo",
+    "_comment": "LoRA by RomixERR. Unlocks NSFW/adult content potential of Z-Image-Turbo. Work in progress.",
+    "_comment_model": "Base model: Tongyi-MAI/Z-Image-Turbo.",
+    "_comment_trigger": "TRIGGER WORD: 'pronmstr' (intentional spelling) must appear in the prompt.",
+    "_comment_guidance": "Z-Image-Turbo is CFG-distilled → guidance_scale MUST be 0.0.",
+    "_comment_steps": "Author recommends 16–30 steps with Euler Beta or DPMPP_2s_SDE Beta sampler. 16 is used here as a fast default.",
+    "_comment_lora_scale": "Author recommends LoRA strength 0.7–0.85. 0.8 is a safe middle ground.",
+    "_comment_size": "Author recommends ~1–1.1 MP (1024×1024 = 1.05 MP). Results can be unpredictable.",
+    "_comment_offload": "Enable on ≤16 GB VRAM.",
+    "pipeline_type": "zimage",
+    "model_id": "Tongyi-MAI/Z-Image-Turbo",
+    "adapter_id": null,
+    "lora_id": "RomixERR/Pornmaster_v1-Z-Images-Turbo",
+    "lora_scale": 0.8,
+    "trigger_word": "pronmstr",
+    "num_inference_steps": 16,
+    "guidance_scale": 0.0,
+    "width": 1024,
+    "height": 1024,
+    "sequential_cpu_offload": true
+}
