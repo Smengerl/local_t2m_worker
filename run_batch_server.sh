@@ -16,8 +16,12 @@ PORT="${PORT:-8000}"
 # Activate virtual environment
 source "$SCRIPT_DIR/.venv/bin/activate"
 
+# Resolve python executable (venv may only provide python3 on some systems)
+PYTHON="$SCRIPT_DIR/.venv/bin/python"
+[[ -x "$PYTHON" ]] || PYTHON="$SCRIPT_DIR/.venv/bin/python3"
+
 echo "▶ Starting worker…"
-python -m batch.worker &
+"$PYTHON" -m batch.worker &
 WORKER_PID=$!
 
 # Make sure the worker is killed when this script exits
@@ -34,4 +38,4 @@ echo "▶ Starting web server on http://localhost:${PORT}"
 echo "   Press Ctrl-C to stop both."
 echo ""
 
-python -m batch.server --port "$PORT"
+"$PYTHON" -m batch.server --port "$PORT"
