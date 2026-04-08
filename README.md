@@ -241,3 +241,17 @@ inference_test/
 - **FLUX / SD3:** Gated models on HuggingFace — accept the license on the model page and store your token in `.hf_token`.
 - **Z-Image-Turbo:** `guidance_scale` must be `0.0` — CFG is baked into the distillation. Recommended steps: 8–16.
 - **SDXL on Mac:** Enable `"sequential_cpu_offload": true` in the config to avoid out-of-memory errors on 16 GB unified memory machines.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+> **Note:** The model weights used by this project have their own licenses (e.g. FLUX.1-dev is non-commercial). The MIT license covers only the code in this repository, not the model weights themselves.

@@ -18,16 +18,6 @@ Python project for running Hugging Face text-to-image models (Stable Diffusion) 
 - After a new config file has been created (by the skill or manually), **always suggest the `#config-tester` skill** as a next step:
   > 💡 You can verify the new config works with the `#config-tester` skill — it runs a quick smoke test and auto-fixes common issues.
 
-## Stack
-- Python 3.10+
-- `diffusers` (Hugging Face)
-- `transformers`
-- `torch` (PyTorch)
-- `Pillow`
-- `accelerate`
-- `peft` (LoRA support)
-- `huggingface_hub`
-
 ## README.md Maintenance Rules
 
 > **For Copilot:** when editing `README.md`, always keep the following sections in sync with the actual codebase:
