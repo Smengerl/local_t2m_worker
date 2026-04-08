@@ -44,14 +44,14 @@ Config files are JSON files passed via `--config` / `-c`. They describe which mo
 | `output_dir` | `"outputs"` | Directory for generated images |
 | `cache_dir` | `"models"` | Directory for downloaded model weights |
 | `seed` | `null` | Fixed RNG seed for reproducible results. `null` = random. |
-| `true_cfg_scale` | `null` | Secondary guidance scale used by some backends (e.g. FLUX-dev) |
+| `true_cfg_scale` | `null` | Secondary guidance scale used by some backends (e.g. Qwen-Image) |
 
 ## Adding a new config
 
 1. Copy an existing config that uses the same `pipeline_type`.
 2. Set `model_id` and optionally `lora_id`.
 3. Adjust `num_inference_steps`, `guidance_scale`, `width`, `height` per the model card.
-4. Enable `sequential_cpu_offload: true` for any SDXL / FLUX model on Mac.
+4. Enable `sequential_cpu_offload: true` for any SDXL / FLUX / SD3 model on Mac.
 5. Save to `configs/your_name.json` — it is picked up automatically by the web dashboard and `run.sh`.
 
 ---
@@ -65,22 +65,29 @@ Config files are JSON files passed via `--config` / `-c`. They describe which mo
 | `sd15_default.json` | — | — | 512×512 | SD 1.5 base — general-purpose text-to-image, ~4 GB RAM |
 | `sd15_dreamshaper8.json` | — | — | 512×512 | DreamShaper v8 — versatile fine-tune for fantasy, portraits, stylised realism |
 | `sd15_realistic_vision_v6.json` | — | — | 768×768 | Realistic Vision V6.0 B1 — hyperrealistic portrait / photorealism (noVAE variant) |
-| `sd15_inkpunk_lora.json` | — | `nvinkpunk` | 512×512 | Ink/punk illustration style (Gorillaz / FLCL aesthetic) |
+| `sd15_inkpunk_lora.json` | — | `nvinkpunk` | 512×512 | Inkpunk Diffusion — ink/punk illustration style (DreamBooth fine-tune) |
 | `sd15_pixel_art_lora.json` | SedatAl/pixel-art-LoRa | — | 512×512 | Pixel-art / 16-bit retro style |
-| `sd15_lazymix_amateur.json` | — | — | 512×512 | LazyMix realistic amateur photography fine-tune |
-| `sd15_comic_diffusion_*.json` | — | — | 512×512 | Comic-Diffusion v2 style fine-tunes (multiple artist variants) |
+| `sd15_lazymix_amateur.json` | — | — | 512×768 | LazyMix+ v4.0 — realistic amateur photography fine-tune |
+| `sd15_comic_diffusion_andreasrocha.json` | — | `andreasrocha artstyle` | 512×512 | Comic-Diffusion v2 — Andreas Rocha artstyle |
+| `sd15_comic_diffusion_charliebo.json` | — | `charliebo artstyle` | 512×512 | Comic-Diffusion v2 — Charlie Bo artstyle |
+| `sd15_comic_diffusion_holliemengert.json` | — | `holliemengert artstyle` | 512×512 | Comic-Diffusion v2 — Hollie Mengert artstyle |
+| `sd15_comic_diffusion_jamesdaly.json` | — | `jamesdaly artstyle` | 512×512 | Comic-Diffusion v2 — James Daly artstyle |
+| `sd15_comic_diffusion_marioalberti.json` | — | `marioalberti artstyle` | 512×512 | Comic-Diffusion v2 — Mario Alberti artstyle |
+| `sd15_comic_diffusion_pepelarraz.json` | — | `pepelarraz artstyle` | 512×512 | Comic-Diffusion v2 — Pepe Larraz artstyle |
 
 ### Stable Diffusion 2.1 (`pipeline_type: "sd"`)
 
 | File | LoRA / adapter | Trigger word | Size | Description |
 |---|---|---|---|---|
-| `sd21_coloringbook_redmond_lora.json` | — | `ColoringBookAF` | 768×768 | Coloring-book line-art style LoRA |
+| `sd21_coloringbook_redmond_lora.json` | artificialguybr/coloringbook-redmond-… | `ColoringBookAF` | 512×512 | Coloring-book line-art style LoRA for SD 2.1 |
 
 ### Stable Diffusion 3 (`pipeline_type: "sd3"`)
 
+> Gated model — requires a HuggingFace token stored in `.hf_token`.
+
 | File | LoRA / adapter | Trigger word | Size | Description |
 |---|---|---|---|---|
-| `sd3_medium.json` | — | — | 1024×1024 | SD3-Medium — 2B MMDiT, 28 steps, improved prompt adherence; gated (HF token required) |
+| `sd3_medium.json` | — | — | 1024×1024 | SD3-Medium — 2B MMDiT, 28 steps, improved prompt adherence |
 
 ### Stable Diffusion XL (`pipeline_type: "sdxl"`)
 
@@ -108,15 +115,9 @@ Config files are JSON files passed via `--config` / `-c`. They describe which mo
 | `flux_cute_comic_lora.json` | fffiloni/cute-comic-800 | `in the style of TOK` | 1024×1024 | Charming flat illustration / comic card style |
 | `flux_miniature_people_lora.json` | iliketoasters/miniature-people | `miniature people` | 1024×1024 | Photorealistic tiny figures in real-world scenes |
 
-### Z-Image-Turbo (`pipeline_type: "zimage"`)
+### Z-Image-Turbo (`pipeline_type: "zimage"`) — archived
 
-> `guidance_scale` must be `0.0`. Recommended steps: 8–16.
-
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `zimage_smnth_nsfw_lora.json` | Kakelaka/Smnth_v1_NSFW1 | `Smnth_v1` | 1024×1024 | Z-Image-Turbo + anatomical detail / NSFW character LoRA |
-| `zimage_hmfemme_lora.json` | burnerbaby/hmfemme-realistic-1girl-lora-for-qwen | `HMFemme, an amateur photo…` | 1024×1024 | Candid-style realistic female photography LoRA |
-| `zimage_pornmaster_lora.json` | RomixERR/Pornmaster_v1-Z-Images-Turbo | `pronmstr` | 1024×1024 | NSFW realism LoRA (WIP, unpredictable results) |
+> `guidance_scale` must be `0.0`. Recommended steps: 8–16. Configs moved to `nfsw/`.
 
 ### Archived configs
 
@@ -124,5 +125,20 @@ Configs in sub-folders are excluded from the web dashboard dropdown:
 
 | Folder | Reason |
 |---|---|
-| `nsfw/` | Models that are NSFW - use at your own risk |
+| `nfsw/` | NSFW / adult-content models — use at your own risk |
 | `high_memory/` | Models that exceed available RAM / VRAM on the target machine |
+
+#### `high_memory/`
+
+| File | LoRA / adapter | Trigger word | Size | Description |
+|---|---|---|---|---|
+| `qwen_edit_pixel_spritesheet_lora.json` | svntax-dev/pixel_spritesheet_… | — | 768×768 | Qwen-Image-Edit + pixel spritesheet LoRA — 32×48 RPG walk/combat spritesheets |
+
+#### `nfsw/`
+
+> ⚠️ Adult content — excluded from the web dashboard dropdown.
+
+| File | LoRA / adapter | Trigger word | Size | Description |
+|---|---|---|---|---|
+| `zimage_smnth_nsfw_lora.json` | Kakelaka/Smnth_v1_NSFW1 | `Smnth_v1` | 1024×1024 | Z-Image-Turbo + anatomical detail / NSFW character LoRA |
+| `qwen_hmfemme_lora.json` | burnerbaby/hmfemme-realistic-1girl-lora-for-qwen | `HMFemme, an amateur photo…` | 1328×1328 | Qwen-Image + candid-style realistic female photography LoRA |
