@@ -3,7 +3,13 @@
 #
 # Usage:
 #   ./run_batch_server.sh              # localhost:8000
+#   ./run_batch_server.sh --offline    # skip HuggingFace update checks
 #   PORT=9000 ./run_batch_server.sh    # custom port
+#
+# Options:
+#   --offline   Set HF_HUB_OFFLINE=1 so huggingface_hub skips all network
+#               calls. Faster startup when all models are already downloaded.
+#               Fails if a model is not in the local cache.
 #
 # The worker runs in the background and is killed automatically
 # when this script exits (Ctrl-C or normal exit).
@@ -12,6 +18,17 @@ set -euo pipefail
 
 SCRIPT_DIR="${0:A:h}"          # absolute dir of this script
 PORT="${PORT:-8000}"
+
+# ── Parse flags ──────────────────────────────────────────────────────────────
+OFFLINE=false
+for arg in "$@"; do
+  [[ "$arg" == "--offline" ]] && OFFLINE=true
+done
+
+if [[ "$OFFLINE" == true ]]; then
+  export HF_HUB_OFFLINE=1
+  echo "📴 Offline mode enabled — skipping HuggingFace update checks."
+fi
 
 # Activate virtual environment
 source "$SCRIPT_DIR/.venv/bin/activate"

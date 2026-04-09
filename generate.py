@@ -16,6 +16,18 @@ Available pipeline types:
 Run via run.sh or directly:
     python generate.py --config configs/sd15_default.json "a sunset"
     python generate.py --help
+
+Offline mode
+------------
+Pass --offline to run.sh or run_batch_server.sh to set HF_HUB_OFFLINE=1 and
+skip all HuggingFace network calls (no HEAD / xet-read-token requests on every
+from_pretrained() call).  The model must already be fully cached locally.
+
+    ./run.sh --offline "a sunset"
+    ./run_batch_server.sh --offline
+
+Without --offline, diffusers performs its normal cache-validation round-trip
+on each load (one HEAD request — no re-download if the model is up to date).
 """
 
 from typing import Any, Callable, Optional
@@ -63,7 +75,13 @@ def generate_image(
     if pipeline_cache is not None and cache_key in pipeline_cache:
         pipeline = pipeline_cache[cache_key]
     else:
+        # HF_HUB_OFFLINE is honoured if set externally (e.g. via --offline in
+        # run.sh / run_batch_server.sh).  huggingface_hub reads the variable
+        # once at import time, so toggling it inside the process is unreliable.
+        # Without the flag diffusers performs its normal cache-validation HEAD
+        # request on every load — one small network round-trip, no re-download.
         pipeline = create_pipeline(cfg)
+
         if pipeline_cache is not None:
             if pipeline_cache:
                 pipeline_cache.clear()   # free memory before storing new model

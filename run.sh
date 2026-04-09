@@ -20,6 +20,9 @@ Options:
       --steps N              Override inference steps from config
       --guidance-scale FLOAT Override guidance scale from config
       --queue                Add job to batch queue instead of generating immediately
+      --offline              Skip HuggingFace update checks (use local cache only,
+                             no network calls). Faster startup when models are
+                             already downloaded. Fails if a model is not cached.
   -h, --help                 Show this help
 
 Examples:
@@ -52,6 +55,10 @@ else
   source "$VENV/bin/activate"
 fi
 
+# Resolve python executable (venv may only provide python3 on some systems)
+PYTHON="$VENV/bin/python"
+[[ -x "$PYTHON" ]] || PYTHON="$VENV/bin/python3"
+
 # ── Optional: HF token (needed for gated models like FLUX, SD3) ──────────────
 # diffusers reads HF_TOKEN from the environment automatically — no CLI login needed.
 # Priority: .hf_token file > HF_TOKEN env var > already cached credentials
@@ -68,18 +75,27 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Run the generator ─────────────────────────────────────────────────────────
-echo "Python: $(which python)"
+echo "Python: $PYTHON"
 
-# ── Strip --queue flag and collect remaining args ─────────────────────────────
+# ── Strip --queue / --offline flags and collect remaining args ────────────────
 QUEUE=false
+OFFLINE=false
 PASSTHROUGH_ARGS=()
 for arg in "$@"; do
   if [[ "$arg" == "--queue" ]]; then
     QUEUE=true
+  elif [[ "$arg" == "--offline" ]]; then
+    OFFLINE=true
   else
     PASSTHROUGH_ARGS+=("$arg")
   fi
 done
+
+# Apply offline mode: set env var so huggingface_hub skips all network calls
+if [[ "$OFFLINE" == true ]]; then
+  export HF_HUB_OFFLINE=1
+  echo "📴 Offline mode enabled — skipping HuggingFace update checks."
+fi
 
 # If no --config flag was given by the user, inject the default config
 has_config=0
@@ -103,7 +119,7 @@ if [[ "$QUEUE" == true ]]; then
     echo "✅ Worker already running (pid $(cat "$WORKER_PID_FILE"))."
   else
     echo "🚀 Worker not running — starting it in the background..."
-    nohup python -m batch.worker >> "$WORKER_LOG" 2>&1 &
+    nohup "$PYTHON" -m batch.worker >> "$WORKER_LOG" 2>&1 &
     STARTED_WORKER_PID=$!
     # Give it a moment to write its PID file before we proceed
     for i in {1..10}; do
@@ -120,17 +136,17 @@ if [[ "$QUEUE" == true ]]; then
   echo "📋 Adding job to batch queue..."
   if [[ $has_config -eq 0 ]]; then
     DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
-    python -m batch.enqueue --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
+    "$PYTHON" -m batch.enqueue --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
   else
-    python -m batch.enqueue "${PASSTHROUGH_ARGS[@]}"
+    "$PYTHON" -m batch.enqueue "${PASSTHROUGH_ARGS[@]}"
   fi
 else
   # ── Direct mode: generate immediately ─────────────────────────────────────
   if [[ $has_config -eq 0 ]]; then
     DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
     echo "ℹ️  No --config specified, using default: $DEFAULT_CONFIG"
-    python "$SCRIPT_DIR/generate.py" --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
+    "$PYTHON" "$SCRIPT_DIR/generate.py" --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
   else
-    python "$SCRIPT_DIR/generate.py" "${PASSTHROUGH_ARGS[@]}"
+    "$PYTHON" "$SCRIPT_DIR/generate.py" "${PASSTHROUGH_ARGS[@]}"
   fi
 fi
