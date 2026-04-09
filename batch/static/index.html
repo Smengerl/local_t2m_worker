@@ -372,6 +372,74 @@
       font-style: italic;
     }
 
+    /* Tooltip icon next to label */
+    .hint-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--muted);
+      color: var(--bg);
+      font-size: 9px;
+      font-weight: 700;
+      font-style: normal;
+      line-height: 1;
+      cursor: default;
+      position: relative;
+      vertical-align: middle;
+      margin-left: 5px;
+      flex-shrink: 0;
+    }
+
+    .hint-icon .hint-tooltip {
+      display: none;
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 6px);
+      transform: translateX(-50%);
+      background: #2c3040;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 400;
+      color: #c8d8f0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      width: max-content;
+      max-width: 240px;
+      z-index: 100;
+      line-height: 1.5;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .5);
+    }
+
+    .hint-icon .hint-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #2c3040;
+    }
+
+    .hint-icon:hover .hint-tooltip {
+      display: block;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .label-row label {
+      margin-bottom: 0;
+    }
+
     /* Detail panel */
     .detail {
       margin-top: 10px;
@@ -540,15 +608,15 @@
     <div class="card">
       <h2>New Job</h2>
       <form id="enqueue-form">
-        <label>Prompt *</label>
+        <div class="label-row"><label>Prompt *</label><span id="f-prompt-icon" class="hint-icon"
+            style="display:none">?<span class="hint-tooltip" id="f-prompt-tooltip"></span></span></div>
         <textarea id="f-prompt" required placeholder="a sunset over mountains"></textarea>
-        <div id="f-prompt-hint" class="field-hint" style="display:none"></div>
 
-        <label>Negative Prompt</label>
+        <div class="label-row"><label>Negative Prompt</label><span id="f-negative-icon" class="hint-icon"
+            style="display:none">?<span class="hint-tooltip" id="f-negative-tooltip"></span></span></div>
         <input id="f-negative" type="text" placeholder="blurry, low quality">
-        <div id="f-negative-hint" class="field-hint" style="display:none"></div>
 
-        <label>Config</label>
+        <div class="label-row"><label>Config</label></div>
         <select id="f-config">
           <option value="">Loading configs…</option>
         </select>
@@ -559,30 +627,30 @@
             Advanced overrides
           </summary>
           <div style="margin-top:8px">
-            <label>Model ID override</label>
+            <div class="label-row"><label>Model ID override</label><span id="f-model-id-icon" class="hint-icon"
+                style="display:none">?<span class="hint-tooltip" id="f-hint-model-tooltip"></span></span></div>
             <input id="f-model-id" type="text">
-            <div id="f-hint-model" class="field-hint" style="display:none"></div>
             <div class="row" style="align-items:flex-start">
               <div style="flex:3">
                 <label>LoRA ID override</label>
                 <input id="f-lora-id" type="text">
               </div>
               <div style="flex:1">
-                <label>LoRA scale</label>
+                <div class="label-row"><label>LoRA scale</label><span id="f-lora-scale-icon" class="hint-icon"
+                    style="display:none">?<span class="hint-tooltip" id="f-hint-lora-scale-tooltip"></span></span></div>
                 <input id="f-lora-scale" type="number" step="0.05" min="0" max="1">
-                <div id="f-hint-lora-scale" class="field-hint" style="display:none"></div>
               </div>
             </div>
             <div class="row" style="align-items:flex-start">
               <div>
-                <label>Steps</label>
+                <div class="label-row"><label>Steps</label><span id="f-steps-icon" class="hint-icon"
+                    style="display:none">?<span class="hint-tooltip" id="f-hint-steps-tooltip"></span></span></div>
                 <input id="f-steps" type="number" min="1">
-                <div id="f-hint-steps" class="field-hint" style="display:none"></div>
               </div>
               <div>
-                <label>Guidance scale</label>
+                <div class="label-row"><label>Guidance scale</label><span id="f-guidance-icon" class="hint-icon"
+                    style="display:none">?<span class="hint-tooltip" id="f-hint-cfg-tooltip"></span></span></div>
                 <input id="f-guidance" type="number" step="0.5">
-                <div id="f-hint-cfg" class="field-hint" style="display:none"></div>
               </div>
             </div>
             <input id="f-output" type="hidden" value="">
@@ -826,12 +894,18 @@
         }).join('');
 
         const hintsPanel = $('f-config-hints');
-        const promptHint = $('f-prompt-hint');
-        const negativeHint = $('f-negative-hint');
-        const modelHint = $('f-hint-model');
-        const stepsHint = $('f-hint-steps');
-        const cfgHint = $('f-hint-cfg');
-        const loraScaleHint = $('f-hint-lora-scale');
+        const promptIcon = $('f-prompt-icon');
+        const promptTooltip = $('f-prompt-tooltip');
+        const negativeIcon = $('f-negative-icon');
+        const negativeTooltip = $('f-negative-tooltip');
+        const modelIcon = $('f-model-id-icon');
+        const modelTooltip = $('f-hint-model-tooltip');
+        const stepsIcon = $('f-steps-icon');
+        const stepsTooltip = $('f-hint-steps-tooltip');
+        const cfgIcon = $('f-guidance-icon');
+        const cfgTooltip = $('f-hint-cfg-tooltip');
+        const loraScaleIcon = $('f-lora-scale-icon');
+        const loraScaleTooltip = $('f-hint-lora-scale-tooltip');
 
         const HINT_LABEL = {
           '': 'Note',
@@ -859,12 +933,8 @@
           const meta = configMeta[sel.value];
           if (!meta) {
             hintsPanel.style.display = 'none';
-            promptHint.style.display = 'none';
-            negativeHint.style.display = 'none';
-            stepsHint.style.display = 'none';
-            cfgHint.style.display = 'none';
-            loraScaleHint.style.display = 'none';
-            modelHint.style.display = 'none';
+            [promptIcon, negativeIcon, modelIcon, stepsIcon, cfgIcon, loraScaleIcon]
+              .forEach(el => el.style.display = 'none');
             $('f-model-id').placeholder = '(from config)';
             $('f-lora-id').placeholder = '(from config)';
             $('f-lora-scale').placeholder = '(from config)';
@@ -886,27 +956,27 @@
           // ── Prompt & negative hints ──
           const promptLines = [hints.prompt, hints.trigger].filter(Boolean);
           if (promptLines.length) {
-            promptHint.innerHTML = promptLines.map(t => `💡 ${escHtml(t)}`).join('<br>');
-            promptHint.style.display = '';
+            promptTooltip.textContent = promptLines.join('\n');
+            promptIcon.style.display = '';
           } else {
-            promptHint.style.display = 'none';
+            promptIcon.style.display = 'none';
           }
           if (hints.negative) {
-            negativeHint.textContent = '💡 ' + hints.negative;
-            negativeHint.style.display = '';
+            negativeTooltip.textContent = hints.negative;
+            negativeIcon.style.display = '';
           } else {
-            negativeHint.style.display = 'none';
+            negativeIcon.style.display = 'none';
           }
 
           // ── Inline field hints ──
-          function setFieldHint(el, text) {
-            if (text) { el.textContent = '💡 ' + text; el.style.display = ''; }
-            else { el.style.display = 'none'; }
+          function setFieldHint(icon, tooltip, text) {
+            if (text) { tooltip.textContent = text; icon.style.display = ''; }
+            else { icon.style.display = 'none'; }
           }
-          setFieldHint(modelHint, hints.model || '');
-          setFieldHint(stepsHint, hints.steps || '');
-          setFieldHint(cfgHint, hints.cfg || hints.guidance || '');
-          setFieldHint(loraScaleHint, hints.lora_scale || '');
+          setFieldHint(modelIcon, modelTooltip, hints.model || '');
+          setFieldHint(stepsIcon, stepsTooltip, hints.steps || '');
+          setFieldHint(cfgIcon, cfgTooltip, hints.cfg || hints.guidance || '');
+          setFieldHint(loraScaleIcon, loraScaleTooltip, hints.lora_scale || '');
 
           // ── Config hints panel (all other _comment_* keys) ──
           const skipKeys = new Set(['prompt', 'negative', 'trigger', 'steps', 'cfg', 'guidance', 'lora_scale', 'model']);
