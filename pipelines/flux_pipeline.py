@@ -11,6 +11,7 @@ Uses diffusers FluxPipeline. Key characteristics:
 
 from typing import Callable, Optional
 
+import os
 import torch
 from diffusers import FluxPipeline
 from PIL import Image
@@ -94,7 +95,15 @@ class FluxBackend(BasePipeline):
             if self.weight_name:
                 lora_kwargs["weight_name"] = self.weight_name
                 self._log(f"  Using specific weight file: {self.weight_name}")
+            elif os.environ.get("HF_HUB_OFFLINE", "0") not in ("", "0"):
+                raise ValueError(
+                    f"Cannot load LoRA '{self.lora_id}' in offline mode without a "
+                    f"'weight_name'. Add \"weight_name\": \"<filename>.safetensors\" "
+                    f"to your config file."
+                )
             pipe.load_lora_weights(self.lora_id, **lora_kwargs)
+            pipe.fuse_lora(lora_scale=self.lora_scale)
+            self._log("LoRA weights fused successfully.")
             pipe.fuse_lora(lora_scale=self.lora_scale)
             self._log("LoRA weights fused successfully.")
 

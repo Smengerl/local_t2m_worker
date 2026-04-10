@@ -15,6 +15,7 @@
     "adapter_id": null,
     "lora_id": "iliketoasters/miniature-people",
     "lora_scale": 0.9,
+    "weight_name": "Miniature People - v1-0.safetensors",
     "trigger_word": "miniature people",
     "num_inference_steps": 4,
     "guidance_scale": 0.0,
