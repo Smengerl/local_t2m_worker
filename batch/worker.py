@@ -42,6 +42,10 @@ logging.basicConfig(
 )
 log = logging.getLogger("worker")
 
+# Force tqdm to always write progress bars, even when stdout/stderr is not a
+# TTY.  Must be set before any tqdm import so the global default is picked up.
+os.environ.setdefault("TQDM_DISABLE", "0")
+
 
 class _JobLogHandler(logging.Handler):
     """Logging handler that appends formatted records to a job's log_lines."""
@@ -88,17 +92,13 @@ class _StderrCapture:
         text = self._ANSI_RE.sub("", text)
 
         # Process character by character so we handle \r and \n correctly.
+        # \r (carriage-return): tqdm rewrites the same line — discard the
+        # intermediate buffer so only the *final* state of the line is logged.
+        # \n: flush the buffer as a completed log line.
         for ch in text:
             if ch == "\r":
-                # CR: tqdm "overwrites" the current line — we treat the
-                # accumulated buffer as a complete (intermediate) line and
-                # reset it so the next write starts fresh.
-                line = self._buf.strip()
-                if line:
-                    try:
-                        append_log(self.job_id, line)
-                    except Exception:
-                        pass
+                # Discard accumulated text — next write will overwrite it.
+                # We only log on \n so the web UI sees the last/final value.
                 self._buf = ""
             elif ch == "\n":
                 line = self._buf.strip()
@@ -128,7 +128,10 @@ class _StderrCapture:
         return self.real_stderr.fileno()
 
     def isatty(self) -> bool:
-        return False
+        # Pretend to be a TTY so tqdm and huggingface_hub don't suppress their
+        # progress bars.  Without this, tqdm detects a non-interactive stream
+        # and either disables or heavily throttles output.
+        return True
 
     # Delegate everything else (e.g. .encoding, .errors) to the real stderr.
     def __getattr__(self, name: str):
