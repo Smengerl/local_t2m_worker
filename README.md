@@ -61,6 +61,7 @@ echo "hf_..." > .hf_token
 | `--steps N` | | Override `num_inference_steps` from config. |
 | `--guidance-scale FLOAT` | | Override `guidance_scale` from config. |
 | `--queue` | | Add job to batch queue instead of generating immediately. |
+| `--offline` | | Skip HuggingFace update checks. Sets `HF_HUB_OFFLINE=1` so no network requests are made. Faster startup when all models are already downloaded. Fails if a model is not fully cached locally. LoRA configs must have `weight_name` set when used with `--offline`. |
 | `--help` | `-h` | Show help and exit. |
 
 CLI flags > config file > built-in defaults.
@@ -97,6 +98,7 @@ For generating multiple images unattended, a background worker and a web dashboa
 ```bash
 # Start worker + web server together (recommended)
 ./run_batch_server.sh              # → http://localhost:8000
+./run_batch_server.sh --offline    # skip HuggingFace update checks (models must be cached)
 PORT=9000 ./run_batch_server.sh    # custom port
 
 # Or start them separately
