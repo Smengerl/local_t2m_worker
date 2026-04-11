@@ -100,11 +100,13 @@ class StableDiffusionBackend(BasePipeline):
             load_kwargs["safety_checker"] = None
             load_kwargs["requires_safety_checker"] = False
 
-        if self.weight_name:
+        if self.weight_name and not self.lora_id:
             # Single-file checkpoint — download to local cache first, then load
             # from the local path. from_single_file() with a URL internally calls
             # _get_model_file(repo_id, weights_name) which re-appends resolve/main/,
             # causing a double-path 404. Using hf_hub_download avoids this.
+            # Note: when lora_id is also set, weight_name refers to the LoRA file
+            # (passed to load_lora_weights below), not to the base model checkpoint.
             self._log(f"Downloading single-file checkpoint: {self.model_id}/{self.weight_name} ...")
             local_path = hf_hub_download(
                 repo_id=self.model_id,

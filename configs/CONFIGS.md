@@ -35,7 +35,7 @@ Config files are JSON files passed via `--config` / `-c`. They describe which mo
 | `adapter_id` | `null` | HF repo ID / local path for an adapter (ControlNet, refiner, …) |
 | `lora_id` | `null` | HF repo ID / local path for LoRA weights |
 | `lora_scale` | `0.9` | LoRA blending strength (`0.0`–`1.0`) |
-| `weight_name` | `null` | Specific `.safetensors` filename inside a multi-file LoRA or base-model repo (required for monorepos like `ByteDance/Hyper-SD`) |
+| `weight_name` | `null` | Specific `.safetensors` filename to load. Behaviour depends on whether `lora_id` is also set — see note below. |
 | `trigger_word` | `null` | Token required by the LoRA. Automatically prepended to the prompt with a warning if missing. |
 | `num_inference_steps` | `30` | Denoising steps — more = better quality, slower |
 | `guidance_scale` | `7.5` | CFG scale — how strongly the model follows the prompt; set to `0.0` for distilled models (SDXL-Turbo, FLUX-schnell, Z-Image-Turbo) |
@@ -45,6 +45,40 @@ Config files are JSON files passed via `--config` / `-c`. They describe which mo
 | `cache_dir` | `"models"` | Directory for downloaded model weights |
 | `seed` | `null` | Fixed RNG seed for reproducible results. `null` = random. |
 | `true_cfg_scale` | `null` | Secondary guidance scale used by some backends (e.g. Qwen-Image) |
+
+> **`weight_name` — zwei verschiedene Rollen je nach Kontext**
+>
+> Das Verhalten von `weight_name` hängt davon ab, ob gleichzeitig `lora_id` gesetzt ist:
+>
+> | Kombination | Bedeutung |
+> | --- | --- |
+> | `weight_name` **ohne** `lora_id` | Single-file-Checkpoint des Basismodells. Die Datei wird direkt aus `model_id` heruntergeladen und per `from_single_file()` geladen (z. B. eine individuelle `.safetensors`-Variante des Basismodells). |
+> | `weight_name` **mit** `lora_id` | Dateiname innerhalb des LoRA-Repos. Wird an `load_lora_weights()` übergeben, um die richtige `.safetensors`-Datei aus einem Monorepo mit mehreren Dateien auszuwählen (z. B. `ByteDance/Hyper-SD` enthält mehrere LoRA-Varianten). |
+>
+> **Wichtig:** `weight_name` darf **nicht** auf das Basismodell-Repo zeigen, wenn `lora_id` gesetzt ist — die Datei muss in `lora_id` liegen. Ein falsches Setup führt zu einem 404-Fehler beim Download.
+>
+> **Beispiel — LoRA aus Monorepo** (`lora_id` + `weight_name`):
+>
+> ```json
+> {
+>     "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
+>     "lora_id": "ByteDance/Hyper-SD",
+>     "weight_name": "Hyper-SDXL-8steps-CFG-lora.safetensors"
+> }
+> ```
+>
+> → Basismodell wird per `from_pretrained` geladen, dann wird `Hyper-SDXL-8steps-CFG-lora.safetensors` aus `ByteDance/Hyper-SD` als LoRA geladen.
+>
+> **Beispiel — Single-file-Basismodell** (nur `weight_name`, kein `lora_id`):
+>
+> ```json
+> {
+>     "model_id": "some-org/some-model-repo",
+>     "weight_name": "model-fp16.safetensors"
+> }
+> ```
+>
+> → `model-fp16.safetensors` wird aus `some-org/some-model-repo` heruntergeladen und per `from_single_file()` geladen.
 
 ## Adding a new config
 
