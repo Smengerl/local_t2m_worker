@@ -1,0 +1,1 @@
+Local text-to-image inference for all major models (Flux, SD, Qwen...) incl. Adapters and LORA supports — CLI + batch queue with web dashboard
