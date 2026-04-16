@@ -470,20 +470,20 @@
       border: none;
       cursor: pointer;
       flex-shrink: 0;
-      box-shadow: 0 6px 18px rgba(124,106,247,0.14);
+      box-shadow: 0 6px 18px rgba(124, 106, 247, 0.14);
       transition: transform .08s ease, filter .08s ease, box-shadow .12s ease;
     }
 
     .copy-inline-btn:hover {
       transform: translateY(-1px);
       filter: brightness(1.08);
-      box-shadow: 0 10px 26px rgba(124,106,247,0.18);
+      box-shadow: 0 10px 26px rgba(124, 106, 247, 0.18);
     }
 
     .copy-inline-btn:active {
       transform: translateY(0);
       filter: brightness(0.98);
-      box-shadow: 0 4px 12px rgba(124,106,247,0.12);
+      box-shadow: 0 4px 12px rgba(124, 106, 247, 0.12);
     }
 
     .detail pre {
@@ -800,7 +800,7 @@
           actions.push(`<button class="btn-sm btn-cancel" onclick="cancelJob('${j.id}',event)">Cancel</button>`);
           actions.push(`<span class="spinner"></span>`);
         }
-  // Copy button moved into expanded detail to avoid toggling the entry when clicked
+        // Copy button moved into expanded detail to avoid toggling the entry when clicked
 
         // ── progress bar (only while running and total is known) ──────────────
         const step = j.progress_step || 0;
