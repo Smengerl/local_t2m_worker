@@ -445,6 +445,47 @@
       margin-top: 10px;
     }
 
+    .detail-negative {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .detail-prompt-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .copy-inline-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 6px 18px rgba(124,106,247,0.14);
+      transition: transform .08s ease, filter .08s ease, box-shadow .12s ease;
+    }
+
+    .copy-inline-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+      box-shadow: 0 10px 26px rgba(124,106,247,0.18);
+    }
+
+    .copy-inline-btn:active {
+      transform: translateY(0);
+      filter: brightness(0.98);
+      box-shadow: 0 4px 12px rgba(124,106,247,0.12);
+    }
+
     .detail pre {
       background: var(--bg);
       border: 1px solid var(--border);
@@ -759,19 +800,37 @@
           actions.push(`<button class="btn-sm btn-cancel" onclick="cancelJob('${j.id}',event)">Cancel</button>`);
           actions.push(`<span class="spinner"></span>`);
         }
+  // Copy button moved into expanded detail to avoid toggling the entry when clicked
 
         // ── progress bar (only while running and total is known) ──────────────
         const step = j.progress_step || 0;
         const total = j.progress_total || 0;
-        const pct = total > 0 ? Math.round(step / total * 100) : 0;
+        // Clamp step so UI never shows > total
+        const safeStep = total > 0 ? Math.min(step, total) : step;
+        // If the job is running, backend sometimes reports the next step index.
+        // To avoid showing a step ahead of the console, display (safeStep - 1) while running.
+        // When finished, show total/total.
+        let displayStep;
+        if (total > 0) {
+          if (j.status === 'running') {
+            displayStep = Math.max(0, safeStep - 1);
+          } else if (j.status === 'done') {
+            displayStep = total;
+          } else {
+            displayStep = safeStep;
+          }
+        } else {
+          displayStep = safeStep;
+        }
+        const pct = total > 0 ? Math.round((displayStep / total) * 100) : 0;
         const showProgress = j.status === 'running' && total > 0;
         const progressBlock = `
       <div class="job-progress${showProgress ? ' visible' : ''}">
         <div class="job-progress-labels">
           <span>Generating…</span>
-          <span>${step} / ${total} steps&nbsp;(${pct}%)</span>
+          <span>${displayStep} / ${total} steps&nbsp;(${pct}%)</span>
         </div>
-        <progress value="${step}" max="${Math.max(total, 1)}"></progress>
+        <progress value="${displayStep}" max="${Math.max(total, 1)}"></progress>
       </div>`;
 
         let detail = '';
@@ -783,7 +842,6 @@
             pc.lora_id ? ['LoRA', escHtml(pc.lora_id)] : null,
             ['Steps', pc.num_inference_steps ?? '—'],
             ['Guidance', pc.guidance_scale ?? '—'],
-            j.negative_prompt ? ['Negative', escHtml(j.negative_prompt)] : null,
             ['Added', j.added_at ? new Date(j.added_at).toLocaleString() : '—'],
             j.started_at ? ['Started', new Date(j.started_at).toLocaleString()] : null,
             j.finished_at ? ['Finished', new Date(j.finished_at).toLocaleString()] : null,
@@ -806,7 +864,11 @@
 
           detail = `
         <div class="detail">
-          <div class="detail-prompt">${escHtml(j.prompt)}</div>
+          <div class="detail-prompt-row">
+            <button class="copy-inline-btn" data-prompt="${encodeURIComponent(j.prompt ?? '')}" onclick="copyPromptFromEl(this,event)">Copy</button>
+            <div class="detail-prompt">${escHtml(j.prompt)}</div>
+          </div>
+          ${j.negative_prompt ? `<div class="detail-negative">Negative prompt: ${escHtml(j.negative_prompt)}</div>` : ''}
           <table class="detail-table">${tableRows}</table>
           ${logBlock}
           ${errorBlock}
@@ -846,6 +908,62 @@
       return String(s ?? '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    // Copy a prompt string to clipboard. Uses async Clipboard API with a textarea
+    // fallback for older browsers. Shows a small transient toast on success/failure.
+    async function copyPrompt(text) {
+      const raw = String(text ?? '');
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(raw);
+        } else {
+          // Fallback: hidden textarea
+          const ta = document.createElement('textarea');
+          ta.value = raw;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        showToast('Copied prompt to clipboard');
+      } catch (e) {
+        console.error('Copy failed', e);
+        showToast('Copy failed');
+      }
+    }
+
+    // Called from inline buttons; stops propagation then decodes data-prompt
+    function copyPromptFromEl(btn, evt) {
+      evt.stopPropagation();
+      const enc = btn.getAttribute('data-prompt') || '';
+      const text = decodeURIComponent(enc);
+      copyPrompt(text);
+    }
+
+    // Small transient toast
+    function showToast(msg, ms = 1800) {
+      let t = document.getElementById('copied-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'copied-toast';
+        t.style.position = 'fixed';
+        t.style.right = '18px';
+        t.style.bottom = '18px';
+        t.style.background = 'rgba(20,20,30,0.95)';
+        t.style.color = 'white';
+        t.style.padding = '8px 12px';
+        t.style.borderRadius = '8px';
+        t.style.boxShadow = '0 6px 18px rgba(0,0,0,0.6)';
+        t.style.zIndex = 2000;
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.style.opacity = '1';
+      clearTimeout(t._hideTimer);
+      t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, ms);
     }
 
     function toggleExpand(id) {
