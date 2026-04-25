@@ -54,6 +54,129 @@ class BasePipeline(ABC):
         self.gguf_file: Optional[str] = cfg.gguf_file
         self.base_model_id: Optional[str] = cfg.base_model_id
 
+    # ── shared GGUF / LoRA helpers ────────────────────────────────────────────
+
+    def _build_gguf_url(self) -> str:
+        """Return the HuggingFace HTTPS URL for the configured GGUF file.
+
+        Diffusers detects the ``.gguf`` extension in the URL and routes to the
+        correct GGUF loader automatically.  Using the URL (rather than a local
+        cache path) avoids hash-based symlink layouts that may strip the suffix.
+        """
+        return f"https://huggingface.co/{self.model_id}/blob/main/{self.gguf_file}"
+
+    def _load_gguf_transformer(
+        self,
+        transformer_cls: type,
+        dtype: torch.dtype,
+    ) -> Any:
+        """Load a GGUF-quantised transformer via ``transformer_cls.from_single_file``.
+
+        Builds the HuggingFace URL from ``self.model_id`` + ``self.gguf_file``,
+        then calls ``from_single_file`` with a ``GGUFQuantizationConfig``.
+
+        Args:
+            transformer_cls: Diffusers transformer class to instantiate
+                (e.g. ``FluxTransformer2DModel``, ``ZImageTransformer2DModel``).
+            dtype: Compute dtype for GGUF dequantisation (``bfloat16`` or
+                ``float16``).
+
+        Returns:
+            Loaded transformer model ready to be injected into a pipeline via
+            ``Pipeline.from_pretrained(..., transformer=transformer)``.
+        """
+        from diffusers import GGUFQuantizationConfig  # type: ignore[attr-defined]
+
+        gguf_url = self._build_gguf_url()
+        self._log(f"Loading GGUF transformer from: {gguf_url} ...")
+        return transformer_cls.from_single_file(
+            gguf_url,
+            quantization_config=GGUFQuantizationConfig(compute_dtype=dtype),
+            torch_dtype=dtype,
+        )
+
+    def _apply_cpu_offload(self, pipe: Any, device: torch.device) -> Any:
+        """Apply memory-offloading strategy and move *pipe* to *device*.
+
+        Three cases:
+        - ``cpu_offload`` enabled, no GGUF → ``enable_sequential_cpu_offload``
+          (MPS) or ``enable_model_cpu_offload`` (CUDA).
+        - ``cpu_offload`` enabled, GGUF present → log warning and move to
+          device.  CPU offload is incompatible with GGUF quantised tensors
+          (accelerate tries to move tensors to the meta device, but
+          ``quant_type`` is ``None`` → ``KeyError``).  GGUF models are compact
+          enough to fit in memory without offloading.
+        - ``cpu_offload`` disabled → move to device directly.
+
+        Args:
+            pipe: Loaded diffusers pipeline.
+            device: Target compute device.
+
+        Returns:
+            The pipeline (with offload hooks, or already on *device*).
+        """
+        if self.sequential_cpu_offload and not self.gguf_file:
+            if device.type == "mps" or not torch.cuda.is_available():
+                self._log("⚙️  Sequential CPU offload enabled (MPS-compatible mode).")
+                pipe.enable_sequential_cpu_offload()
+            else:
+                self._log("⚙️  Model CPU offload enabled (CUDA low-VRAM mode).")
+                pipe.enable_model_cpu_offload()
+        elif self.sequential_cpu_offload and self.gguf_file:
+            self._log(
+                "⚙️  sequential_cpu_offload ignored for GGUF model (incompatible with "
+                "GGUF quantised tensors). GGUF transformer fits in memory without offloading."
+            )
+            pipe = pipe.to(device)
+        else:
+            pipe = pipe.to(device)
+        return pipe
+
+    def _apply_lora(self, pipe: Any) -> None:
+        """Load LoRA weights and apply them to *pipe*.
+
+        Dispatches between ``fuse_lora()`` (standard float models) and
+        ``set_adapters()`` (GGUF models, where ``fuse_lora()`` is incompatible
+        with quantised tensors — it tries to add float deltas in-place to
+        blocked quantised weights).
+
+        Does nothing if ``self.lora_id`` is ``None``.
+
+        Args:
+            pipe: Loaded diffusers pipeline that supports ``load_lora_weights``.
+
+        Raises:
+            ValueError: If the LoRA's target modules do not exist in the base
+                model's architecture (incompatible model family).
+        """
+        if not self.lora_id:
+            return
+        self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
+        lora_kwargs: dict = {"cache_dir": self.cache_dir}
+        if self.weight_name:
+            lora_kwargs["weight_name"] = self.weight_name
+            self._log(f"  Using weight file: {self.weight_name}")
+        try:
+            pipe.load_lora_weights(self.lora_id, **lora_kwargs)
+            if self.gguf_file:
+                # fuse_lora() merges LoRA deltas into base weights via tensor
+                # addition — incompatible with GGUF quantised blocks.  Use
+                # set_adapters() to apply the adapter dynamically each forward
+                # pass.  diffusers auto-names the first loaded adapter "default_0".
+                loaded_adapters = getattr(pipe, "peft_config", {})
+                adapter_name = list(loaded_adapters.keys())[0] if loaded_adapters else "default_0"
+                pipe.set_adapters([adapter_name], adapter_weights=[self.lora_scale])
+                self._log("LoRA weights loaded (unfused, dynamic via set_adapters — GGUF mode).")
+            else:
+                pipe.fuse_lora(lora_scale=self.lora_scale)
+                self._log("LoRA weights fused successfully.")
+        except ValueError as exc:
+            raise ValueError(
+                f"LoRA '{self.lora_id}' is incompatible with base model '{self.model_id}'.\n"
+                f"The LoRA's target modules do not exist in the base model's architecture.\n"
+                f"Original error: {exc}"
+            ) from exc
+
     def _log(self, msg: str) -> None:
         """Emit *msg* at INFO level.
 

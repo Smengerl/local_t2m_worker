@@ -107,8 +107,8 @@ class Lumina2Backend(BasePipeline):
         else:
             pipe = pipe.to(device)
 
-        pipe.enable_vae_slicing()
-        pipe.enable_vae_tiling()
+        pipe.vae.enable_slicing()
+        pipe.vae.enable_tiling()
 
         return pipe
 

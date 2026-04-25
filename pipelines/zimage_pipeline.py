@@ -1,23 +1,7 @@
 """
-Z-Image pipeline backend (Tongyi-MAI/Z-Image-Turbo and compatibl        self._log(f"Loading Z-Image model: {self.model_id} ...")
-        pipe = ZImagePipeline.from_pretrained(
-            self.model_id,
-            torch_dtype=dtype,
-            cache_dir=self.cache_dir,
-        )
+Z-Image pipeline backend (Tongyi-MAI/Z-Image-Turbo and compatible LoRAs).
 
-        if self.sequential_cpu_offload:
-            self._log("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
-            pipe.enable_model_cpu_offload()
-        else:
-            pipe = pipe.to(device)
-
-        if self.lora_id:
-            self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
-            try:
-                pipe.load_lora_weights(self.lora_id, cache_dir=self.cache_dir)
-                pipe.fuse_lora(lora_scale=self.lora_scale)
-                self._log("LoRA weights fused successfully.")-Turbo is a distilled single-stream DiT model that uses ZImagePipeline
+Z-Image-Turbo is a distilled single-stream DiT model that uses ZImagePipeline
 from diffusers (requires diffusers installed from source or ≥ 0.33.0).
 
 Key differences from standard SD/SDXL:
@@ -26,18 +10,33 @@ Key differences from standard SD/SDXL:
   - dtype: bfloat16 (float16 can produce artefacts on some hardware)
   - Resolution: up to ~1 MP (1024×1024 or 1152×896 etc.)
   - LoRA loading works identically to diffusers LoRA API
+
+GGUF support:
+  - Set gguf_file + components_repo in config to load a quantised transformer.
+  - Transformer weights come from the GGUF (e.g. unsloth/Z-Image-Turbo-GGUF).
+  - All other components (VAE, text encoder, scheduler, tokenizer) are loaded
+    from components_repo (Tongyi-MAI/Z-Image-Turbo).
+  - sequential_cpu_offload is incompatible with GGUF quantised tensors.
+  - LoRA + GGUF: uses set_adapters() instead of fuse_lora() (GGUF tensors are
+    quantised and cannot be modified in-place by fuse_lora()).
 """
 
 import torch
 from PIL import Image
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from pipelines.base import BasePipeline
 from pipeline_config import PipelineConfig
 
+_AnyZImagePipe = Any  # ZImagePipeline
+
 
 class ZImageBackend(BasePipeline):
-    """Diffusers-based backend for Tongyi-MAI/Z-Image-Turbo (and LoRAs)."""
+    """Diffusers-based backend for Tongyi-MAI/Z-Image-Turbo (and LoRAs).
+
+    Supports both standard bfloat16 loading and GGUF-quantised transformer
+    loading (set gguf_file + components_repo in config).
+    """
 
     # Z-Image-Turbo is CFG-distilled → guidance_scale MUST be 0.0.
     # 9 steps → 8 actual DiT forward passes (off-by-one in the scheduler).
@@ -82,46 +81,66 @@ class ZImageBackend(BasePipeline):
 
     # ── private ──────────────────────────────────────────────────────────────
 
-    def _load(self):  # type: ignore[return]
-        from diffusers import ZImagePipeline  # requires diffusers ≥ 0.33 or source
-
+    def _load(self) -> _AnyZImagePipe:
         device = self._get_device()
 
         # bfloat16 is the recommended dtype for Z-Image-Turbo;
-        # fall back to float32 on CPU (no bfloat16 support in many setups)
+        # fall back to float32 on CPU (no bfloat16 support in many setups).
         dtype = torch.bfloat16 if device.type in ("cuda", "mps") else torch.float32
 
+        if self.gguf_file:
+            pipe = self._load_gguf(device, dtype)
+        else:
+            pipe = self._load_standard(device, dtype)
+
+        # ── memory optimisations ──────────────────────────────────────────
+        pipe = self._apply_cpu_offload(pipe, device)
+
+        pipe.vae.enable_slicing()
+        pipe.vae.enable_tiling()
+
+        # ── LoRA ──────────────────────────────────────────────────────────
+        self._apply_lora(pipe)
+
+        return pipe
+
+    def _load_standard(self, device: torch.device, dtype: torch.dtype) -> _AnyZImagePipe:
+        """Load a standard (non-GGUF) Z-Image pipeline via from_pretrained."""
+        from diffusers import ZImagePipeline  # type: ignore[attr-defined]
+
         self._log(f"Loading Z-Image model: {self.model_id} ...")
-        pipe = ZImagePipeline.from_pretrained(
+        return ZImagePipeline.from_pretrained(
             self.model_id,
             torch_dtype=dtype,
             cache_dir=self.cache_dir,
         )
 
-        if self.sequential_cpu_offload:
-            self._log("⚙️  Sequential CPU offload enabled (low-VRAM mode).")
-            pipe.enable_model_cpu_offload()
-        else:
-            pipe = pipe.to(device)
+    def _load_gguf(self, device: torch.device, dtype: torch.dtype) -> _AnyZImagePipe:
+        """Load a GGUF-quantised Z-Image transformer and compose a full pipeline.
 
-        if self.lora_id:
-            self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
-            lora_kwargs: dict = {"cache_dir": self.cache_dir}
-            if self.weight_name:
-                lora_kwargs["weight_name"] = self.weight_name
-            try:
-                pipe.load_lora_weights(self.lora_id, **lora_kwargs)
-                pipe.fuse_lora(lora_scale=self.lora_scale)
-                self._log("LoRA weights fused successfully.")
-            except ValueError as exc:
-                # LoRA target modules don't match this model's architecture.
-                # Common cause: LoRA was trained for Flux/Qwen but loaded onto Z-Image-Turbo.
-                raise ValueError(
-                    f"LoRA '{self.lora_id}' is incompatible with base model '{self.model_id}'.\n"
-                    f"The LoRA's target modules do not exist in the base model's architecture.\n"
-                    f"This usually means the LoRA was trained for a different model family "
-                    f"(e.g. Flux or Qwen) and cannot be used with Z-Image-Turbo.\n"
-                    f"Original error: {exc}"
-                ) from exc
+        The GGUF file contains only the transformer weights.  All other
+        components (VAE, text encoder, scheduler, tokenizer) are loaded
+        from components_repo (typically Tongyi-MAI/Z-Image-Turbo).
 
-        return pipe
+        This follows the same diffusers GGUF loading pattern as FLUX:
+            transformer = ZImageTransformer2DModel.from_single_file(gguf_url, ...)
+            pipe = ZImagePipeline.from_pretrained(components_repo, transformer=transformer)
+        """
+        from diffusers import ZImagePipeline  # type: ignore[attr-defined]
+        from diffusers.models.transformers.transformer_z_image import ZImageTransformer2DModel
+
+        if not self.base_model_id:
+            raise ValueError(
+                "GGUF loading requires 'components_repo' to be set in the config. "
+                "For Z-Image-Turbo GGUF set: "
+                '"components_repo": "Tongyi-MAI/Z-Image-Turbo"'
+            )
+
+        transformer = self._load_gguf_transformer(ZImageTransformer2DModel, dtype)
+        self._log(f"Loading pipeline components from: {self.base_model_id} ...")
+        return ZImagePipeline.from_pretrained(
+            self.base_model_id,
+            transformer=transformer,
+            torch_dtype=dtype,
+            cache_dir=self.cache_dir,
+        )

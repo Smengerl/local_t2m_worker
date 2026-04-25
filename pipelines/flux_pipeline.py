@@ -123,29 +123,10 @@ class FluxBackend(BasePipeline):
                 pipe = self._load_flux1(device, dtype)
 
         # ── memory optimisations (shared by all variants) ─────────────────
-        if self.sequential_cpu_offload and not self.gguf_file:
-            # On MPS (Apple Silicon), enable_model_cpu_offload() is CUDA-only
-            # and silently falls back to CPU. Use enable_sequential_cpu_offload()
-            # instead — it is MPS-compatible and moves submodules to CPU between
-            # ops, keeping peak unified-memory use within ~16 GB.
-            # NOTE: enable_sequential_cpu_offload() is incompatible with GGUF-
-            # quantised transformers (accelerate tries to move GGUF tensors to
-            # the meta device, but quant_type is None → KeyError). GGUF models
-            # are already compact enough to fit in memory without offloading.
-            if device.type == "mps" or not torch.cuda.is_available():
-                self._log("⚙️  Sequential CPU offload enabled (MPS-compatible mode).")
-                pipe.enable_sequential_cpu_offload()
-            else:
-                self._log("⚙️  Model CPU offload enabled (CUDA low-VRAM mode).")
-                pipe.enable_model_cpu_offload()
-        elif self.sequential_cpu_offload and self.gguf_file:
-            self._log("⚙️  sequential_cpu_offload ignored for GGUF model (incompatible with GGUF quantised tensors). GGUF transformer fits in memory without offloading.")
-            pipe = pipe.to(device)
-        else:
-            pipe = pipe.to(device)
+        pipe = self._apply_cpu_offload(pipe, device)
 
-        pipe.enable_vae_slicing()       # decode large images in slices → less peak RAM
-        pipe.enable_vae_tiling()        # tile VAE for very large resolutions
+        pipe.vae.enable_slicing()       # decode large images in slices → less peak RAM
+        pipe.vae.enable_tiling()        # tile VAE for very large resolutions
         pipe.enable_attention_slicing() # slice attention heads one at a time → reduces peak
                                         # attention memory significantly; critical on 16 GB MPS
 
@@ -154,33 +135,15 @@ class FluxBackend(BasePipeline):
             if self._is_klein:
                 self._log("⚠️  LoRA is not supported for FLUX.2 [klein] — lora_id ignored.")
             else:
-                self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
-                lora_kwargs: dict = {"cache_dir": self.cache_dir}
-                if self.weight_name:
-                    lora_kwargs["weight_name"] = self.weight_name
-                    self._log(f"  Using specific weight file: {self.weight_name}")
-                elif os.environ.get("HF_HUB_OFFLINE", "0") not in ("", "0"):
+                # Offline-mode guard: without weight_name, load_lora_weights would
+                # try to fetch file listings from HF Hub and fail with a cryptic error.
+                if not self.weight_name and os.environ.get("HF_HUB_OFFLINE", "0") not in ("", "0"):
                     raise ValueError(
                         f"Cannot load LoRA '{self.lora_id}' in offline mode without a "
                         f"'weight_name'. Add \"weight_name\": \"<filename>.safetensors\" "
                         f"to your config file."
                     )
-                pipe.load_lora_weights(self.lora_id, **lora_kwargs)
-                if self.gguf_file:
-                    # fuse_lora() merges LoRA deltas into the base weights via
-                    # tensor addition. This is incompatible with GGUF quantised
-                    # tensors (quantized blocks don't support in-place float add
-                    # → RuntimeError: size mismatch at non-singleton dimension).
-                    # Use set_adapters() instead: the LoRA adapter is kept
-                    # separate and applied dynamically during each forward pass.
-                    # diffusers auto-names the first adapter "default_0".
-                    loaded_adapters = getattr(pipe, "peft_config", {})
-                    adapter_name = list(loaded_adapters.keys())[0] if loaded_adapters else "default_0"
-                    pipe.set_adapters([adapter_name], adapter_weights=[self.lora_scale])
-                    self._log(f"LoRA weights loaded (unfused, dynamic application via set_adapters — GGUF mode).")
-                else:
-                    pipe.fuse_lora(lora_scale=self.lora_scale)
-                    self._log("LoRA weights fused successfully.")
+                self._apply_lora(pipe)
 
         return pipe
 
@@ -231,17 +194,10 @@ class FluxBackend(BasePipeline):
                 "For FLUX.1-dev based models set: \"base_model_id\": \"black-forest-labs/FLUX.1-dev\""
             )
 
-        # Pass the HuggingFace URL directly so diffusers detects the .gguf
-        # extension and routes to the correct GGUF loader.  Using a local
-        # path from hf_hub_download can fail if the cached filename does not
-        # retain the .gguf suffix (hash-based symlink layouts in newer hf-hub).
-        gguf_url = f"https://huggingface.co/{self.model_id}/blob/main/{self.gguf_file}"
-        self._log(f"Loading GGUF transformer from: {gguf_url} ...")
-        transformer = FluxTransformer2DModel.from_single_file(
-            gguf_url,
-            quantization_config=GGUFQuantizationConfig(compute_dtype=dtype),
-            torch_dtype=dtype,
-        )
+        from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
+        from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
+
+        transformer = self._load_gguf_transformer(FluxTransformer2DModel, dtype)
         self._log(f"Loading pipeline components from base model: {self.base_model_id} ...")
         return FluxPipeline.from_pretrained(
             self.base_model_id,
