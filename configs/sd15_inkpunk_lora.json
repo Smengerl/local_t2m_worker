@@ -1,21 +1,23 @@
 {
-    "description": "Inkpunk Diffusion — ink/punk illustration style fine-tune of SD 1.5 (DreamBooth)",
-    "_comment": "DreamBooth fine-tune by Envvi. Vaguely inspired by Gorillaz, FLCL, and Yoji Shinkawa.",
-    "_comment_trigger": "TRIGGER WORD REQUIRED: include 'nvinkpunk' in every prompt (the DreamBooth subject token).",
-    "_comment_prompt": "Examples: 'nvinkpunk portrait of a warrior', 'nvinkpunk robot in a city', 'nvinkpunk woman with flowing hair'.",
-    "_comment_negative": "Suggested: 'deformed, ugly, blurry, bad anatomy, disfigured, poorly drawn face, mutation'.",
-    "_comment_steps": "50 steps gives cleaner results than 30 for DreamBooth fine-tunes; SD 1.5 model card uses 50 PLMS.",
-    "_comment_cfg": "CFG 7–8 per SD 1.5 evaluations. Lower (5–6) gives a looser, more painterly result.",
-    "_comment_size": "SD 1.5 native resolution is 512x512. Larger sizes (640x640, 768x768) work but may produce distortions.",
-    "pipeline_type": "sd",
-    "model_id": "Envvi/Inkpunk-Diffusion",
-    "adapter_id": null,
-    "lora_id": null,
-    "lora_scale": 0.9,
-    "trigger_word": "nvinkpunk",
-    "num_inference_steps": 50,
-    "guidance_scale": 7.5,
-    "width": 512,
-    "height": 512,
-    "sequential_cpu_offload": false
+    "description": "Ink/punk illustration DreamBooth fine-tune",
+    "backend": "sd",
+    "model": {
+        "repo": "Envvi/Inkpunk-Diffusion",
+        "_hint": "DreamBooth fine-tune: Envvi/Inkpunk-Diffusion (SD 1.5 base). Loaded as a full checkpoint — no separate LoRA adapter. ~2 GB; no sequential offload needed."
+    },
+    "generation": {
+        "steps": 50,
+        "cfg_scale": 7.5,
+        "width": 512,
+        "height": 512,
+        "_hint": "50 steps gives the cleanest results for DreamBooth fine-tunes. 30 is sufficient for quick previews. | CFG 7–8 per SD 1.5 evaluations. Lower values (5–6) give a looser, more painterly result. | SD 1.5 native 512×512. 640×640 and 768×768 usable but may introduce distortions."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)"
+    },
+    "notes": {
+        "about": "Generates ink-style illustrations with a punk aesthetic — loose gestural lines, textured surfaces, and a raw expressive quality vaguely inspired by Gorillaz, FLCL, and Yoji Shinkawa.",
+        "prompt_guide": "TRIGGER WORD REQUIRED: 'nvinkpunk' must appear in every prompt (DreamBooth subject token). Examples: 'nvinkpunk portrait of a warrior', 'nvinkpunk robot in a city at night', 'nvinkpunk woman with flowing hair, detailed ink lines'.\n\nNegative prompt: Suggested: 'deformed, ugly, blurry, bad anatomy, disfigured, poorly drawn face, mutation'."
+    }
 }

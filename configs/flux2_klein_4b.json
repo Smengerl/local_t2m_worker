@@ -1,0 +1,23 @@
+{
+    "description": "Fast distilled 4B text-to-image",
+    "backend": "flux2_klein",
+    "model": {
+        "repo": "black-forest-labs/FLUX.2-klein-4B",
+        "_hint": "Base: FLUX.2-klein-4B (black-forest-labs/FLUX.2-klein-4B) — 4B rectified-flow DiT, distilled for 4-step inference. Apache-2.0, commercial use allowed. Requires diffusers from git main (Flux2KleinPipeline not in stable release). ~13 GB VRAM; sequential_cpu_offload required on ≤16 GB unified memory."
+    },
+    "generation": {
+        "steps": 4,
+        "cfg_scale": 1.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "4 steps recommended (distilled model). Range: 1–8 practical. More steps do not significantly improve quality. | guidance_scale=1.0 per model card. Range: 1.0–3.0. Unlike FLUX.1-schnell, do NOT set to 0.0 — this distilled model retains a small positive CFG value. | Native 1024×1024. Arbitrary resolutions up to ~1 MP supported (e.g. 1152×896 landscape, 896×1152 portrait). Stay within ~1 MP for best results."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~13 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates high-quality general-purpose images quickly with the compact 4B FLUX.2-klein model. Suitable for a wide range of subjects: portraits, landscapes, objects, and abstract concepts. Faster than the full 12B FLUX models at comparable quality.",
+        "prompt_guide": "No trigger word. Write detailed descriptive prompts. Examples: 'a golden sunset over mountain peaks, cinematic lighting', 'portrait of an elderly woman, natural light, photorealistic', 'a futuristic city street at night, neon reflections, wide angle'.\n\nNegative prompt: Negative prompts have limited effect at low guidance_scale — the model is distilled and CFG guidance is reduced."
+    }
+}

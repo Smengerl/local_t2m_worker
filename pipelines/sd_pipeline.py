@@ -25,6 +25,15 @@ _DiffusersPipe = StableDiffusionPipeline | StableDiffusionXLPipeline | StableDif
 class StableDiffusionBackend(BasePipeline):
     """Diffusers-based backend for SD 1.5 and Stable Diffusion XL."""
 
+    # SD 1.5 native resolution is 512×512, but SDXL and SD3 use 1024×1024.
+    # 1024 is a safe universal default; SD 1.5 configs should specify 512.
+    GENERATION_DEFAULTS = {
+        "steps":     30,
+        "cfg_scale": 7.5,
+        "width":     1024,
+        "height":    1024,
+    }
+
     def __init__(self, cfg: PipelineConfig) -> None:
         super().__init__(cfg)
         self._pipe = self._load()
@@ -66,9 +75,6 @@ class StableDiffusionBackend(BasePipeline):
         return "xl" in model_id.lower()
 
     def _load(self) -> _DiffusersPipe:
-        if self.adapter_id:
-            self._log(f"⚠️  adapter_id={self.adapter_id!r} is set but adapter support is not yet implemented — ignored.")
-
         is_sd3 = self._is_sd3()
         is_xl = (not is_sd3) and self._is_xl(self.model_id)
 

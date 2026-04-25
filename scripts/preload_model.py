@@ -24,12 +24,16 @@ Usage
 """
 
 import argparse
-import json
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    # config_types is in the project root; added to sys.path at runtime below.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from config_types import ConfigFile  # noqa: F401 (type-checking only)
 
 # ---------------------------------------------------------------------------
 # Bootstrap: re-exec with the project venv Python if we're running under the
@@ -59,30 +63,33 @@ def _read_token(token_path: Optional[str]) -> Optional[str]:
     return None
 
 
-def _repo_ids_from_config(cfg: dict) -> list[tuple[str, str]]:
-    """Extract all HuggingFace repo IDs from a merged config dict.
+def _repo_ids_from_config(cfg: "ConfigFile") -> list[tuple[str, str]]:
+    """Extract all HuggingFace repo IDs from a ConfigFile.
 
-    Returns a list of (repo_id, role) tuples where *role* is the config key
-    that referenced the repo (e.g. ``"model_id"``, ``"base_model_id"``, …).
+    Returns a list of ``(repo_id, role)`` tuples where *role* describes the
+    section that references the repo (``"model_id"``, ``"base_model_id"``,
+    ``"lora_id"``).  Local paths are skipped.
     """
-    keys = ["model_id", "adapter_id", "lora_id", "base_model_id"]
     results = []
-    for k in keys:
-        val = cfg.get(k)
-        if val and isinstance(val, str) and not Path(val).exists():
-            results.append((val, k))
+    if cfg.model.repo and not Path(cfg.model.repo).exists():
+        results.append((cfg.model.repo, "model_id"))
+    if cfg.model.components_repo and not Path(cfg.model.components_repo).exists():
+        results.append((cfg.model.components_repo, "base_model_id"))
+    if cfg.lora and cfg.lora.repo and not Path(cfg.lora.repo).exists():
+        results.append((cfg.lora.repo, "lora_id"))
     return results
 
 
-def _load_config(path: str) -> dict:
-    """Load a JSON config, stripping ``_comment`` keys."""
-    with open(path) as fh:
-        raw = json.load(fh)
-    return {k: v for k, v in raw.items() if not k.startswith("_")}
+def _load_config(path: str) -> "ConfigFile":
+    """Load and parse a v2 JSON config file into a typed ConfigFile."""
+    # config_types lives in the project root — ensure it's importable.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from config_types import ConfigFile  # noqa: PLC0415
+    return ConfigFile.from_json(path)
 
 
-def _is_gguf_repo(cfg: dict) -> bool:
-    return bool(cfg.get("gguf_file"))
+def _is_gguf_repo(cfg: "ConfigFile") -> bool:
+    return bool(cfg.model.gguf_file)
 
 
 # ── per-repo download ─────────────────────────────────────────────────────────
@@ -212,7 +219,7 @@ def main() -> None:
 
     for config_path in args.config:
         cfg = _load_config(config_path)
-        effective_cache = args.cache_dir or cfg.get("cache_dir")
+        effective_cache = args.cache_dir or cfg.system.cache_dir
 
         for repo_id, role in _repo_ids_from_config(cfg):
             key = f"{repo_id}|{role}|{effective_cache}"
@@ -268,7 +275,10 @@ def main() -> None:
                 )
 
             elif role == "lora_id":
-                weight_name: Optional[str] = cfg.get("weight_name")
+                # lora.file overrides model.file — mirrors PipelineConfig.from_config_file logic
+                weight_name: Optional[str] = (
+                    cfg.lora.file if cfg.lora and cfg.lora.file else cfg.model.file
+                )
                 if weight_name:
                     # load_lora_weights() calls hf_hub_download for exactly
                     # this one file when weight_name is set — so we mirror that

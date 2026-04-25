@@ -491,12 +491,89 @@
       accent-color: var(--accent);
     }
 
-    /* Config hints panel */
-    .config-hints {
-      margin-top: -6px;
-      margin-bottom: 14px;
+    /* Config section group headers inside Advanced overrides */
+    .cfg-section {
+      margin-bottom: 4px;
+    }
+
+    .cfg-section-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      margin-top: 10px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cfg-section-header:first-child {
+      margin-top: 0;
+    }
+
+    /* Notes boxes rendered below the config selector */
+    .notes-about {
+      background: transparent;
+      border-left: 3px solid var(--muted);
+      padding: 6px 10px;
       font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 10px;
       line-height: 1.5;
+    }
+
+    .notes-warning {
+      background: color-mix(in srgb, var(--yellow) 10%, transparent);
+      border-left: 3px solid var(--yellow);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: var(--yellow);
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .notes-guide {
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .notes-guide summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 11px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      user-select: none;
+    }
+
+    .notes-guide summary::before {
+      content: '▶';
+      font-size: 9px;
+      transition: transform .15s;
+    }
+
+    .notes-guide[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .notes-guide-body {
+      margin-top: 6px;
+      padding: 7px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #8fa0b8;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .config-hints-general {
@@ -848,50 +925,77 @@
           <select id="f-config">
             <option value="">Loading configs…</option>
           </select>
-          <div id="f-config-hints" class="config-hints" style="display:none"></div>
+          <!-- Notes boxes: about (grey), warnings (yellow), prompt guide (collapsible) -->
+          <div id="f-notes-about" class="notes-about" style="display:none"></div>
+          <div id="f-notes-warning" class="notes-warning" style="display:none"></div>
+          <details id="f-notes-guide" class="notes-guide" style="display:none">
+            <summary>Prompt guide</summary>
+            <div id="f-notes-guide-body" class="notes-guide-body"></div>
+          </details>
 
           <details style="margin-bottom:12px">
             <summary style="cursor:pointer;color:var(--muted);font-size:12px;margin-bottom:8px">
               Advanced overrides
             </summary>
             <div style="margin-top:8px">
-              <div class="label-row"><label>Model ID override (Repositry)</label><span id="f-model-id-icon"
-                  class="hint-icon" style="display:none">?<span class="hint-tooltip"
-                    id="f-hint-model-tooltip"></span></span></div>
-              <input id="f-model-id" type="text">
-              <label>GGUF override (File in Repository)</label>
-              <input id="f-gguf-file" type="text" placeholder="(not set)">
-              <div class="row" style="align-items:flex-start">
-                <div style="flex:3">
-                  <label>LoRA ID override</label>
-                  <input id="f-lora-id" type="text">
+
+              <!-- ── Model section ── -->
+              <div class="cfg-section">
+                <div class="cfg-section-header">
+                  <span>Model</span>
+                  <span id="f-model-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
+                      id="f-model-section-tooltip"></span></span>
                 </div>
-                <div style="flex:1">
-                  <div class="label-row"><label>LoRA scale</label><span id="f-lora-scale-icon" class="hint-icon"
-                      style="display:none">?<span class="hint-tooltip" id="f-hint-lora-scale-tooltip"></span></span>
+                <div class="label-row"><label>Model repo override</label></div>
+                <input id="f-model-repo" type="text">
+                <label>GGUF file override</label>
+                <input id="f-model-gguf-file" type="text" placeholder="(not set)">
+              </div>
+
+              <!-- ── LoRA section ── -->
+              <div class="cfg-section">
+                <div class="cfg-section-header">
+                  <span>LoRA</span>
+                  <span id="f-lora-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
+                      id="f-lora-section-tooltip"></span></span>
+                </div>
+                <div class="row" style="align-items:flex-start">
+                  <div style="flex:3">
+                    <label>LoRA repo override</label>
+                    <input id="f-lora-repo" type="text">
                   </div>
-                  <input id="f-lora-scale" type="number" step="0.05" min="0" max="1">
+                  <div style="flex:1">
+                    <label>Strength</label>
+                    <input id="f-lora-strength" type="number" step="0.05" min="0" max="1">
+                  </div>
                 </div>
               </div>
-              <div class="row" style="align-items:flex-start">
-                <div>
-                  <div class="label-row"><label>Steps</label><span id="f-steps-icon" class="hint-icon"
-                      style="display:none">?<span class="hint-tooltip" id="f-hint-steps-tooltip"></span></span></div>
-                  <input id="f-steps" type="number" min="1">
+
+              <!-- ── Generation section ── -->
+              <div class="cfg-section">
+                <div class="cfg-section-header">
+                  <span>Generation</span>
+                  <span id="f-gen-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
+                      id="f-gen-section-tooltip"></span></span>
                 </div>
-                <div>
-                  <div class="label-row"><label>Guidance scale</label><span id="f-guidance-icon" class="hint-icon"
-                      style="display:none">?<span class="hint-tooltip" id="f-hint-cfg-tooltip"></span></span></div>
-                  <input id="f-guidance" type="number" step="0.5">
+                <div class="row" style="align-items:flex-start">
+                  <div>
+                    <label>Steps</label>
+                    <input id="f-steps" type="number" min="1">
+                  </div>
+                  <div>
+                    <label>Guidance scale (cfg_scale)</label>
+                    <input id="f-cfg-scale" type="number" step="0.5">
+                  </div>
+                </div>
+                <div class="label-row"><label>Size</label></div>
+                <div class="row" style="align-items:center;gap:6px">
+                  <input id="f-width" type="number" min="64" step="8" placeholder="Width">
+                  <span style="color:var(--muted);font-size:13px;white-space:nowrap">×</span>
+                  <input id="f-height" type="number" min="64" step="8" placeholder="Height">
                 </div>
               </div>
-              <div class="label-row"><label>Size</label><span id="f-size-icon" class="hint-icon"
-                  style="display:none">?<span class="hint-tooltip" id="f-hint-size-tooltip"></span></span></div>
-              <div class="row" style="align-items:center;gap:6px">
-                <input id="f-width" type="number" min="64" step="8" placeholder="Width">
-                <span style="color:var(--muted);font-size:13px;white-space:nowrap">×</span>
-                <input id="f-height" type="number" min="64" step="8" placeholder="Height">
-              </div>
+
               <input id="f-output" type="hidden" value="">
             </div>
           </details>
@@ -1345,65 +1449,71 @@
           return `<option value="${escHtml(c.value)}">${escHtml(c.label)}</option>`;
         }).join('');
 
-        const hintsPanel = $('f-config-hints');
-        const promptIcon = $('f-prompt-icon');
-        const promptTooltip = $('f-prompt-tooltip');
-        const negativeIcon = $('f-negative-icon');
-        const negativeTooltip = $('f-negative-tooltip');
-        const modelIcon = $('f-model-id-icon');
-        const modelTooltip = $('f-hint-model-tooltip');
-        const stepsIcon = $('f-steps-icon');
-        const stepsTooltip = $('f-hint-steps-tooltip');
-        const cfgIcon = $('f-guidance-icon');
-        const cfgTooltip = $('f-hint-cfg-tooltip');
-        const loraScaleIcon = $('f-lora-scale-icon');
-        const loraScaleTooltip = $('f-hint-lora-scale-tooltip');
-        const sizeIcon = $('f-size-icon');
-        const sizeTooltip = $('f-hint-size-tooltip');
-
-        const HINT_LABEL = {
-          '': 'Note',
-          trigger: 'Trigger word',
-          cfg: 'Guidance scale',
-          steps: 'Steps',
-          size: 'Size',
-          style: 'Style',
-          model: 'Model',
-          vae: 'VAE',
-          ar: 'Aspect ratio',
-          offload: 'Memory',
-          mix: 'Style mixing',
-          lora_scale: 'LoRA scale',
-          dtype: 'Precision',
-          guidance: 'Guidance',
-          memory: 'Memory',
-          trainers: 'Trainers',
-          background: 'Background',
-          downscale: 'Downscale',
-          v1: 'V1 note',
-        };
+        // Helper: set a hint-icon tooltip or hide it
+        function setSectionHint(iconId, tooltipId, text) {
+          const icon = $(iconId);
+          const tip = $(tooltipId);
+          if (!icon || !tip) return;
+          if (text) { tip.textContent = text; icon.style.display = ''; }
+          else { icon.style.display = 'none'; }
+        }
 
         function updateHints() {
           const meta = configMeta[sel.value];
+
+          // ── Notes boxes ──
+          const notesAbout = $('f-notes-about');
+          const notesWarning = $('f-notes-warning');
+          const notesGuide = $('f-notes-guide');
+          const notesGuideBody = $('f-notes-guide-body');
+
           if (!meta) {
-            hintsPanel.style.display = 'none';
-            [promptIcon, negativeIcon, modelIcon, stepsIcon, cfgIcon, loraScaleIcon, sizeIcon]
-              .forEach(el => el.style.display = 'none');
+            // No config selected — hide everything, reset placeholders
+            [notesAbout, notesWarning, notesGuide].forEach(el => el.style.display = 'none');
+            ['f-model-section-icon', 'f-lora-section-icon', 'f-gen-section-icon',
+              'f-prompt-icon', 'f-negative-icon'].forEach(id => {
+                const el = $(id); if (el) el.style.display = 'none';
+              });
             $('f-trigger-hint').style.display = 'none';
-            $('f-model-id').placeholder = '(not set)';
-            $('f-lora-id').placeholder = '(not set)';
-            $('f-lora-scale').placeholder = '(not set)';
+            $('f-model-repo').placeholder = '(not set)';
+            $('f-lora-repo').placeholder = '(not set)';
+            $('f-lora-strength').placeholder = '(not set)';
             $('f-steps').placeholder = '(not set)';
-            $('f-guidance').placeholder = '(not set)';
+            $('f-cfg-scale').placeholder = '(not set)';
             $('f-width').placeholder = 'Width';
             $('f-height').placeholder = 'Height';
-            $('f-gguf-file').placeholder = '(not set)';
+            $('f-model-gguf-file').placeholder = '(not set)';
             return;
           }
 
           const hints = meta.hints || {};
           const defs = meta.defaults || {};
           const extras = meta.extras || {};
+          const notes = meta.notes || {};
+
+          // ── notes.about ──
+          if (notes.about) {
+            notesAbout.textContent = notes.about;
+            notesAbout.style.display = '';
+          } else {
+            notesAbout.style.display = 'none';
+          }
+
+          // ── notes.warnings ──
+          if (notes.warnings) {
+            notesWarning.textContent = notes.warnings;
+            notesWarning.style.display = '';
+          } else {
+            notesWarning.style.display = 'none';
+          }
+
+          // ── notes.prompt_guide ──
+          if (notes.prompt_guide) {
+            notesGuideBody.textContent = notes.prompt_guide;
+            notesGuide.style.display = '';
+          } else {
+            notesGuide.style.display = 'none';
+          }
 
           // ── Trigger word hint below prompt ──
           const triggerWord = extras.trigger_word || null;
@@ -1415,71 +1525,42 @@
             triggerHint.style.display = 'none';
           }
 
-          // ── Override field placeholders from config defaults ──
-          $('f-model-id').placeholder = defs.model_id ?? '(not set)';
-          $('f-lora-id').placeholder = defs.lora_id ?? '(not set)';
-          $('f-lora-scale').placeholder = defs.lora_scale != null ? String(defs.lora_scale) : '(not set)';
-          $('f-steps').placeholder = defs.num_inference_steps != null ? String(defs.num_inference_steps) : '(not set)';
-          $('f-guidance').placeholder = defs.guidance_scale != null ? String(defs.guidance_scale) : '(not set)';
+          // ── Prompt / negative hints from notes.prompt_guide ──
+          // Show a ℹ️ icon on the Prompt label when prompt_guide exists
+          const promptIcon = $('f-prompt-icon');
+          const promptTooltip = $('f-prompt-tooltip');
+          if (promptIcon && promptTooltip) {
+            if (notes.prompt_guide) {
+              // Truncate to first 240 chars for the tooltip balloon
+              const brief = notes.prompt_guide.length > 240
+                ? notes.prompt_guide.slice(0, 237) + '…'
+                : notes.prompt_guide;
+              promptTooltip.textContent = brief;
+              promptIcon.style.display = '';
+            } else {
+              promptIcon.style.display = 'none';
+            }
+          }
+          const negativeIcon = $('f-negative-icon');
+          const negativeTooltip = $('f-negative-tooltip');
+          if (negativeIcon && negativeTooltip) {
+            negativeIcon.style.display = 'none'; // negative hint folded into prompt_guide
+          }
+
+          // ── Section hint icons ──
+          setSectionHint('f-model-section-icon', 'f-model-section-tooltip', hints.model || '');
+          setSectionHint('f-lora-section-icon', 'f-lora-section-tooltip', hints.lora || '');
+          setSectionHint('f-gen-section-icon', 'f-gen-section-tooltip', hints.generation || '');
+
+          // ── Input placeholders from config defaults ──
+          $('f-model-repo').placeholder = defs.model_repo ?? '(not set)';
+          $('f-lora-repo').placeholder = defs.lora_repo ?? '(not set)';
+          $('f-lora-strength').placeholder = defs.lora_strength != null ? String(defs.lora_strength) : '(not set)';
+          $('f-steps').placeholder = defs.steps != null ? String(defs.steps) : '(not set)';
+          $('f-cfg-scale').placeholder = defs.cfg_scale != null ? String(defs.cfg_scale) : '(not set)';
           $('f-width').placeholder = defs.width != null ? String(defs.width) : 'Width';
           $('f-height').placeholder = defs.height != null ? String(defs.height) : 'Height';
-          $('f-gguf-file').placeholder = defs.gguf_file ?? '(not set)';
-
-          // ── Prompt & negative hints ──
-          const promptLines = [hints.prompt, hints.trigger].filter(Boolean);
-          if (promptLines.length) {
-            promptTooltip.textContent = promptLines.join('\n');
-            promptIcon.style.display = '';
-          } else {
-            promptIcon.style.display = 'none';
-          }
-          if (hints.negative) {
-            negativeTooltip.textContent = hints.negative;
-            negativeIcon.style.display = '';
-          } else {
-            negativeIcon.style.display = 'none';
-          }
-
-          // ── Inline field hints ──
-          function setFieldHint(icon, tooltip, text) {
-            if (text) { tooltip.textContent = text; icon.style.display = ''; }
-            else { icon.style.display = 'none'; }
-          }
-          setFieldHint(modelIcon, modelTooltip, hints.model || '');
-          setFieldHint(stepsIcon, stepsTooltip, hints.steps || '');
-          setFieldHint(cfgIcon, cfgTooltip, hints.cfg || hints.guidance || '');
-          setFieldHint(loraScaleIcon, loraScaleTooltip, hints.lora_scale || '');
-          setFieldHint(sizeIcon, sizeTooltip, hints.size || '');
-
-          // ── Config hints panel (all other _comment_* keys) ──
-          const skipKeys = new Set(['prompt', 'negative', 'trigger', 'steps', 'cfg', 'guidance', 'lora_scale', 'model', 'size']);
-          const rows = Object.entries(hints).filter(([k]) => !skipKeys.has(k));
-
-          if (rows.length === 0) {
-            hintsPanel.style.display = 'none';
-            return;
-          }
-
-          let html = '';
-          // bare _comment shown as italic general note
-          const general = hints[''];
-          if (general) {
-            html += `<div class="config-hints-general">${escHtml(general)}</div>`;
-          }
-          const tableRows = rows.filter(([k]) => k !== '');
-          if (tableRows.length > 0) {
-            html += '<table class="config-hints-table">';
-            for (const [k, v] of tableRows) {
-              const label = HINT_LABEL[k] || k.charAt(0).toUpperCase() + k.slice(1);
-              html += `<tr>
-                <td class="config-hints-key">${escHtml(label)}</td>
-                <td class="config-hints-val">${escHtml(v)}</td>
-              </tr>`;
-            }
-            html += '</table>';
-          }
-          hintsPanel.innerHTML = html;
-          hintsPanel.style.display = '';
+          $('f-model-gguf-file').placeholder = defs.model_gguf_file ?? '(not set)';
         }
 
         sel.addEventListener('change', updateHints);
@@ -1500,14 +1581,14 @@
         prompt: $('f-prompt').value.trim(),
         negative_prompt: $('f-negative').value.trim(),
         output: $('f-output').value.trim() || null,
-        model_id: $('f-model-id').value.trim() || null,
-        lora_id: $('f-lora-id').value.trim() || null,
-        lora_scale: $('f-lora-scale').value ? +$('f-lora-scale').value : null,
+        model_repo: $('f-model-repo').value.trim() || null,
+        lora_repo: $('f-lora-repo').value.trim() || null,
+        lora_strength: $('f-lora-strength').value ? +$('f-lora-strength').value : null,
         steps: $('f-steps').value ? +$('f-steps').value : null,
-        guidance_scale: $('f-guidance').value ? +$('f-guidance').value : null,
+        cfg_scale: $('f-cfg-scale').value ? +$('f-cfg-scale').value : null,
         width: $('f-width').value ? +$('f-width').value : null,
         height: $('f-height').value ? +$('f-height').value : null,
-        gguf_file: $('f-gguf-file').value.trim() || null,
+        model_gguf_file: $('f-model-gguf-file').value.trim() || null,
       };
 
       try {

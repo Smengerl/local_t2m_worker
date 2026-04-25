@@ -21,6 +21,7 @@ FLUX.2 [klein] notes:
 """
 
 import os
+import warnings
 from typing import Any, Callable, Optional
 
 import torch
@@ -40,6 +41,15 @@ class FluxBackend(BasePipeline):
     Handles FLUX.1 (schnell/dev, optional GGUF + LoRA) and
     FLUX.2 [klein] (4B distilled) behind a unified interface.
     """
+
+    # FLUX.1-schnell is CFG-distilled → guidance_scale must be 0.0, few steps suffice.
+    # FLUX.1-dev / fine-tunes should set cfg_scale in their config (3.5–7.0).
+    GENERATION_DEFAULTS = {
+        "steps":     4,
+        "cfg_scale": 0.0,
+        "width":     1024,
+        "height":    1024,
+    }
 
     # T5 context length default: 256 for schnell, 512 recommended for dev.
     # Overridden per-config via max_sequence_length in the JSON config.
@@ -93,12 +103,24 @@ class FluxBackend(BasePipeline):
         # FLUX transformer family.
         dtype = torch.bfloat16
 
-        if self._is_klein:
-            pipe = self._load_klein(device, dtype)
-        elif self.gguf_file:
-            pipe = self._load_gguf(device, dtype)
-        else:
-            pipe = self._load_flux1(device, dtype)
+        # Suppress deprecation warning emitted by older diffusers internals that
+        # still pass local_dir_use_symlinks to hf_hub_download. The argument has
+        # been a no-op since huggingface_hub ≥0.23 and will be removed in a
+        # future release. The warning originates inside the diffusers library,
+        # not in our code, so suppressing it here avoids noise until diffusers
+        # drops the argument on their side.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=".*local_dir_use_symlinks.*",
+                category=UserWarning,
+            )
+            if self._is_klein:
+                pipe = self._load_klein(device, dtype)
+            elif self.gguf_file:
+                pipe = self._load_gguf(device, dtype)
+            else:
+                pipe = self._load_flux1(device, dtype)
 
         # ── memory optimisations (shared by all variants) ─────────────────
         if self.sequential_cpu_offload and not self.gguf_file:

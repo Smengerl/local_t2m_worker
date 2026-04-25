@@ -2,177 +2,195 @@
 
 Config files are JSON files passed via `--config` / `-c`. They describe which model, LoRA, adapter, and generation parameters to use. CLI flags always override config values; config values override built-in defaults.
 
+`_hint` keys and `notes` fields are ignored by the generation pipeline and exist solely for the GUI and documentation.
+
+`_comment*` keys on any level are ignored entirely and exist for the config author only (not rendered in the GUI).
+
+---
+
+## CLI override flags
+
+CLI flags mirror the config file key paths (section.field) using the same names, flattened with a hyphen.  
+**Rule: CLI flag name = `--<section>-<field>` whenever a direct config key exists.**
+
+| CLI flag | Config key | Type | Description |
+|---|---|---|---|
+| `--model-repo REPO_ID` | `model.repo` | string | Base model HF repo ID or local path |
+| `--model-gguf-file FILE` | `model.gguf_file` | string | GGUF weight filename inside the model repo |
+| `--lora-repo REPO_ID` | `lora.repo` | string | LoRA weights HF repo ID or local path |
+| `--lora-strength FLOAT` | `lora.strength` | float | LoRA blend strength `0.0`–`1.0` |
+| `--steps N` | `generation.steps` | int | Number of denoising steps |
+| `--cfg-scale FLOAT` | `generation.cfg_scale` | float | CFG / guidance scale |
+| `--output-dir DIR` | `system.output_dir` | string | Directory for generated images |
+| `--cache-dir DIR` | `system.cache_dir` | string | Directory for downloaded model weights |
+
+> **Width / height** can only be overridden via the web API (`width`, `height` fields in `POST /api/jobs`) or by editing the config file directly. There are no `--width` / `--height` CLI flags.
+
+---
+
 ## Config file structure
 
 ```json
 {
-    "description": "Human-readable label shown at startup",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
-    "lora_id": "linoyts/lora-xl-graffiti-0.0001-5e-05-1000-1-None",
-    "lora_scale": 0.9,
-    "weight_name": null,
-    "trigger_word": "graarg graffiti",
-    "adapter_id": null,
-    "num_inference_steps": 30,
-    "guidance_scale": 7.5,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true,
-    "seed": null
+    "description": "Human-readable label shown in the dashboard dropdown",
+    "backend": "flux",
+
+    "model": {
+        "repo": "city96/FLUX.1-dev-gguf",
+        "gguf_file": "flux1-dev-Q8_0.gguf",
+        "components_repo": "black-forest-labs/FLUX.1-dev",
+        "_hint": "Tooltip shown next to the Model section header in the GUI"
+    },
+
+    "lora": {
+        "repo": "some-org/some-lora",
+        "file": "lora-weights.safetensors",
+        "strength": 0.9,
+        "trigger": "my trigger word",
+        "_hint": "Tooltip shown next to the LoRA section header in the GUI"
+    },
+
+    "generation": {
+        "steps": 20,
+        "cfg_scale": 3.5,
+        "width": 1024,
+        "height": 1024,
+        "max_prompt_tokens": 128,
+        "seed": null,
+        "_hint": "Tooltip shown next to the Generation section header in the GUI"
+    },
+
+    "system": {
+        "cpu_offload": false,
+        "cache_dir": "models",
+        "output_dir": "outputs",
+        "_hint": "Tooltip shown next to the System section header in the GUI"
+    },
+
+    "notes": {
+        "about": "General description of the model and the kind of images it produces.",
+        "prompt_guide": "Prompting tips: trigger words, style keywords, negative prompt suggestions.",
+        "warnings": "Any constraints the user must know: incompatible settings, memory requirements, etc."
+    }
 }
 ```
 
-`_comment*` keys are ignored by the parser and can be used for inline documentation.
+---
 
-## Available keys
+## Top-level fields
 
-| Key | Default | Description |
-|---|---|---|
-| `pipeline_type` | **(required)** | `"sd"` / `"sdxl"` / `"sd3"` / `"flux"` / `"zimage"` / `"qwen"` — selects the backend |
-| `model_id` | SD 1.5 repo | HuggingFace repo ID or local path of the base model |
-| `description` | `null` | Label shown in logs and the web dashboard |
-| `adapter_id` | `null` | HF repo ID / local path for an adapter (ControlNet, refiner, …) |
-| `lora_id` | `null` | HF repo ID / local path for LoRA weights |
-| `lora_scale` | `0.9` | LoRA blending strength (`0.0`–`1.0`) |
-| `weight_name` | `null` | Specific `.safetensors` filename to load. Behaviour depends on whether `lora_id` is also set — see note below. |
-| `trigger_word` | `null` | Token required by the LoRA. Automatically prepended to the prompt with a warning if missing. |
-| `num_inference_steps` | `30` | Denoising steps — more = better quality, slower |
-| `guidance_scale` | `7.5` | CFG scale — how strongly the model follows the prompt; set to `0.0` for distilled models (SDXL-Turbo, FLUX-schnell, Z-Image-Turbo) |
-| `width` / `height` | `1024` | Output resolution in pixels |
-| `sequential_cpu_offload` | `false` | Offloads sub-modules to CPU between operations, cutting peak VRAM ~50 %. Recommended for SDXL and FLUX on ≤ 16 GB RAM. |
-| `output_dir` | `"outputs"` | Directory for generated images |
-| `cache_dir` | `"models"` | Directory for downloaded model weights |
-| `seed` | `null` | Fixed RNG seed for reproducible results. `null` = random. |
-| `true_cfg_scale` | `null` | Secondary guidance scale used by some backends (e.g. Qwen-Image) |
-
-> **`weight_name` — zwei verschiedene Rollen je nach Kontext**
->
-> Das Verhalten von `weight_name` hängt davon ab, ob gleichzeitig `lora_id` gesetzt ist:
->
-> | Kombination | Bedeutung |
-> | --- | --- |
-> | `weight_name` **ohne** `lora_id` | Single-file-Checkpoint des Basismodells. Die Datei wird direkt aus `model_id` heruntergeladen und per `from_single_file()` geladen (z. B. eine individuelle `.safetensors`-Variante des Basismodells). |
-> | `weight_name` **mit** `lora_id` | Dateiname innerhalb des LoRA-Repos. Wird an `load_lora_weights()` übergeben, um die richtige `.safetensors`-Datei aus einem Monorepo mit mehreren Dateien auszuwählen (z. B. `ByteDance/Hyper-SD` enthält mehrere LoRA-Varianten). |
->
-> **Wichtig:** `weight_name` darf **nicht** auf das Basismodell-Repo zeigen, wenn `lora_id` gesetzt ist — die Datei muss in `lora_id` liegen. Ein falsches Setup führt zu einem 404-Fehler beim Download.
->
-> **Beispiel — LoRA aus Monorepo** (`lora_id` + `weight_name`):
->
-> ```json
-> {
->     "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
->     "lora_id": "ByteDance/Hyper-SD",
->     "weight_name": "Hyper-SDXL-8steps-CFG-lora.safetensors"
-> }
-> ```
->
-> → Basismodell wird per `from_pretrained` geladen, dann wird `Hyper-SDXL-8steps-CFG-lora.safetensors` aus `ByteDance/Hyper-SD` als LoRA geladen.
->
-> **Beispiel — Single-file-Basismodell** (nur `weight_name`, kein `lora_id`):
->
-> ```json
-> {
->     "model_id": "some-org/some-model-repo",
->     "weight_name": "model-fp16.safetensors"
-> }
-> ```
->
-> → `model-fp16.safetensors` wird aus `some-org/some-model-repo` heruntergeladen und per `from_single_file()` geladen.
-
-## Adding a new config
-
-1. Copy an existing config that uses the same `pipeline_type`.
-2. Set `model_id` and optionally `lora_id`.
-3. Adjust `num_inference_steps`, `guidance_scale`, `width`, `height` per the model card.
-4. Enable `sequential_cpu_offload: true` for any SDXL / FLUX / SD3 model on Mac.
-5. Save to `configs/your_name.json` — it is picked up automatically by the web dashboard and `run.sh`.
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `description` | string | ✅ | Short label — shown in the dashboard dropdown and logs |
+| `backend` | string | ✅ | Selects the pipeline backend: `"sd"` / `"sdxl"` / `"sd3"` / `"flux"` / `"zimage"` / `"qwen"` |
+| `model` | object | ✅ | Model source — see section below |
+| `lora` | object | — | LoRA weights — omit entirely if no LoRA is used |
+| `generation` | object | — | Generation parameters — all fields optional, fall back to defaults |
+| `system` | object | — | Paths and memory settings — all fields optional |
+| `notes` | object | — | Free-text fields rendered as info/guide/warning boxes in the GUI |
 
 ---
 
-## Existing configs
+## `model`
 
-### Stable Diffusion 1.5 (`pipeline_type: "sd"`)
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `repo` | string | **(required)** | HuggingFace repo ID or local path. For GGUF: the repo containing the `.gguf` file (e.g. `city96/FLUX.1-dev-gguf`). For standard models: the full model repo (e.g. `black-forest-labs/FLUX.1-dev`). |
+| `gguf_file` | string | `null` | **GGUF only.** Exact filename of the `.gguf` transformer weights inside `repo` (e.g. `flux1-dev-Q8_0.gguf`). When set, triggers GGUF loading. |
+| `components_repo` | string | `null` | **GGUF only.** HF repo that supplies VAE, text encoders, scheduler, and tokenizers (e.g. `black-forest-labs/FLUX.1-dev`). Required when `gguf_file` is set. |
+| `file` | string | `null` | Single-file checkpoint filename — loaded via `from_single_file()`. Only used when no `lora` section is present. |
+| `_hint` | string | — | Tooltip displayed next to the Model section in the GUI. Not used by the pipeline. |
 
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `sd15_default.json` | — | — | 512×512 | SD 1.5 base — general-purpose text-to-image, ~4 GB RAM |
-| `sd15_dreamshaper8.json` | — | — | 512×512 | DreamShaper v8 — versatile fine-tune for fantasy, portraits, stylised realism |
-| `sd15_realistic_vision_v6.json` | — | — | 768×768 | Realistic Vision V6.0 B1 — hyperrealistic portrait / photorealism (noVAE variant) |
-| `sd15_inkpunk_lora.json` | — | `nvinkpunk` | 512×512 | Inkpunk Diffusion — ink/punk illustration style (DreamBooth fine-tune) |
-| `sd15_pixel_art_lora.json` | SedatAl/pixel-art-LoRa | — | 512×512 | Pixel-art / 16-bit retro style |
-| `sd15_lazymix_amateur.json` | — | — | 512×768 | LazyMix+ v4.0 — realistic amateur photography fine-tune |
-| `sd15_comic_diffusion_andreasrocha.json` | — | `andreasrocha artstyle` | 512×512 | Comic-Diffusion v2 — Andreas Rocha artstyle |
-| `sd15_comic_diffusion_charliebo.json` | — | `charliebo artstyle` | 512×512 | Comic-Diffusion v2 — Charlie Bo artstyle |
-| `sd15_comic_diffusion_holliemengert.json` | — | `holliemengert artstyle` | 512×512 | Comic-Diffusion v2 — Hollie Mengert artstyle |
-| `sd15_comic_diffusion_jamesdaly.json` | — | `jamesdaly artstyle` | 512×512 | Comic-Diffusion v2 — James Daly artstyle |
-| `sd15_comic_diffusion_marioalberti.json` | — | `marioalberti artstyle` | 512×512 | Comic-Diffusion v2 — Mario Alberti artstyle |
-| `sd15_comic_diffusion_pepelarraz.json` | — | `pepelarraz artstyle` | 512×512 | Comic-Diffusion v2 — Pepe Larraz artstyle |
+> **GGUF loading:** the pipeline loads the transformer from `repo` + `gguf_file`, then loads all other components from `components_repo`. Both fields are required together.
 
-### Stable Diffusion 2.1 (`pipeline_type: "sd"`)
+---
 
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `sd21_coloringbook_redmond_lora.json` | artificialguybr/coloringbook-redmond-… | `ColoringBookAF` | 512×512 | Coloring-book line-art style LoRA for SD 2.1 |
+## `lora` *(omit entirely if unused)*
 
-### Stable Diffusion 3 (`pipeline_type: "sd3"`)
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `repo` | string | **(required)** | HuggingFace repo ID or local path for the LoRA weights |
+| `file` | string | `null` | Specific `.safetensors` filename inside `repo` — required for multi-file repos (e.g. `ByteDance/Hyper-SD`) |
+| `strength` | float | `0.9` | LoRA blend strength `0.0`–`1.0` |
+| `trigger` | string | `null` | Trigger word required by the LoRA. Automatically prepended to the prompt with a warning if missing. |
+| `_hint` | string | — | Tooltip displayed next to the LoRA section in the GUI. Not used by the pipeline. |
 
-> Gated model — requires a HuggingFace token stored in `.hf_token`.
+---
 
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `sd3_medium.json` | — | — | 1024×1024 | SD3-Medium — 2B MMDiT, 28 steps, improved prompt adherence |
+## `generation` *(all fields optional)*
 
-### Stable Diffusion XL (`pipeline_type: "sdxl"`)
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `steps` | int | `30` | Number of denoising steps — more = better quality, slower |
+| `cfg_scale` | float | `7.5` | CFG scale — prompt adherence. Set to `0.0` for CFG-distilled models (FLUX.1-schnell, SDXL-Turbo, Z-Image-Turbo). |
+| `cfg_scale_secondary` | float | `null` | Secondary CFG scale used by some backends (e.g. Qwen-Image) |
+| `width` | int | `1024` | Output image width in pixels |
+| `height` | int | `1024` | Output image height in pixels |
+| `max_prompt_tokens` | int | `null` | Maximum T5 encoder token length (FLUX backends). `128` saves ~1 GB RAM vs `256`. Use `256` only for very long prompts. |
+| `seed` | int | `null` | Fixed RNG seed for reproducible results. `null` = random each run. |
+| `_hint` | string | — | Tooltip displayed next to the Generation section in the GUI. Not used by the pipeline. |
 
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `sdxl_turbo.json` | — | — | 512×512 | SDXL-Turbo — 4-step ADD-distilled; `guidance_scale` must be `0.0` |
-| `sdxl_graffiti_lora.json` | linoyts/lora-xl-graffiti-… | `graarg graffiti` | 1024×1024 | Graffiti lettering / mural style |
-| `sdxl_littletinies_lora.json` | alvdansen/littletinies | — | 1024×1024 | Soft hand-drawn cartoon style |
-| `sdxl_ikea_lora.json` | ostris/ikea-instructions-lora-sdxl | — | 1024×1024 | Flat line-art IKEA assembly-manual style |
-| `sdxl_bandw_manga_lora.json` | alvdansen/BandW-Manga | — | 1024×1024 | Bold monochrome manga line-art |
-| `sdxl_storyboard_sketch_lora.json` | blink7630/storyboard-sketch | `storyboard sketch of` | 1024×1024 | Grayscale film/TV storyboard style |
-| `sdxl_pokemon_sprite_lora.json` | sWizad/pokemon-trainer-sprite-pixelart | — | 768×768 | Pixel-art Pokémon trainer sprite style |
-| `sdxl_watercolor_lora.json` | ostris/watercolor_style_lora_sdxl | — | 1024×1024 | Loose watercolor painting — soft edges, visible brush strokes |
-| `sdxl_analog_redmond_lora.json` | artificialguybr/analogredmond-v2 | `AnalogRedmAF` | 1024×1024 | Analog film photography — grain, warm tones, vintage look |
-| `sdxl_papercut_lora.json` | TheLastBen/Papercut_SDXL | `papercut` | 1024×1024 | Paper-cut / kirigami craft art style |
-| `sdxl_hypersd_lora.json` | ByteDance/Hyper-SD | — | 1024×1024 | Hyper-SD 8-step CFG-preserved acceleration LoRA; `lora_scale: 0.125`, `guidance_scale: 5–8` |
+---
 
-### FLUX (`pipeline_type: "flux"`)
+## `system` *(all fields optional)*
 
-> Gated model — requires a HuggingFace token stored in `.hf_token`.
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `cpu_offload` | bool | `false` | Offload pipeline sub-modules to CPU between operations — reduces peak VRAM by ~50 %. Recommended for SDXL / FLUX / SD3 on ≤ 16 GB RAM. **Must be `false` for GGUF configs** (incompatible with quantised tensors). |
+| `cache_dir` | string | `"models"` | Directory for downloaded model weights |
+| `output_dir` | string | `"outputs"` | Directory for generated images |
+| `_hint` | string | — | Tooltip displayed next to the System section in the GUI. Not used by the pipeline. |
 
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `flux1_schnell.json` | — | — | 1024×1024 | FLUX.1-schnell — 12B rectified-flow DiT, 4-step distillation; `guidance_scale: 0.0` |
-| `flux_cute_comic_lora.json` | fffiloni/cute-comic-800 | `in the style of TOK` | 1024×1024 | Charming flat illustration / comic card style |
-| `flux_miniature_people_lora.json` | iliketoasters/miniature-people | `miniature people` | 1024×1024 | Photorealistic tiny figures in real-world scenes |
+---
 
-### Z-Image-Turbo (`pipeline_type: "zimage"`) — archived
+## `notes` *(all fields optional)*
 
-> `guidance_scale` must be `0.0`. Recommended steps: 8–16. Configs moved to `nfsw/`.
+All three fields are plain strings. The GUI renders each one in a distinct visual style when present.
 
-### Archived configs
+| Field | GUI rendering | Content |
+|---|---|---|
+| `about` | Grey info box at the top | General description of the model, style, and generated images |
+| `prompt_guide` | Collapsible prompt-help box | Trigger words, example prompts, style keywords, negative prompt suggestions |
+| `warnings` | Yellow/orange warning box | Must-know constraints: incompatible settings, memory requirements, model limitations |
 
-Configs in sub-folders are excluded from the web dashboard dropdown:
+---
 
-| Folder | Reason |
-|---|---|
-| `nfsw/` | NSFW / adult-content models — use at your own risk |
-| `high_memory/` | Models that exceed available RAM / VRAM on the target machine |
+## `_hint` convention
 
-#### `high_memory/`
+Each section (`model`, `lora`, `generation`, `system`) may contain a `_hint` string. The GUI shows it as a tooltip (ℹ️ icon) next to the section header. Describe the most important constraint or value range for that section.
 
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `qwen_edit_pixel_spritesheet_lora.json` | svntax-dev/pixel_spritesheet_… | — | 768×768 | Qwen-Image-Edit + pixel spritesheet LoRA — 32×48 RPG walk/combat spritesheets |
+```json
+"generation": {
+    "steps": 4,
+    "cfg_scale": 0.0,
+    "_hint": "FLUX.1-schnell is CFG-distilled — cfg_scale must be 0.0. Steps 1–8, sweet spot at 4."
+}
+```
 
-#### `nfsw/`
+---
 
-> ⚠️ Adult content — excluded from the web dashboard dropdown.
+## `_comment*` convention
 
-| File | LoRA / adapter | Trigger word | Size | Description |
-|---|---|---|---|---|
-| `zimage_smnth_nsfw_lora.json` | Kakelaka/Smnth_v1_NSFW1 | `Smnth_v1` | 1024×1024 | Z-Image-Turbo + anatomical detail / NSFW character LoRA |
-| `qwen_hmfemme_lora.json` | burnerbaby/hmfemme-realistic-1girl-lora-for-qwen | `HMFemme, an amateur photo…` | 1328×1328 | Qwen-Image + candid-style realistic female photography LoRA |
+Keys starting with `_comment` are stripped by the parser and never reach the pipeline or GUI. Use them freely for author notes in the JSON file itself.
+
+```json
+"model": {
+    "repo": "city96/FLUX.1-dev-gguf",
+    "gguf_file": "flux1-dev-Q8_0.gguf",
+    "_comment": "Q8_0 keeps near-bfloat16 quality with trivial dequantisation overhead on MPS."
+}
+```
+
+---
+
+## Adding a new config
+
+1. Copy an existing config with the same `backend`.
+2. Set `model.repo` and optionally the `lora` section.
+3. For GGUF models: set `model.gguf_file` + `model.components_repo`; set `system.cpu_offload` to `false`.
+4. Adjust `generation.steps`, `generation.cfg_scale`, `generation.width`, `generation.height` per the model card.
+5. For non-GGUF SDXL / FLUX / SD3 on Mac: set `system.cpu_offload` to `true`.
+6. Add `notes.about`, `notes.prompt_guide`, and `notes.warnings` for documentation and GUI hints.
+7. Save to `configs/your_name.json` — picked up automatically by the web dashboard and `run.sh`.
+
+Configs in sub-folders (`nfsw/`, `high_memory/`) are excluded from the web dashboard dropdown.

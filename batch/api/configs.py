@@ -1,8 +1,18 @@
 """
 GET /api/configs  – list available config presets from configs/*.json.
+
+Response shape per config entry:
+  {
+    value:       "configs/foo.json",
+    label:       "[FLUX] Fast 4-step …",
+    description: "Fast 4-step …",
+    hints:       {model: "…", lora: "…", generation: "…", system: "…"},
+    defaults:    {model_id: "…", lora_id: "…", lora_scale: 0.9, …},
+    extras:      {trigger_word: "…"},
+    notes:       {about: "…", prompt_guide: "…", warnings: "…"},
+  }
 """
 
-import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -16,60 +26,92 @@ _ROOT = Path(__file__).parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from cli import DEFAULTS as _CLI_DEFAULTS  # noqa: E402
+from config_types import ConfigFile
 
-_DEFAULTS_FIELDS = (
-    "model_id", "lora_id", "lora_scale",
-    "num_inference_steps", "guidance_scale",
-    "width", "height", "gguf_file",
-)
+# ── per-request result cache keyed by (sorted file paths × mtimes) ───────────
+# Invalidated automatically whenever any .json file under configs/ is added,
+# removed, or modified — no server restart required.
+_cache_key: tuple | None = None
+_cache_result: list[dict[str, Any]] | None = None
 
-_EXTRA_FIELDS = ("trigger_word",)
 
+def _configs_cache_key() -> tuple:
+    """Return a tuple of (path, mtime) pairs for all configs — used as cache key."""
+    return tuple(
+        (str(p), p.stat().st_mtime)
+        for p in sorted(_CONFIGS_DIR.rglob("*.json"))
+    )
+
+
+# ── router ─────────────────────────────────────────────────────────────────────
 
 @router.get("/configs")
 def api_list_configs() -> list[dict[str, Any]]:
-    """Return all JSON config files as [{value, label, description, hints}], sorted by filename."""
+    """Return all JSON config files as a list of metadata dicts, sorted by filename.
+
+    Configs in subdirectories (e.g. ``configs/nfsw/``) are included and their
+    subfolder appears in the dropdown label as a ``[GROUP / …]`` prefix.
+
+    Results are cached in memory and only recomputed when the set of config
+    files or their modification times change — no server restart required.
+    """
+    global _cache_key, _cache_result
+
+    current_key = _configs_cache_key()
+    if _cache_result is not None and current_key == _cache_key:
+        return _cache_result
+
     entries: list[dict[str, Any]] = []
-    for path in sorted(_CONFIGS_DIR.glob("*.json")):
+    for path in sorted(_CONFIGS_DIR.rglob("*.json")):
         try:
-            data = json.loads(path.read_text())
-            desc = data.get("description") or path.stem
-            pipeline = data.get("pipeline_type", "")
-            label = f"[{pipeline.upper()}] {desc}" if pipeline else desc
-            # Collect all _comment_* keys as hints (strip leading "_comment_" prefix for display)
-            hints: dict[str, str] = {}
-            for k, v in data.items():
-                if k.startswith("_comment_") and isinstance(v, str):
-                    hint_key = k[len("_comment_"):]  # e.g. "_comment_trigger" → "trigger"
-                    hints[hint_key] = v
-                elif k == "_comment" and isinstance(v, str):
-                    hints[""] = v  # bare _comment shown as a general note
-            # Collect functional field defaults to populate input placeholders.
-            # Merge: global DEFAULTS (lowest priority) ← config file values (higher priority).
-            defaults: dict[str, Any] = {}
-            for k in _DEFAULTS_FIELDS:
-                if k in _CLI_DEFAULTS and _CLI_DEFAULTS[k] is not None:
-                    defaults[k] = _CLI_DEFAULTS[k]
-                if k in data and data[k] is not None:
-                    defaults[k] = data[k]
-            # Extra fields exposed directly (not as placeholders)
-            extras: dict[str, Any] = {}
-            for k in _EXTRA_FIELDS:
-                if data.get(k) is not None:
-                    extras[k] = data[k]
+            cfg = ConfigFile.from_json(path, keep_hints=True)
+
+            desc = cfg.description or path.stem
+            pipeline = cfg.backend.upper()
+
+            # Subfolder prefix for configs not directly in configs/
+            rel = path.relative_to(_CONFIGS_DIR)
+            if len(rel.parts) > 1:
+                folder = rel.parts[0].upper()
+                label = f"[{pipeline} / {folder}] {desc}" if pipeline else f"[{folder}] {desc}"
+            else:
+                label = f"[{pipeline}] {desc}" if pipeline else desc
+
+            hints = cfg.hints
+            defaults: dict[str, Any] = {k: v for k, v in {
+                "model_repo":      cfg.model.repo,
+                "model_gguf_file": cfg.model.gguf_file,
+                "lora_repo":       cfg.lora.repo      if cfg.lora else None,
+                "lora_strength":   cfg.lora.strength  if cfg.lora else None,
+                "steps":           cfg.generation.steps,
+                "cfg_scale":       cfg.generation.cfg_scale,
+                "width":           cfg.generation.width,
+                "height":          cfg.generation.height,
+            }.items() if v is not None}
+            extras: dict[str, Any] = (
+                {"trigger_word": cfg.lora.trigger}
+                if cfg.lora and cfg.lora.trigger
+                else {}
+            )
+            notes = cfg.notes.to_dict() if cfg.notes else None
+
         except Exception:
+            hints, defaults, extras, notes = {}, {}, {}, None
             desc = path.stem
             label = path.stem
-            hints = {}
-            defaults = {}
-            extras = {}
-        entries.append({
-            "value": f"configs/{path.name}",
-            "label": label,
+
+        entry: dict[str, Any] = {
+            "value":       str(path.relative_to(_CONFIGS_DIR.parent)),
+            "label":       label,
             "description": desc,
-            "hints": hints,
-            "defaults": defaults,
-            "extras": extras,
-        })
+            "hints":       hints,
+            "defaults":    defaults,
+            "extras":      extras,
+        }
+        if notes:
+            entry["notes"] = notes
+        entries.append(entry)
+
+    _cache_key = current_key
+    _cache_result = entries
     return entries

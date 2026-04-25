@@ -1,24 +1,31 @@
 {
-    "description": "FLUX.1-schnell + cute-comic-800 LoRA (fffiloni) — charming flat illustration / comic card style",
-    "_comment": "LoRA trained with AI Toolkit by Ostris on FLUX.1-schnell base. Produces warm, children's-book-style flat comic illustrations.",
-    "_comment_model": "Base model: black-forest-labs/FLUX.1-schnell — CFG-distilled 12B rectified-flow DiT. Gated: HF token required.",
-    "_comment_trigger": "TRIGGER WORD: append 'in the style of TOK' to every prompt. Without it the LoRA style barely activates.",
-    "_comment_guidance": "FLUX.1-schnell is CFG-distilled → guidance_scale MUST be 0.0.",
-    "_comment_steps": "4 steps is the schnell sweet spot. 1–8 steps are valid; more steps do not meaningfully improve quality for distilled models.",
-    "_comment_lora_scale": "0.9 is the default. Range 0.7–1.0; lower values blend LoRA style with base FLUX aesthetics.",
-    "_comment_weight_name": "LoRA weights are in a single file: cute-comic-800.safetensors (diffusers load_lora_weights supports weight_name via lora_id).",
-    "_comment_size": "1024x1024 is the FLUX native resolution. Square format suits illustration cards well.",
-    "_comment_offload": "Enable on ≤16 GB unified memory — FLUX transformer is ~12 GB in bfloat16.",
-    "_comment_license": "apache-2.0 — commercial use allowed.",
-    "pipeline_type": "flux",
-    "model_id": "black-forest-labs/FLUX.1-schnell",
-    "adapter_id": null,
-    "lora_id": "fffiloni/cute-comic-800",
-    "lora_scale": 0.9,
-    "trigger_word": "in the style of TOK",
-    "num_inference_steps": 4,
-    "guidance_scale": 0.0,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "description": "Charming flat comic illustration style",
+    "backend": "flux",
+    "model": {
+        "repo": "city96/FLUX.1-schnell-gguf",
+        "gguf_file": "flux1-schnell-Q8_0.gguf",
+        "components_repo": "black-forest-labs/FLUX.1-schnell",
+        "_hint": "Transformer: city96/FLUX.1-schnell-gguf (flux1-schnell-Q8_0.gguf, ~12 GB). Pipeline components: black-forest-labs/FLUX.1-schnell (gated — HF token required). LoRA: fffiloni/cute-comic-800 (cute-comic-800.safetensors). Q8_0 keeps near-bfloat16 quality with trivial dequantisation overhead on MPS. sequential_cpu_offload disabled (incompatible with GGUF). LoRA applied via set_adapters() (unfused — required for GGUF). | gguf_file is the transformer only. base_model_id supplies VAE, text encoders, scheduler."
+    },
+    "lora": {
+        "repo": "fffiloni/cute-comic-800",
+        "strength": 0.9,
+        "trigger": "in the style of TOK",
+        "_hint": "0.9 default. Range: 0.7–1.0. Lower values blend LoRA style with base FLUX aesthetics."
+    },
+    "generation": {
+        "steps": 4,
+        "cfg_scale": 0.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "4 steps (schnell sweet spot). Range: 1–8. More steps do not improve quality for distilled models. | FLUX.1-schnell is CFG-distilled → guidance_scale MUST be 0.0. Any positive value degrades quality. | FLUX native 1024×1024. Square format suits illustration cards well."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)"
+    },
+    "notes": {
+        "about": "Generates warm, flat children's-book-style comic illustrations — bold outlines, simplified shapes, cheerful characters, and soft pastel tones. Well-suited for greeting cards, story illustrations, and character portraits.",
+        "prompt_guide": "TRIGGER WORD REQUIRED: append 'in the style of TOK' to every prompt — without it the LoRA style barely activates. Examples: 'a brave knight in the style of TOK', 'two children playing in a garden in the style of TOK', 'a cozy winter cabin in the style of TOK'."
+    }
 }

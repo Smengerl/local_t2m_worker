@@ -39,6 +39,15 @@ from pipeline_config import PipelineConfig
 class ZImageBackend(BasePipeline):
     """Diffusers-based backend for Tongyi-MAI/Z-Image-Turbo (and LoRAs)."""
 
+    # Z-Image-Turbo is CFG-distilled → guidance_scale MUST be 0.0.
+    # 9 steps → 8 actual DiT forward passes (off-by-one in the scheduler).
+    GENERATION_DEFAULTS = {
+        "steps":     9,
+        "cfg_scale": 0.0,
+        "width":     1024,
+        "height":    1024,
+    }
+
     def __init__(self, cfg: PipelineConfig) -> None:
         super().__init__(cfg)
         self._pipe = self._load()

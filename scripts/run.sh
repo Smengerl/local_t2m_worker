@@ -15,7 +15,6 @@ Options:
   -n, --negative-prompt TEXT Negative prompt
   -o, --output FILE          Output PNG path (default: outputs/<timestamp>.png)
       --model-id REPO_ID     Override model ID from config
-      --adapter-id REPO_ID   Override adapter ID from config
       --lora-id REPO_ID      Override LoRA weights from config
       --lora-scale FLOAT     Override LoRA scale from config
       --steps N              Override inference steps from config

@@ -26,6 +26,15 @@ from pipeline_config import PipelineConfig
 class QwenImageBackend(BasePipeline):
     """Diffusers-based backend for Qwen/Qwen-Image (and compatible LoRAs)."""
 
+    # Qwen-Image uses true_cfg_scale (not guidance_scale); 50 steps recommended.
+    # Native 1:1 resolution is 1328×1328.
+    GENERATION_DEFAULTS = {
+        "steps":     50,
+        "cfg_scale": 4.0,   # used as true_cfg_scale fallback; guidance_scale is ignored
+        "width":     1328,
+        "height":    1328,
+    }
+
     def __init__(self, cfg: PipelineConfig) -> None:
         super().__init__(cfg)
         self._pipe = self._load()

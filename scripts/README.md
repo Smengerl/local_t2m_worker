@@ -47,7 +47,6 @@ Wraps `generate.py` for ad-hoc image generation. Handles virtual-environment act
 | `--negative-prompt TEXT` | `-n` | Negative prompt — what to avoid |
 | `--output FILE` | `-o` | Output PNG path. Default: `outputs/YYYYMMDD_HHMMSS.png` |
 | `--model-id REPO_ID` | | Override `model_id` from config |
-| `--adapter-id REPO_ID` | | Override `adapter_id` from config |
 | `--lora-id REPO_ID` | | Override `lora_id` from config |
 | `--lora-scale FLOAT` | | Override `lora_scale` from config |
 | `--steps N` | | Override `num_inference_steps` from config |

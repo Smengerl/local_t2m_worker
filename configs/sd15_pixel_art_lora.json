@@ -1,21 +1,28 @@
 {
-    "description": "SD 1.5 + Pixel Art LoRA — pixel-art / 16-bit retro style",
-    "_comment": "LoRA by SedatAl, trained on jainr3/diffusiondb-pixelart dataset using SD 1.5.",
-    "_comment_model": "Base model: stable-diffusion-v1-5/stable-diffusion-v1-5.",
-    "_comment_trigger": "No dedicated trigger word. Use descriptive pixel-art vocabulary: 'pixel art', '16 bit', 'retro game sprite', '8-bit', etc.",
-    "_comment_prompt": "Examples: 'pixel art dragon on a mountain', 'pixel art thor holding hammer', 'pixel art portrait, 16 bit, retro RPG'.",
-    "_comment_steps": "50 steps for crisp pixel edges; 30 is sufficient for quick tests.",
-    "_comment_cfg": "CFG 7–8 works well for SD 1.5 LoRAs.",
-    "_comment_size": "SD 1.5 native resolution is 512x512. 640x640 and 768x768 also work.",
-    "pipeline_type": "sd",
-    "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
-    "adapter_id": null,
-    "lora_id": "SedatAl/pixel-art-LoRa",
-    "lora_scale": 0.9,
-    "trigger_word": null,
-    "num_inference_steps": 50,
-    "guidance_scale": 7.5,
-    "width": 512,
-    "height": 512,
-    "sequential_cpu_offload": false
+    "description": "Pixel art / 16-bit retro style",
+    "backend": "sd",
+    "model": {
+        "repo": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+        "_hint": "Base: stable-diffusion-v1-5. LoRA: SedatAl/pixel-art-LoRa, trained on jainr3/diffusiondb-pixelart dataset. ~2 GB + LoRA; no sequential offload needed."
+    },
+    "lora": {
+        "repo": "SedatAl/pixel-art-LoRa",
+        "strength": 0.9,
+        "_hint": "0.9 default. Lower values (0.7–0.8) soften the pixel-art effect."
+    },
+    "generation": {
+        "steps": 50,
+        "cfg_scale": 7.5,
+        "width": 512,
+        "height": 512,
+        "_hint": "50 steps for crisp pixel edges. 30 is sufficient for quick tests. | CFG 7–8 works well for SD 1.5 LoRAs. | SD 1.5 native 512×512. 640×640 and 768×768 also work."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)"
+    },
+    "notes": {
+        "about": "Generates pixel art and retro 16-bit style images — sprites, landscapes, characters, and icons in the aesthetic of classic video games and RPGs.",
+        "prompt_guide": "No trigger word needed — use descriptive pixel-art vocabulary in the prompt. Examples: 'pixel art dragon on a mountain, 16 bit', 'pixel art portrait of a knight, retro RPG style', 'pixel art city at night, 8-bit, retro game'."
+    }
 }

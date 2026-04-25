@@ -1,18 +1,23 @@
 {
-    "description": "Stable Diffusion 1.5 — general-purpose text-to-image, ~4 GB RAM",
-    "_comment": "SD 1.5 fine-tuned for 595k steps at 512x512 on LAION-aesthetics v2 5+. Text encoder: CLIP ViT-L/14.",
-    "_comment_size": "Native resolution is 512x512. Larger sizes work but may produce distortions.",
-    "_comment_steps": "Model card evaluations use 50 PLMS steps. 20–50 is the practical range; 30 is a solid default.",
-    "_comment_cfg": "CFG 7–8 is the sweet spot per official evaluations. Above 10 causes oversaturation.",
-    "pipeline_type": "sd",
-    "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
-    "adapter_id": null,
-    "lora_id": null,
-    "lora_scale": 0.9,
-    "trigger_word": null,
-    "num_inference_steps": 30,
-    "guidance_scale": 7.5,
-    "width": 512,
-    "height": 512,
-    "sequential_cpu_offload": false
+    "description": "General-purpose text-to-image",
+    "backend": "sd",
+    "model": {
+        "repo": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+        "_hint": "Base: stable-diffusion-v1-5/stable-diffusion-v1-5 — SD 1.5, fine-tuned for 595k steps at 512×512 on LAION-aesthetics v2 5+. Text encoder: CLIP ViT-L/14. ~2 GB; no sequential offload needed."
+    },
+    "generation": {
+        "steps": 30,
+        "cfg_scale": 7.5,
+        "width": 512,
+        "height": 512,
+        "_hint": "20–50 steps. 30 is a solid default. 50 PLMS gives maximum detail per model card evaluations. | CFG 7–8 is the sweet spot per official evaluations. Values above 10 cause oversaturation and artifacts. | Native 512×512. Larger sizes work but may produce composition distortions."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)"
+    },
+    "notes": {
+        "about": "Generates general-purpose images across a wide range of subjects — portraits, landscapes, objects, and artistic styles — using the original Stable Diffusion 1.5 model.",
+        "prompt_guide": "No trigger word. Use descriptive prompts with art style modifiers. Examples: 'a photorealistic portrait of a young woman, soft lighting', 'an oil painting of a mountain landscape at sunset', 'a futuristic city, cyberpunk aesthetic, neon lights, digital art'.\n\nNegative prompt: Example: 'blurry, low quality, distorted, ugly, watermark, text'."
+    }
 }

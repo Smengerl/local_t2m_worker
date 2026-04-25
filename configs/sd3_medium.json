@@ -1,19 +1,23 @@
 {
-    "description": "Stable Diffusion 3 Medium (stabilityai) — high quality, typography, complex prompts",
-    "_comment": "MMDiT architecture (Multimodal Diffusion Transformer). Uses three text encoders: OpenCLIP-ViT/G, CLIP-ViT/L, and T5-xxl. Gated model — requires HF account agreement.",
-    "_comment_steps": "28 steps is the official recommendation per the model card example code. Range 20–40.",
-    "_comment_cfg": "7.0 is the official default per the model card. Range 4.5–10; lower values give softer results.",
-    "_comment_size": "Native resolution 1024x1024. Supports arbitrary resolutions up to ~1 MP.",
-    "_comment_offload": "~10 GB peak VRAM. sequential_cpu_offload recommended on ≤16 GB unified memory (MPS).",
-    "pipeline_type": "sd3",
-    "model_id": "stabilityai/stable-diffusion-3-medium-diffusers",
-    "adapter_id": null,
-    "lora_id": null,
-    "lora_scale": 0.9,
-    "trigger_word": null,
-    "num_inference_steps": 28,
-    "guidance_scale": 7.0,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "description": "High quality text-to-image with strong typography support",
+    "backend": "sd3",
+    "model": {
+        "repo": "stabilityai/stable-diffusion-3-medium-diffusers",
+        "_hint": "Base: stabilityai/stable-diffusion-3-medium-diffusers — MMDiT architecture (Multimodal Diffusion Transformer). Three text encoders: OpenCLIP-ViT/G, CLIP-ViT/L, and T5-xxl. Gated model — HF account agreement required. ~10 GB peak; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "generation": {
+        "steps": 28,
+        "cfg_scale": 7.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "28 steps recommended per model card. Range: 20–40. | 7.0 is the official default. Range: 4.5–10. Lower values give softer, more painterly results. | Native 1024×1024. Supports arbitrary resolutions up to ~1 MP."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~10 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates high-quality images with excellent text rendering and photorealistic or artistic outputs. Uses three text encoders for superior prompt understanding. Notably better at rendering legible text than SD 1.5 / SDXL.",
+        "prompt_guide": "No trigger word. Use detailed descriptive prompts — the T5 encoder understands long natural language descriptions well. Examples: 'a cinematic portrait of an astronaut standing on Mars, dramatic sunset behind them', 'a logo reading HELLO WORLD in bold neon letters on a dark background', 'watercolor painting of a cat sitting in a sunlit window'.\n\nNegative prompt: Negative prompts are supported and effective. Example: 'blurry, low quality, distorted, artifacts, watermark, text'."
+    }
 }

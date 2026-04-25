@@ -1,25 +1,32 @@
 {
-    "description": "FLUX.1-schnell + miniature-people LoRA (iliketoasters) — photorealistic tiny/miniature figures in real-world scenes",
-    "_comment": "LoRA trained with fluxgym on FLUX.1-schnell base. Designed to overcome the 'plastic figure' problem when generating miniature-scale people. V1 — author plans further iterations.",
-    "_comment_model": "Base model: black-forest-labs/FLUX.1-schnell — CFG-distilled 12B rectified-flow DiT. Gated: HF token required.",
-    "_comment_trigger": "TRIGGER WORDS (use one per prompt, as appropriate): 'miniature man', 'miniature woman', 'miniature people'. These are the trained tokens.",
-    "_comment_prompting": "IMPORTANT prompting tips from model card: describe the scene in a way that implies scale (e.g. 'miniature man standing next to a truck tire' not just 'next to a truck'). Mentioning real-world reference objects (keyboard, coin, counter) greatly improves scale perception. Closeups do not work well in v1. If clothing is not described, plaid patterns may appear.",
-    "_comment_guidance": "FLUX.1-schnell is CFG-distilled → guidance_scale MUST be 0.0.",
-    "_comment_steps": "4 steps is the schnell sweet spot. 1–8 steps are valid.",
-    "_comment_lora_scale": "0.9 is a safe default. Range 0.7–1.0.",
-    "_comment_size": "1024x1024 is the FLUX native resolution. Landscape (1024x768) can work well for scene shots.",
-    "_comment_offload": "Enable on ≤16 GB unified memory — FLUX transformer is ~12 GB in bfloat16.",
-    "_comment_license": "flux-1-dev-non-commercial-license — non-commercial use only.",
-    "pipeline_type": "flux",
-    "model_id": "black-forest-labs/FLUX.1-schnell",
-    "adapter_id": null,
-    "lora_id": "iliketoasters/miniature-people",
-    "lora_scale": 0.9,
-    "weight_name": "Miniature People - v1-0.safetensors",
-    "trigger_word": "miniature people",
-    "num_inference_steps": 4,
-    "guidance_scale": 0.0,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "description": "Photorealistic miniature/tiny people in real scenes",
+    "backend": "flux",
+    "model": {
+        "repo": "city96/FLUX.1-schnell-gguf",
+        "gguf_file": "flux1-schnell-Q8_0.gguf",
+        "components_repo": "black-forest-labs/FLUX.1-schnell",
+        "_hint": "Transformer: city96/FLUX.1-schnell-gguf (flux1-schnell-Q8_0.gguf, ~12 GB). Pipeline components: black-forest-labs/FLUX.1-schnell (gated — HF token required). LoRA: iliketoasters/miniature-people (Miniature People - v1-0.safetensors). Q8_0 keeps near-bfloat16 quality with trivial dequantisation overhead on MPS. sequential_cpu_offload disabled (incompatible with GGUF). LoRA applied via set_adapters() (unfused — required for GGUF). | gguf_file is the transformer only. base_model_id supplies VAE, text encoders, scheduler."
+    },
+    "lora": {
+        "repo": "iliketoasters/miniature-people",
+        "file": "Miniature People - v1-0.safetensors",
+        "strength": 0.9,
+        "trigger": "miniature people",
+        "_hint": "0.9 default. Range: 0.7–1.0. Lower values blend with base FLUX aesthetics."
+    },
+    "generation": {
+        "steps": 4,
+        "cfg_scale": 0.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "4 steps (schnell sweet spot). Range: 1–8. More steps do not meaningfully improve quality. | FLUX.1-schnell is CFG-distilled → guidance_scale MUST be 0.0. Any positive value degrades quality. | FLUX native 1024×1024. Landscape (1024×768) works well for wide scene shots."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)"
+    },
+    "notes": {
+        "about": "Generates photorealistic images of miniature-scale people placed in real-world scenes — tiny figures next to everyday objects like keyboards, coins, or cups. Solves the 'plastic figure' problem typical of AI miniature images. V1 — further iterations planned.",
+        "prompt_guide": "TRIGGER WORDS: use one per prompt — 'miniature man', 'miniature woman', 'miniature people'. Describe scenes that imply scale using real-world reference objects (keyboard, coin, truck tire, matchbox). Closeups do not work well in v1. If clothing is not described, plaid patterns may appear. Examples: 'miniature man standing next to a coffee cup, photorealistic', 'miniature woman on top of a coin, macro photography', 'miniature people on a keyboard key, studio lighting'."
+    }
 }

@@ -1,21 +1,24 @@
 {
-    "description": "SDXL-Turbo (Stability AI) — real-time synthesis in 1–4 steps via ADD distillation",
-    "_comment": "SDXL-Turbo is distilled via Adversarial Diffusion Distillation (ADD). Produces photorealistic results in as few as 1 step; 4 steps give best quality.",
-    "_comment_guidance": "CRITICAL: guidance_scale MUST be 0.0 — ADD distillation has CFG baked in. Any positive value degrades quality severely.",
-    "_comment_negative": "Negative prompts have NO effect with guidance_scale=0.0 and should be omitted.",
-    "_comment_steps": "1 step is enough for rough drafts. 4 steps gives the best quality/speed trade-off per the model card evaluation.",
-    "_comment_size": "Native resolution is 512x512 per model card. 768x768 works but may introduce minor artifacts.",
-    "_comment_offload": "Enable on ≤16 GB unified memory (MPS) to avoid OOM — roughly halves peak VRAM at cost of speed.",
-    "_comment_license": "sai-nc-community license — non-commercial use only. Commercial use requires https://stability.ai/membership.",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/sdxl-turbo",
-    "adapter_id": null,
-    "lora_id": null,
-    "lora_scale": 0.9,
-    "trigger_word": null,
-    "num_inference_steps": 4,
-    "guidance_scale": 0.0,
-    "width": 512,
-    "height": 512,
-    "sequential_cpu_offload": true
+    "description": "Real-time 1–4 step synthesis via ADD distillation",
+    "backend": "sdxl",
+    "model": {
+        "repo": "stabilityai/sdxl-turbo",
+        "_hint": "Base: stabilityai/sdxl-turbo — SDXL distilled via ADD. sai-nc-community license — non-commercial only; commercial use requires Stability AI membership. ~6 GB; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "generation": {
+        "steps": 4,
+        "cfg_scale": 0.0,
+        "width": 512,
+        "height": 512,
+        "_hint": "1 step sufficient for rough drafts. 4 steps gives the best quality/speed trade-off per model card. | CRITICAL: guidance_scale MUST be 0.0 — ADD distillation has CFG baked in. Any positive value degrades quality severely. | Native 512×512 per model card. 768×768 works but may introduce minor artifacts."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates photorealistic images in as few as 1 step using Adversarial Diffusion Distillation (ADD). Ideal for rapid iteration and near-real-time generation. Non-commercial use only.",
+        "prompt_guide": "No trigger word. Negative prompts have NO effect at guidance_scale=0.0. Write positive-only prompts. Examples: 'a photorealistic portrait of a man in a forest, soft light', 'a futuristic city at night, neon lights', 'a cat sitting on a couch, warm indoor lighting'.",
+        "warnings": "CRITICAL: guidance_scale MUST be 0."
+    }
 }

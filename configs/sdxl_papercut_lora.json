@@ -1,21 +1,29 @@
 {
     "description": "Paper-cut / scherenschnitt craft style",
-    "_comment": "Generates decorative paper-cut (scherenschnitt) style illustrations — intricate layered silhouettes, folk-art inspired compositions, and the handcrafted aesthetic of paper collage.",
-    "_comment_model": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: TheLastBen/Papercut_SDXL (fast-stable-diffusion SDXL trainer). creativeml-openrail-m license. ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB.",
-    "_comment_prompt": "TRIGGER WORD REQUIRED: prepend 'papercut' before the subject. Format: 'papercut <subject>'. Examples: 'papercut forest with deer', 'papercut cat on a windowsill', 'papercut cityscape at night'.",
-    "_comment_steps": "30–50 steps. 30 is sufficient for LoRA styles.",
-    "_comment_cfg": "CFG 7.5 is a safe SDXL default.",
-    "_comment_lora_scale": "0.9 default. 1.0 gives maximum papercut effect.",
-    "_comment_size": "SDXL native 1024×1024.",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
-    "adapter_id": null,
-    "lora_id": "TheLastBen/Papercut_SDXL",
-    "lora_scale": 0.9,
-    "trigger_word": "papercut",
-    "num_inference_steps": 30,
-    "guidance_scale": 7.5,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "backend": "sdxl",
+    "model": {
+        "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+        "_hint": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: TheLastBen/Papercut_SDXL (fast-stable-diffusion SDXL trainer). creativeml-openrail-m license. ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "lora": {
+        "repo": "TheLastBen/Papercut_SDXL",
+        "strength": 0.9,
+        "trigger": "papercut",
+        "_hint": "0.9 default. 1.0 gives maximum papercut effect."
+    },
+    "generation": {
+        "steps": 30,
+        "cfg_scale": 7.5,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "30–50 steps. 30 is sufficient for LoRA styles. | CFG 7.5 is a safe SDXL default. | SDXL native 1024×1024."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates decorative paper-cut (scherenschnitt) style illustrations — intricate layered silhouettes, folk-art inspired compositions, and the handcrafted aesthetic of paper collage.",
+        "prompt_guide": "TRIGGER WORD REQUIRED: prepend 'papercut' before the subject. Format: 'papercut <subject>'. Examples: 'papercut forest with deer', 'papercut cat on a windowsill', 'papercut cityscape at night'."
+    }
 }

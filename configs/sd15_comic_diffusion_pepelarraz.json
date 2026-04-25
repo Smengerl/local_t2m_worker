@@ -1,20 +1,23 @@
 {
-    "description": "Comic-Diffusion V2 — Pepe Larraz artstyle",
-    "_comment": "SD 1.5 fine-tune by ogkalu. V2 trains all 6 comic styles simultaneously; each style is activated by its own trigger word.",
-    "_comment_model": "SD 1.5 fine-tune trained on Pepe Larraz's comic artstyles (ogkalu/Comic-Diffusion).",
-    "_comment_trigger": "Trigger word for this style: 'pepelarraz artstyle'. Must appear in your prompt.",
-    "_comment_steps": "20–30 steps sufficient for SD 1.5.",
-    "_comment_cfg": "7–8 recommended.",
-    "_comment_size": "SD 1.5 native resolution is 512x512.",
-    "pipeline_type": "sd",
-    "model_id": "ogkalu/Comic-Diffusion",
-    "adapter_id": null,
-    "lora_id": null,
-    "lora_scale": 0.9,
-    "trigger_word": "pepelarraz artstyle",
-    "num_inference_steps": 25,
-    "guidance_scale": 7.5,
-    "width": 512,
-    "height": 512,
-    "sequential_cpu_offload": false
+    "description": "Comic-Diffusion — Pepe Larraz artstyle",
+    "backend": "sd",
+    "model": {
+        "repo": "ogkalu/Comic-Diffusion",
+        "_hint": "Fine-tune: ogkalu/Comic-Diffusion v2 (SD 1.5 base). All 6 comic styles trained simultaneously. ~2 GB; no sequential offload needed."
+    },
+    "generation": {
+        "steps": 25,
+        "cfg_scale": 7.5,
+        "width": 512,
+        "height": 512,
+        "_hint": "20–30 steps. 25 is a solid default. | CFG 7–8 recommended. | SD 1.5 native 512×512."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)"
+    },
+    "notes": {
+        "about": "Generates Marvel-style superhero comic illustrations in the style of Pepe Larraz — dynamic poses, sharp linework, vibrant colours, and the polished quality of mainstream US comics.",
+        "prompt_guide": "TRIGGER WORD REQUIRED: 'pepelarraz artstyle' must appear in every prompt. Examples: 'X-Men battle scene, pepelarraz artstyle', 'a caped hero in flight above the city, pepelarraz artstyle', 'a villain in dramatic pose, pepelarraz artstyle'."
+    }
 }

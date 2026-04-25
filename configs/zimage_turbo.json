@@ -1,0 +1,24 @@
+{
+    "description": "8-step distilled photorealistic text-to-image",
+    "backend": "zimage",
+    "model": {
+        "repo": "Tongyi-MAI/Z-Image-Turbo",
+        "_hint": "Base: Tongyi-MAI/Z-Image-Turbo — 6B S3-DiT (single-stream), CFG-distilled. Apache-2.0 — commercial use allowed. ~12 GB bfloat16; sequential_cpu_offload required on ≤16 GB."
+    },
+    "generation": {
+        "steps": 9,
+        "cfg_scale": 0.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "9 steps = 8 DiT forwards per model card. Range: 8–16 practical. 9 is the sweet spot. | CRITICAL: guidance_scale MUST be 0.0 — CFG is baked in via distillation. Any positive value degrades quality. | 1024×1024 native. Arbitrary resolutions up to ~1 MP (e.g. 1152×896 landscape, 896×1152 portrait)."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~12 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates high-quality photorealistic images in 8 steps using Z-Image-Turbo — a 6B parameter single-stream DiT distilled via Decoupled-DMD + DMDR reinforcement learning. Supports bilingual prompts (English and Chinese).",
+        "prompt_guide": "No trigger word. Supports English and Chinese prompts. Examples: 'a photorealistic portrait of a woman in soft evening light', 'a futuristic cityscape at night with glowing neon signs', 'a serene mountain lake at sunrise, ultra-detailed, 8k'.\n\nNegative prompt: Negative prompts are supported. Example: 'blurry, low quality, artifacts, distorted, watermark'.",
+        "warnings": "CRITICAL: guidance_scale MUST be 0."
+    }
+}

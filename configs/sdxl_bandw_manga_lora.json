@@ -1,22 +1,28 @@
 {
-    "description": "SDXL 1.0 + B&W Manga Block LoRA — bold monochrome line-art portrait style",
-    "_comment": "LoRA by alvdansen. Bold black-and-white line illustration; research use only.",
-    "_comment_trigger": "No trigger word needed. Short, simple subject prompts work best.",
-    "_comment_prompt": "Examples from model card: 'a boy in a sailor suit frowning', 'a toad', 'a girl with a flower crown'. Minimal descriptions work best.",
-    "_comment_negative": "Recommended: 'color, colorful, grey, grayscale' to enforce strict B&W output.",
-    "_comment_steps": "35 steps produces cleaner outlines than 30 for this high-contrast style.",
-    "_comment_cfg": "CFG 7 keeps the stark line quality; higher values can cause blown-out blacks.",
-    "_comment_lora_scale": "lora_scale 1.0 = maximum style strength. Try 0.8 for softer lines.",
-    "_comment_size": "SDXL native resolution 1024x1024. Portrait orientation (768x1024) also works well.",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
-    "adapter_id": null,
-    "lora_id": "alvdansen/BandW-Manga",
-    "lora_scale": 1.0,
-    "trigger_word": null,
-    "num_inference_steps": 35,
-    "guidance_scale": 7.0,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "description": "Bold monochrome manga line-art portrait style",
+    "backend": "sdxl",
+    "model": {
+        "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+        "_hint": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: alvdansen/BandW-Manga. Research use only. ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "lora": {
+        "repo": "alvdansen/BandW-Manga",
+        "strength": 1.0,
+        "_hint": "1.0 = maximum style strength. Try 0.8 for softer lines."
+    },
+    "generation": {
+        "steps": 35,
+        "cfg_scale": 7.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "35 steps produces cleaner outlines. 30 is acceptable. | CFG 7 keeps the stark line quality. Higher values can cause blown-out blacks. | SDXL native 1024×1024. Portrait orientation (768×1024) also works well."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates striking black-and-white manga illustrations — bold ink lines, high contrast, and expressive minimalist portrayals typical of Japanese graphic novels.",
+        "prompt_guide": "No trigger word needed. Short, simple subject prompts work best per model card examples. Examples: 'a boy in a sailor suit frowning', 'a toad', 'a girl with a flower crown', 'an old warrior with a scar'.\n\nNegative prompt: Recommended: 'color, colorful, grey, grayscale' to enforce strict B&W output."
+    }
 }

@@ -1,23 +1,28 @@
 {
-    "description": "SDXL 1.0 + Pokémon Trainer Sprite LoRA — pixel-art trainer sprite style (96×96)",
-    "_comment": "LoRA by sWizad. Trained on Pokémon trainer sprites upscaled from 96x96; load weight: pk_trainer_xl_v1.safetensors.",
-    "_comment_trigger": "No trigger word needed. Optional style tags: 'gen1' (Game Boy palette) or 'gen2' (GBC palette).",
-    "_comment_background": "Add 'simple background' or 'white background' to keep focus on the character sprite.",
-    "_comment_trainers": "Model recognises some trainer names: Ash, Bruno, and others from the games.",
-    "_comment_steps": "30 steps per official example code. More steps increase detail but slow generation.",
-    "_comment_cfg": "CFG 7.5 per official diffusers example. Range 5–9 works.",
-    "_comment_size": "768x768 is the recommended output size per the model card (the 768 version).",
-    "_comment_downscale": "For authentic sprites: downscale the 768x768 output by 8x to 96x96 in any image editor.",
-    "_comment_lora_scale": "lora_scale 1.0 gives the full sprite style. Lower values (0.8–0.9) blend trainer features with the base SDXL style.",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
-    "adapter_id": null,
-    "lora_id": "sWizad/pokemon-trainer-sprite-pixelart",
-    "lora_scale": 1.0,
-    "trigger_word": null,
-    "num_inference_steps": 30,
-    "guidance_scale": 7.5,
-    "width": 768,
-    "height": 768,
-    "sequential_cpu_offload": true
+    "description": "Pokémon trainer pixel-art sprite style",
+    "backend": "sdxl",
+    "model": {
+        "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+        "_hint": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: sWizad/pokemon-trainer-sprite-pixelart (pk_trainer_xl_v1.safetensors, trained on upscaled 96×96 sprites). ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "lora": {
+        "repo": "sWizad/pokemon-trainer-sprite-pixelart",
+        "strength": 1.0,
+        "_hint": "1.0 = full sprite style. Lower (0.8–0.9) blends trainer features with base SDXL."
+    },
+    "generation": {
+        "steps": 30,
+        "cfg_scale": 7.5,
+        "width": 768,
+        "height": 768,
+        "_hint": "30 steps per official example code. | CFG 7.5 per official diffusers example. Range: 5–9. | 768×768 recommended per model card. For authentic sprites: downscale the output by 8× to 96×96 in any image editor."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates Pokémon-style trainer character sprites upscaled to 768×768 from the original 96×96 training resolution. Captures the look of classic Game Boy and GBC Pokémon trainer sprites.",
+        "prompt_guide": "No trigger word needed. Optional style tags: 'gen1' (Game Boy palette) or 'gen2' (GBC palette). Known trainer names: Ash, Bruno, and others from the games. Add 'simple background' or 'white background' to keep focus on the sprite. Examples: 'a female trainer in a red hat, gen1', 'Ash, pokemon trainer, white background', 'a warrior character, pixel art sprite, gen2 palette'."
+    }
 }

@@ -12,7 +12,6 @@ Routes:
   GET    /api/stats                 – job counts per status
 """
 
-import argparse
 import os
 import signal
 import sys
@@ -37,7 +36,6 @@ from batch.queue import (
     stats,
     update_job,
 )
-from cli import build_config
 from pipeline_config import PipelineConfig
 
 router = APIRouter()
@@ -80,19 +78,31 @@ def _heal_stale_running_jobs() -> None:
 
 
 class EnqueueRequest(BaseModel):
+    """Request body for POST /api/jobs.
+
+    ``config`` is the only required non-prompt field; all other fields are
+    per-request overrides that shadow the values from the config file.
+    Override field names mirror the config file key paths (section.field)
+    flattened with an underscore — matching the CLI flag names exactly
+    (e.g. ``model_repo`` ↔ ``--model-repo`` ↔ ``model.repo`` in the config).
+    """
+
     config: str = "configs/sd15_default.json"
     prompt: str
     negative_prompt: str = ""
     output: Optional[str] = None
-    model_id: Optional[str] = None
-    adapter_id: Optional[str] = None
-    lora_id: Optional[str] = None
-    lora_scale: Optional[float] = None
-    steps: Optional[int] = None
-    guidance_scale: Optional[float] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    gguf_file: Optional[str] = None
+    # Model overrides — mirror model.* config keys
+    model_repo: Optional[str] = None        # → model.repo
+    model_gguf_file: Optional[str] = None   # → model.gguf_file
+    adapter_id: Optional[str] = None        # CLI-only (no config equivalent)
+    # LoRA overrides — mirror lora.* config keys
+    lora_repo: Optional[str] = None         # → lora.repo
+    lora_strength: Optional[float] = None   # → lora.strength
+    # Generation overrides — mirror generation.* config keys
+    steps: Optional[int] = None             # → generation.steps
+    cfg_scale: Optional[float] = None       # → generation.cfg_scale
+    width: Optional[int] = None             # → generation.width
+    height: Optional[int] = None            # → generation.height
 
 
 @router.get("/stats")
@@ -123,27 +133,27 @@ def api_get_job(job_id: str) -> dict[str, Any]:
 
 @router.post("/jobs", status_code=201)
 def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
-    cfg, _output_path, effective_prompt, negative_prompt = build_config(argparse.Namespace(
-        config=req.config,
-        prompt=req.prompt,
-        negative_prompt=req.negative_prompt,
-        output=req.output,
-        output_dir=None,
-        cache_dir=None,
-        model_id=req.model_id,
-        adapter_id=req.adapter_id,
-        lora_id=req.lora_id,
-        lora_scale=req.lora_scale,
+    pipeline_cfg = PipelineConfig.from_json(req.config)
+    pipeline_cfg.apply_overrides(
+        model_repo=req.model_repo,
+        model_gguf_file=req.model_gguf_file,
+        lora_repo=req.lora_repo,
+        lora_strength=req.lora_strength,
         steps=req.steps,
-        guidance_scale=req.guidance_scale,
+        cfg_scale=req.cfg_scale,
         width=req.width,
         height=req.height,
-        gguf_file=req.gguf_file,
-    ))
+    )
+
+    # Prepend trigger word automatically if missing from the prompt.
+    effective_prompt = req.prompt
+    if pipeline_cfg.trigger_word and pipeline_cfg.trigger_word.lower() not in effective_prompt.lower():
+        effective_prompt = f"{pipeline_cfg.trigger_word} {effective_prompt}"
+
     job = enqueue(
-        cfg=cfg,
+        cfg=pipeline_cfg,
         prompt=effective_prompt,
-        negative_prompt=negative_prompt,
+        negative_prompt=req.negative_prompt,
         output=req.output,
     )
     return job

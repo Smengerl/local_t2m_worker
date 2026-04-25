@@ -32,6 +32,13 @@ class Lumina2Backend(BasePipeline):
     transformer loading (set gguf_file + base_model_id in config).
     """
 
+    GENERATION_DEFAULTS = {
+        "steps":     30,
+        "cfg_scale": 5.0,
+        "width":     1024,
+        "height":    1024,
+    }
+
     _DEFAULT_MAX_SEQUENCE_LENGTH: int = 256
 
     def __init__(self, cfg: PipelineConfig) -> None:

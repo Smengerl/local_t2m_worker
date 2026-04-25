@@ -1,14 +1,29 @@
 {
-    "_comment": "Hyper-SD 8-step CFG-preserved LoRA for SDXL. Monorepo requires weight_name to pick the correct .safetensors. lora_scale=0.125 per model card recommendation. Ideal scheduler is DDIMScheduler with timestep_spacing='trailing' but the default SDXL scheduler also works. guidance_scale 5–8 is the valid range for this CFG-preserved variant.",
-    "description": "Hyper-SD 8-step acceleration LoRA for SDXL (CFG-preserved variant). Drastically reduces inference steps while keeping guidance scale support.",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
-    "lora_id": "ByteDance/Hyper-SD",
-    "weight_name": "Hyper-SDXL-8steps-CFG-lora.safetensors",
-    "lora_scale": 0.125,
-    "num_inference_steps": 8,
-    "guidance_scale": 5.0,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "description": "8-step accelerated generation",
+    "backend": "sdxl",
+    "model": {
+        "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+        "_hint": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: ByteDance/Hyper-SD (Hyper-SDXL-8steps-CFG-lora.safetensors, CFG-preserved variant). lora_scale=0.125 per model card. Ideal scheduler: DDIMScheduler with timestep_spacing='trailing'. ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "lora": {
+        "repo": "ByteDance/Hyper-SD",
+        "file": "Hyper-SDXL-8steps-CFG-lora.safetensors",
+        "strength": 0.125,
+        "_hint": "0.125 per model card recommendation. Do NOT increase significantly — this LoRA is a subtle accelerator, not a style LoRA."
+    },
+    "generation": {
+        "steps": 8,
+        "cfg_scale": 5.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "8 steps recommended (CFG-preserved variant). Range: 4–16. More steps do not significantly improve quality for this distilled variant. | CFG 5–8 is the valid range for the CFG-preserved variant. Values below 5 or above 8 reduce quality. | SDXL native 1024×1024."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates high-quality images in only 8 steps using Hyper-SD — a CFG-preserved acceleration LoRA from ByteDance. Significantly faster than standard SDXL without quality loss.",
+        "prompt_guide": "No trigger word. Write standard SDXL-style descriptive prompts. Examples: 'a photorealistic portrait of a woman, studio lighting', 'a fantasy landscape with mountains and a dragon, epic lighting', 'a still life of fruits on a wooden table, oil painting'."
+    }
 }

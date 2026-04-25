@@ -1,22 +1,28 @@
 {
     "description": "Flat line-art IKEA instruction manual style",
-    "_comment": "Generates minimalist flat line-art illustrations in the iconic style of IKEA assembly instructions — simple shapes, clean outlines, no faces or colours, and step-based visual storytelling.",
-    "_comment_model": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: ostris/ikea-instructions-lora-sdxl, trained on IKEA-style flat-pack instruction illustrations. ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB.",
-    "_comment_prompt": "No trigger word needed. Use simple nouns or short scene descriptions. Examples: 'hamburger', 'a dog', 'back to the future', 'a bicycle being assembled', 'a person building a bookshelf'.",
-    "_comment_negative": "Usually not needed. 'blurry, low quality' can help if output is soft.",
-    "_comment_steps": "30 steps at CFG 7.5 is the recommended starting point per model card.",
-    "_comment_cfg": "CFG 5–8. Model card examples use 7.5. Lower values give softer lines.",
-    "_comment_size": "SDXL native 1024×1024.",
-    "_comment_lora_scale": "1.0 gives the strongest IKEA style effect per model card.",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
-    "adapter_id": null,
-    "lora_id": "ostris/ikea-instructions-lora-sdxl",
-    "lora_scale": 1.0,
-    "trigger_word": null,
-    "num_inference_steps": 30,
-    "guidance_scale": 7.5,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "backend": "sdxl",
+    "model": {
+        "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+        "_hint": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: ostris/ikea-instructions-lora-sdxl, trained on IKEA-style flat-pack instruction illustrations. ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "lora": {
+        "repo": "ostris/ikea-instructions-lora-sdxl",
+        "strength": 1.0,
+        "_hint": "1.0 gives the strongest IKEA style effect per model card."
+    },
+    "generation": {
+        "steps": 30,
+        "cfg_scale": 7.5,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "30 steps at CFG 7.5 is the recommended starting point per model card. | CFG 5–8. Model card examples use 7.5. Lower values give softer lines. | SDXL native 1024×1024."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates minimalist flat line-art illustrations in the iconic style of IKEA assembly instructions — simple shapes, clean outlines, no faces or colours, and step-based visual storytelling.",
+        "prompt_guide": "No trigger word needed. Use simple nouns or short scene descriptions. Examples: 'hamburger', 'a dog', 'back to the future', 'a bicycle being assembled', 'a person building a bookshelf'.\n\nNegative prompt: Usually not needed. 'blurry, low quality' can help if output is soft."
+    }
 }

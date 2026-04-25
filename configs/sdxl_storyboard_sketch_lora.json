@@ -1,21 +1,29 @@
 {
     "description": "Grayscale film/TV storyboard sketch style",
-    "_comment": "Generates grayscale storyboard sketches in the style of film and TV pre-production artwork — loose gestural lines, rough shading, and the functional visual language of professional storyboards.",
-    "_comment_model": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: blink7630/storyboard-sketch (trained on 60 grayscale storyboard images at 21:9, 16:9 and 1:1 aspect ratios). ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB.",
-    "_comment_prompt": "TRIGGER WORD REQUIRED: every prompt must start with 'storyboard sketch of ...'. Examples: 'storyboard sketch of a hero running through a burning building', 'storyboard sketch of two characters arguing in a kitchen', 'storyboard sketch of a spaceship landing on an alien planet'.",
-    "_comment_steps": "30 steps is sufficient. More steps do not noticeably improve sketch quality.",
-    "_comment_cfg": "CFG 7–8. Higher values increase prompt adherence but can over-sharpen lines.",
-    "_comment_size": "21:9 (1344×576) and 16:9 (1344×768) match training data aspect ratios. SDXL native 1024×1024 also works.",
-    "_comment_lora_scale": "1.0 = most abstract sketch style; 0.8 = best balance of style + coherence; 0.5 = more detailed/realistic.",
-    "pipeline_type": "sdxl",
-    "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
-    "adapter_id": null,
-    "lora_id": "blink7630/storyboard-sketch",
-    "lora_scale": 0.8,
-    "trigger_word": "storyboard sketch of",
-    "num_inference_steps": 30,
-    "guidance_scale": 7.5,
-    "width": 1024,
-    "height": 1024,
-    "sequential_cpu_offload": true
+    "backend": "sdxl",
+    "model": {
+        "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+        "_hint": "Base: stabilityai/stable-diffusion-xl-base-1.0. LoRA: blink7630/storyboard-sketch (trained on 60 grayscale storyboard images at 21:9, 16:9 and 1:1 aspect ratios). ~6 GB SDXL + LoRA; sequential_cpu_offload recommended on ≤16 GB."
+    },
+    "lora": {
+        "repo": "blink7630/storyboard-sketch",
+        "strength": 0.8,
+        "trigger": "storyboard sketch of",
+        "_hint": "1.0 = most abstract sketch style; 0.8 = best balance of style + coherence; 0.5 = more detailed/realistic."
+    },
+    "generation": {
+        "steps": 30,
+        "cfg_scale": 7.5,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "30 steps is sufficient. More steps do not noticeably improve sketch quality. | CFG 7–8. Higher values increase prompt adherence but can over-sharpen lines. | 21:9 (1344×576) and 16:9 (1344×768) match training data aspect ratios. SDXL native 1024×1024 also works."
+    },
+    "system": {
+        "cpu_offload": true,
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+    },
+    "notes": {
+        "about": "Generates grayscale storyboard sketches in the style of film and TV pre-production artwork — loose gestural lines, rough shading, and the functional visual language of professional storyboards.",
+        "prompt_guide": "TRIGGER WORD REQUIRED: every prompt must start with 'storyboard sketch of ...'. Examples: 'storyboard sketch of a hero running through a burning building', 'storyboard sketch of two characters arguing in a kitchen', 'storyboard sketch of a spaceship landing on an alien planet'."
+    }
 }
