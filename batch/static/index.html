@@ -511,8 +511,18 @@
       border-bottom: 1px solid var(--border);
     }
 
+    details.cfg-section > summary.cfg-section-header {
+      text-transform: none;
+      letter-spacing: normal;
+      font-size: 12px;
+    }
+
     .cfg-section-header:first-child {
       margin-top: 0;
+    }
+
+    details.cfg-section[open] .cfg-toggle-arrow {
+      transform: rotate(90deg);
     }
 
     /* Notes boxes rendered below the config selector */
@@ -546,12 +556,17 @@
     .notes-guide summary {
       cursor: pointer;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 600;
       list-style: none;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       user-select: none;
+      text-transform: none;
+      letter-spacing: normal;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
     }
 
     .notes-guide summary::before {
@@ -566,11 +581,12 @@
 
     .notes-guide-body {
       margin-top: 6px;
-      padding: 7px 10px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: #8fa0b8;
+      padding: 6px 10px;
+      background: transparent;
+      border-left: 3px solid var(--muted);
+      color: var(--muted);
+      font-size: 11px;
+      font-style: italic;
       line-height: 1.5;
       white-space: pre-wrap;
       word-break: break-word;
@@ -912,10 +928,6 @@
           <div class="label-row"><label>Prompt *</label><span id="f-prompt-icon" class="hint-icon"
               style="display:none">?<span class="hint-tooltip" id="f-prompt-tooltip"></span></span></div>
           <textarea id="f-prompt" required placeholder="a sunset over mountains"></textarea>
-          <div id="f-trigger-hint" style="display:none;margin-top:4px;font-size:12px;color:var(--muted)">
-            Trigger word: <code id="f-trigger-word"
-              style="background:var(--surface2,#2a2a3a);padding:1px 5px;border-radius:3px;font-size:11px"></code>
-          </div>
 
           <div class="label-row"><label>Negative Prompt</label><span id="f-negative-icon" class="hint-icon"
               style="display:none">?<span class="hint-tooltip" id="f-negative-tooltip"></span></span></div>
@@ -933,72 +945,70 @@
             <div id="f-notes-guide-body" class="notes-guide-body"></div>
           </details>
 
-          <details style="margin-bottom:12px">
-            <summary style="cursor:pointer;color:var(--muted);font-size:12px;margin-bottom:8px">
-              Advanced overrides
+          <details class="cfg-section" style="margin-bottom:8px">
+            <summary class="cfg-section-header" style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">
+              <span style="font-size:9px;transition:transform .15s" class="cfg-toggle-arrow">▶</span>
+              <span>Model</span>
+              <span id="f-model-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
+                  id="f-model-section-tooltip"></span></span>
             </summary>
             <div style="margin-top:8px">
-
-              <!-- ── Model section ── -->
-              <div class="cfg-section">
-                <div class="cfg-section-header">
-                  <span>Model</span>
-                  <span id="f-model-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
-                      id="f-model-section-tooltip"></span></span>
-                </div>
-                <div class="label-row"><label>Model repo override</label></div>
-                <input id="f-model-repo" type="text">
-                <label>GGUF file override</label>
-                <input id="f-model-gguf-file" type="text" placeholder="(not set)">
-              </div>
-
-              <!-- ── LoRA section ── -->
-              <div class="cfg-section">
-                <div class="cfg-section-header">
-                  <span>LoRA</span>
-                  <span id="f-lora-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
-                      id="f-lora-section-tooltip"></span></span>
-                </div>
-                <div class="row" style="align-items:flex-start">
-                  <div style="flex:3">
-                    <label>LoRA repo override</label>
-                    <input id="f-lora-repo" type="text">
-                  </div>
-                  <div style="flex:1">
-                    <label>Strength</label>
-                    <input id="f-lora-strength" type="number" step="0.05" min="0" max="1">
-                  </div>
-                </div>
-              </div>
-
-              <!-- ── Generation section ── -->
-              <div class="cfg-section">
-                <div class="cfg-section-header">
-                  <span>Generation</span>
-                  <span id="f-gen-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
-                      id="f-gen-section-tooltip"></span></span>
-                </div>
-                <div class="row" style="align-items:flex-start">
-                  <div>
-                    <label>Steps</label>
-                    <input id="f-steps" type="number" min="1">
-                  </div>
-                  <div>
-                    <label>Guidance scale (cfg_scale)</label>
-                    <input id="f-cfg-scale" type="number" step="0.5">
-                  </div>
-                </div>
-                <div class="label-row"><label>Size</label></div>
-                <div class="row" style="align-items:center;gap:6px">
-                  <input id="f-width" type="number" min="64" step="8" placeholder="Width">
-                  <span style="color:var(--muted);font-size:13px;white-space:nowrap">×</span>
-                  <input id="f-height" type="number" min="64" step="8" placeholder="Height">
-                </div>
-              </div>
-
-              <input id="f-output" type="hidden" value="">
+              <div class="label-row"><label>Model repo override</label></div>
+              <input id="f-model-repo" type="text">
+              <label>GGUF file override</label>
+              <input id="f-model-gguf-file" type="text" placeholder="(not set)">
             </div>
           </details>
+
+          <details class="cfg-section" style="margin-bottom:8px">
+            <summary class="cfg-section-header" style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">
+              <span style="font-size:9px;transition:transform .15s" class="cfg-toggle-arrow">▶</span>
+              <span>LoRA</span>
+              <span id="f-lora-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
+                  id="f-lora-section-tooltip"></span></span>
+            </summary>
+            <div style="margin-top:8px">
+              <div class="row" style="align-items:flex-start">
+                <div style="flex:3">
+                  <label>LoRA repo override</label>
+                  <input id="f-lora-repo" type="text">
+                </div>
+                <div style="flex:1">
+                  <label>Strength</label>
+                  <input id="f-lora-strength" type="number" step="0.05" min="0" max="1">
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="cfg-section" style="margin-bottom:12px">
+            <summary class="cfg-section-header" style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">
+              <span style="font-size:9px;transition:transform .15s" class="cfg-toggle-arrow">▶</span>
+              <span>Generation</span>
+              <span id="f-gen-section-icon" class="hint-icon" style="display:none">?<span class="hint-tooltip"
+                  id="f-gen-section-tooltip"></span></span>
+            </summary>
+            <div style="margin-top:8px">
+              <div class="row" style="align-items:flex-start">
+                <div>
+                  <label>Steps</label>
+                  <input id="f-steps" type="number" min="1">
+                </div>
+                <div>
+                  <label>Guidance scale (cfg_scale)</label>
+                  <input id="f-cfg-scale" type="number" step="0.5">
+                </div>
+              </div>
+              <div class="label-row"><label>Size</label></div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+                <input id="f-width" type="number" min="64" step="8" placeholder="Width" style="margin-bottom:0;flex:1">
+                <span style="color:var(--muted);font-size:13px;white-space:nowrap;flex-shrink:0">×</span>
+                <input id="f-height" type="number" min="64" step="8" placeholder="Height" style="margin-bottom:0;flex:1">
+              </div>
+            </div>
+          </details>
+
+          <input id="f-output" type="hidden" value="">
 
           <button type="submit" class="btn-primary">➕ Add to Queue</button>
           <div id="form-msg" style="margin-top:8px;font-size:12px;min-height:18px"></div>
@@ -1474,7 +1484,6 @@
               'f-prompt-icon', 'f-negative-icon'].forEach(id => {
                 const el = $(id); if (el) el.style.display = 'none';
               });
-            $('f-trigger-hint').style.display = 'none';
             $('f-model-repo').placeholder = '(not set)';
             $('f-lora-repo').placeholder = '(not set)';
             $('f-lora-strength').placeholder = '(not set)';
@@ -1515,27 +1524,13 @@
             notesGuide.style.display = 'none';
           }
 
-          // ── Trigger word hint below prompt ──
+          // ── Trigger word hint on prompt label ──
           const triggerWord = extras.trigger_word || null;
-          const triggerHint = $('f-trigger-hint');
-          if (triggerWord) {
-            $('f-trigger-word').textContent = triggerWord;
-            triggerHint.style.display = '';
-          } else {
-            triggerHint.style.display = 'none';
-          }
-
-          // ── Prompt / negative hints from notes.prompt_guide ──
-          // Show a ℹ️ icon on the Prompt label when prompt_guide exists
           const promptIcon = $('f-prompt-icon');
           const promptTooltip = $('f-prompt-tooltip');
           if (promptIcon && promptTooltip) {
-            if (notes.prompt_guide) {
-              // Truncate to first 240 chars for the tooltip balloon
-              const brief = notes.prompt_guide.length > 240
-                ? notes.prompt_guide.slice(0, 237) + '…'
-                : notes.prompt_guide;
-              promptTooltip.textContent = brief;
+            if (triggerWord) {
+              promptTooltip.textContent = `Trigger word: ${triggerWord}`;
               promptIcon.style.display = '';
             } else {
               promptIcon.style.display = 'none';
