@@ -41,6 +41,8 @@ class BasePipeline(ABC):
         self.true_cfg_scale = cfg.true_cfg_scale
         self.seed = cfg.seed
         self.weight_name: Optional[str] = getattr(cfg, "weight_name", None)
+        self.gguf_file: Optional[str] = getattr(cfg, "gguf_file", None)
+        self.base_model_id: Optional[str] = getattr(cfg, "base_model_id", None)
 
     def _log(self, msg: str) -> None:
         """Emit *msg* at INFO level.

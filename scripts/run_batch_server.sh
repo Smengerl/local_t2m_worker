@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 # run_batch_server.sh – Start the worker + web server together.
 #
 # Usage:
@@ -16,8 +16,10 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="${0:A:h}"          # absolute dir of this script
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${PORT:-8000}"
+# shellcheck source=helpers/env.sh
+source "$ROOT_DIR/scripts/helpers/env.sh"
 
 # ── Parse flags ──────────────────────────────────────────────────────────────
 OFFLINE=false
@@ -30,12 +32,13 @@ if [[ "$OFFLINE" == true ]]; then
   echo "📴 Offline mode enabled — skipping HuggingFace update checks."
 fi
 
-# Activate virtual environment
-source "$SCRIPT_DIR/.venv/bin/activate"
+# Allow MPS to use the full unified memory pool (including swap).
+# Without this macOS enforces a hard cap and kills the process on OOM.
+export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
 
-# Resolve python executable (venv may only provide python3 on some systems)
-PYTHON="$SCRIPT_DIR/.venv/bin/python"
-[[ -x "$PYTHON" ]] || PYTHON="$SCRIPT_DIR/.venv/bin/python3"
+# Activate virtual environment and resolve python
+activate_venv
+resolve_venv_python
 
 echo "▶ Starting worker…"
 "$PYTHON" -m batch.worker &

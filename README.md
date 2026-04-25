@@ -20,68 +20,50 @@ pip install -r requirements.txt
 echo "hf_..." > .hf_token
 
 # 3. Generate an image
-./run.sh "a misty forest at dawn"
+./scripts/run.sh "a misty forest at dawn"
 ```
 
 ---
 
 ## CLI — ad-hoc generation
 
-`run.sh` wraps `generate.py` and handles virtual-environment activation automatically.
+`scripts/run.sh` wraps `generate.py` and handles virtual-environment activation automatically.
 
 ```bash
 # Use the default SD 1.5 config
-./run.sh "a misty forest at dawn"
+./scripts/run.sh "a misty forest at dawn"
 
 # Choose a specific config
-./run.sh -c configs/sdxl_graffiti_lora.json "graarg graffiti mural of a dragon"
+./scripts/run.sh -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
 
 # Override config parameters on the fly
-./run.sh -c configs/sd15_default.json --steps 50 --guidance-scale 8 "a cat"
+./scripts/run.sh -c configs/sd15_default.json --steps 50 --guidance-scale 8 "a cat"
 
 # Save to a specific file
-./run.sh -c configs/flux1_schnell.json -o outputs/my_image.png "neon city"
+./scripts/run.sh -c configs/flux1_schnell.json -o outputs/my_image.png "neon city"
 
 # Add to batch queue instead of generating immediately
-./run.sh --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
+./scripts/run.sh --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
 ```
 
-### CLI flags
-
-| Flag | Short | Description |
-|---|---|---|
-| `PROMPT` | | Text prompt describing the image **(positional, required)** |
-| `--config FILE` | `-c` | Path to a JSON config file. Defaults to `configs/sd15_default.json`. |
-| `--negative-prompt TEXT` | `-n` | Negative prompt — what to avoid in the image. |
-| `--output FILE` | `-o` | Output PNG path. Default: `outputs/YYYYMMDD_HHMMSS.png`. |
-| `--model-id REPO_ID` | | Override `model_id` from config. |
-| `--adapter-id REPO_ID` | | Override `adapter_id` from config. |
-| `--lora-id REPO_ID` | | Override `lora_id` from config. |
-| `--lora-scale FLOAT` | | Override `lora_scale` from config. |
-| `--steps N` | | Override `num_inference_steps` from config. |
-| `--guidance-scale FLOAT` | | Override `guidance_scale` from config. |
-| `--queue` | | Add job to batch queue instead of generating immediately. |
-| `--offline` | | Skip HuggingFace update checks. Sets `HF_HUB_OFFLINE=1` so no network requests are made. Faster startup when all models are already downloaded. Fails if a model is not fully cached locally. LoRA configs must have `weight_name` set when used with `--offline`. |
-| `--help` | `-h` | Show help and exit. |
-
-CLI flags > config file > built-in defaults.
+For the full list of flags see **[scripts/README.md](scripts/README.md#runsh)**.
 
 ---
 
 ## CLI — queuing a single job
 
-Pass `--queue` to `run.sh` to add a job to the batch queue instead of generating immediately. All other flags work exactly the same way.
+Pass `--queue` to `scripts/run.sh` to add a job to the batch queue instead of generating immediately. All other flags work exactly the same way.
 
-If the worker is not yet running, `run.sh` starts it automatically in the background. Worker output is logged to `batch/worker.log`.
+If the worker is not yet running, `scripts/run.sh` starts it automatically in the background. Worker output is logged to `batch/worker.log`.
 
 ```bash
 # Queue a job — worker is started automatically if not already running
-./run.sh --queue "a neon city"
-./run.sh --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
-./run.sh --queue -c configs/flux1_schnell.json --steps 4 "a futuristic skyline"
+./scripts/run.sh --queue "a neon city"
+./scripts/run.sh --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
+./scripts/run.sh --queue -c configs/flux1_schnell.json --steps 4 "a futuristic skyline"
 ```
 
-`run.sh` prints the assigned job ID and current queue stats after adding the job. Alternatively, you can enqueue jobs directly via `batch.enqueue` (same flags, no venv handling):
+`scripts/run.sh` prints the assigned job ID and current queue stats after adding the job. Alternatively, you can enqueue jobs directly via `batch.enqueue` (same flags, no venv handling):
 
 ```bash
 python -m batch.enqueue "a neon city" -c configs/sdxl_graffiti_lora.json
@@ -97,14 +79,23 @@ For generating multiple images unattended, a background worker and a web dashboa
 
 ```bash
 # Start worker + web server together (recommended)
-./run_batch_server.sh              # → http://localhost:8000
-./run_batch_server.sh --offline    # skip HuggingFace update checks (models must be cached)
-PORT=9000 ./run_batch_server.sh    # custom port
+./scripts/run_batch_server.sh              # → http://localhost:8000
+./scripts/run_batch_server.sh --offline    # skip HuggingFace update checks (models must be cached)
+PORT=9000 ./scripts/run_batch_server.sh    # custom port
 
 # Or start them separately
 python -m batch.worker &           # background worker
 python -m batch.server             # web server (default port: 8000)
 ```
+
+### Health check
+
+```bash
+./scripts/health_check.sh           # default PORT=8000
+PORT=9000 ./scripts/health_check.sh # custom port
+```
+
+See **[scripts/README.md](scripts/README.md#health_checksh)** for details on what each status line checks.
 
 ### Web dashboard (`http://localhost:8000`)
 
@@ -181,6 +172,7 @@ For a full list of available configs and the complete config file reference, see
 | `sdxl` | Stable Diffusion XL, SDXL-Turbo, SDXL LoRAs | ~10 GB |
 | `sd3` | Stable Diffusion 3 | ~10 GB |
 | `flux` | FLUX.1-schnell, FLUX.1-dev | ~16 GB with offload |
+| `flux2_klein` | FLUX.2 [klein] 4B | ~13 GB with offload |
 | `zimage` | Z-Image-Turbo + LoRAs | ~16 GB |
 | `qwen` | Qwen-Image | ~16 GB |
 
@@ -190,8 +182,12 @@ For a full list of available configs and the complete config file reference, see
 
 ```
 inference_test/
-├── run.sh                  # Entry point: generate a single image via CLI
-├── run_batch_server.sh     # Entry point: start worker + web server
+├── scripts/                # Entry points and utilities (see scripts/README.md)
+│   ├── run.sh              # Generate a single image via CLI
+│   ├── run_batch_server.sh # Start worker + web server together
+│   ├── health_check.sh     # Live status check (worker, server, download rate)
+│   └── preload_model.sh    # Pre-download model weights (resume-safe)
+│
 ├── generate.py             # Core generation logic — loads config, runs pipeline
 ├── cli.py                  # Argument parsing and config merging
 ├── pipeline_config.py      # Typed config container (PipelineConfig)
@@ -213,6 +209,8 @@ inference_test/
 ├── configs/                # JSON config files, one per model/LoRA combination
 │   └── CONFIGS.md          # Config reference and full list of available configs
 │
+├── scripts/                # Entry points and utilities — see scripts/README.md
+│
 ├── outputs/                # Generated images (auto-created)
 ├── models/                 # Downloaded model weights cache (auto-created)
 └── requirements.txt        # Python dependencies
@@ -232,6 +230,19 @@ inference_test/
 2. Implement `generate(prompt, negative_prompt) -> PIL.Image`.
 3. Add an entry to `_REGISTRY` in `pipelines/__init__.py`.
 4. Create a config file in `configs/` with `"pipeline_type": "my_type"`.
+
+---
+
+## Pre-downloading models (resume-safe)
+
+Use `scripts/preload_model.sh` to pre-download all weights for a config before starting generation. Already-cached blobs are skipped, incomplete transfers are resumed.
+
+```bash
+./scripts/preload_model.sh -c configs/flux_schnell.json
+./scripts/preload_model.sh -c configs/flux_schnell.json --dry-run
+```
+
+See **[scripts/README.md](scripts/README.md#preload_modelsh)** for full usage, all flags, and details on GGUF-specific behaviour.
 
 ---
 

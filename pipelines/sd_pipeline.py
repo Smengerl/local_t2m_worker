@@ -86,12 +86,19 @@ class StableDiffusionBackend(BasePipeline):
 
         self._log(f"Loading {label} base model: {self.model_id} ...")
 
-        # SD3 on MPS: float16 is best supported; float32 would OOM on 16 GB
-        # SD/SDXL on MPS: float16 can produce NaN → use float32
+        # dtype selection per architecture and device:
+        # - CUDA: float16 universally safe and fast
+        # - SD3 + MPS: float16 recommended (float32 OOMs on 16 GB)
+        # - SDXL + MPS: float16 works correctly on PyTorch ≥ 2.3 (NaN bug fixed);
+        #   saves ~3.5 GB vs float32 on 16 GB unified memory
+        # - SD 1.5 + MPS: float16 can still produce NaN in the UNet attention layers
+        #   on some PyTorch versions → use float32 for safety
         if device.type == "cuda":
             dtype = torch.float16
         elif is_sd3 and device.type == "mps":
             dtype = torch.float16
+        elif is_xl and device.type == "mps":
+            dtype = torch.float16  # PyTorch ≥ 2.3 fixes MPS NaN for SDXL
         else:
             dtype = torch.float32
 
@@ -136,6 +143,7 @@ class StableDiffusionBackend(BasePipeline):
             if self.weight_name:
                 lora_kwargs["weight_name"] = self.weight_name
                 self._log(f"  Using specific weight file: {self.weight_name}")
+            lora_loaded_via_attn_procs = False
             try:
                 pipe.load_lora_weights(self.lora_id, **lora_kwargs)
             except RuntimeError as exc:
@@ -147,7 +155,33 @@ class StableDiffusionBackend(BasePipeline):
                 self._log("⚠️  Legacy LoRA format detected (4-D conv weights). Patching and retrying ...")
                 patched_path = self._download_and_patch_lora(self.lora_id)
                 pipe.load_lora_weights(patched_path)
-            pipe.fuse_lora(lora_scale=self.lora_scale)
+            except ValueError as exc:
+                if "not found in the base model" not in str(exc):
+                    raise
+                # Legacy Kohya LoRA format: keys like "3.attn1.to_v" are short
+                # module paths that PEFT cannot map to the UNet. Fall back to
+                # load_attn_procs() which understands this older key scheme.
+                self._log("⚠️  Legacy Kohya LoRA key format detected. Falling back to load_attn_procs ...")
+                attn_kwargs: dict = {"cache_dir": self.cache_dir}
+                if self.weight_name:
+                    attn_kwargs["weight_name"] = self.weight_name
+                else:
+                    raise ValueError(
+                        f"Legacy Kohya LoRA '{self.lora_id}' requires an explicit 'weight_name' in the config. "
+                        f"Check the repo on HuggingFace and add e.g. \"weight_name\": \"my_lora.safetensors\" to your config file."
+                    )
+                pipe.unet.load_attn_procs(self.lora_id, **attn_kwargs)
+                lora_loaded_via_attn_procs = True
+                self._log("LoRA weights loaded via load_attn_procs successfully.")
+
+            if not lora_loaded_via_attn_procs:
+                pipe.fuse_lora(lora_scale=self.lora_scale)
+            else:
+                # load_attn_procs does not support fuse_lora; apply scale via
+                # set_adapters instead if the scale differs from 1.0.
+                if self.lora_scale != 1.0:
+                    self._log(f"⚠️  fuse_lora not available for legacy LoRA; scale {self.lora_scale} applied via set_adapters.")
+                    pipe.set_adapters(["default"], adapter_weights=[self.lora_scale])
             self._log("LoRA weights fused successfully.")
 
         return pipe

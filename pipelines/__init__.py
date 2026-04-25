@@ -30,8 +30,10 @@ _REGISTRY: dict[str, str] = {
     "sd":     "pipelines.sd_pipeline.StableDiffusionBackend",
     "sdxl":   "pipelines.sd_pipeline.StableDiffusionBackend",
     "sd3":    "pipelines.sd_pipeline.StableDiffusionBackend",
-    "flux":   "pipelines.flux_pipeline.FluxBackend",
-    "zimage": "pipelines.zimage_pipeline.ZImageBackend",
+    "flux":        "pipelines.flux_pipeline.FluxBackend",
+    "flux2_klein": "pipelines.flux_pipeline.FluxBackend",
+    "lumina2":     "pipelines.lumina2_pipeline.Lumina2Backend",
+    "zimage":      "pipelines.zimage_pipeline.ZImageBackend",
     "qwen":   "pipelines.qwen_pipeline.QwenImageBackend",
 }
 

@@ -19,12 +19,13 @@ import argparse
 import logging
 import os
 import re
+import signal
 import sys
 import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 # ── Make sure the project root is on sys.path when run as a module ────────────
 _ROOT = Path(__file__).parent.parent
@@ -45,6 +46,33 @@ log = logging.getLogger("worker")
 # Force tqdm to always write progress bars, even when stdout/stderr is not a
 # TTY.  Must be set before any tqdm import so the global default is picked up.
 os.environ.setdefault("TQDM_DISABLE", "0")
+
+
+class _CancellationError(Exception):
+    """Raised by the SIGTERM handler to cancel the current job without killing the worker."""
+
+
+# Tracks the job ID currently being processed so the SIGTERM handler knows
+# whether to cancel a job or shut down the worker.
+_running_job_id: Optional[str] = None
+
+
+def _install_sigterm_handler() -> None:
+    """Install a SIGTERM handler that cancels the active job without stopping the worker loop.
+
+    If a job is currently running, SIGTERM raises _CancellationError which unwinds
+    generate_image() and is caught by the worker loop — the loop then continues with
+    the next pending job.  If the worker is idle, SIGTERM exits cleanly via sys.exit(0).
+    """
+    def _handler(signum: int, frame: Any) -> None:  # noqa: ANN001
+        if _running_job_id is not None:
+            log.info("SIGTERM received — cancelling job %s", _running_job_id[:8])
+            raise _CancellationError(f"Cancelled via SIGTERM (job {_running_job_id[:8]})")
+        # No job in progress — honour the signal and exit the worker.
+        log.info("SIGTERM received while idle — worker exiting.")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, _handler)
 
 
 class _JobLogHandler(logging.Handler):
@@ -145,9 +173,12 @@ def process_job(
     pipeline_cache: dict[tuple, Any],
 ) -> str:
     """Run a single job. Returns the result path. Raises on failure."""
+    global _running_job_id
+
     log.info("Starting job %s  prompt=%r", job["id"][:8], job["prompt"])
     mark_running(job["id"])
     set_worker_pid(job["id"], os.getpid())
+    _running_job_id = job["id"]
 
     # ── attach per-job log handler to the root logger (captures all libs) ──
     job_handler = _JobLogHandler(job["id"])
@@ -182,6 +213,7 @@ def process_job(
         log.info("Job %s done → %s", job["id"][:8], output_path)
         return output_path
     finally:
+        _running_job_id = None
         sys.stderr = real_stderr
         root_logger.removeHandler(job_handler)
 
@@ -201,6 +233,7 @@ def run_worker(poll_interval: int = 5, run_once: bool = False) -> None:
 
 def _run_worker_loop(poll_interval: int = 5, run_once: bool = False) -> None:
     """Inner worker loop (separated so the PID file teardown is always clean)."""
+    _install_sigterm_handler()
     pipeline_cache: dict[tuple, Any] = {}
 
     while True:
@@ -215,6 +248,13 @@ def _run_worker_loop(poll_interval: int = 5, run_once: bool = False) -> None:
         try:
             result_path = process_job(job, pipeline_cache)
             mark_done(job["id"], result_path)
+        except _CancellationError as exc:
+            # Job was cancelled via SIGTERM from the web UI / cancel tool.
+            # The API already called mark_failed; call it again to record the
+            # cancellation reason in the error field (idempotent).
+            log.info("Job %s cancelled.", job["id"][:8])
+            mark_failed(job["id"], str(exc))
+            pipeline_cache.clear()   # pipeline state may be inconsistent
         except Exception as exc:
             err = traceback.format_exc()
             log.error("Job %s FAILED: %s", job["id"][:8], exc)

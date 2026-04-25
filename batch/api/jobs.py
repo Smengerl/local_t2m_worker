@@ -38,8 +38,45 @@ from batch.queue import (
     update_job,
 )
 from cli import build_config
+from pipeline_config import PipelineConfig
 
 router = APIRouter()
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Return True if a process with *pid* is currently running.
+
+    Uses os.kill(pid, 0) which sends no signal but raises OSError if the
+    process does not exist or is not accessible.
+    """
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Process exists but we cannot signal it — treat as alive.
+        return True
+
+
+def _heal_stale_running_jobs() -> None:
+    """Mark any 'running' job as failed if its worker process is no longer alive.
+
+    Called on every GET /api/jobs so the UI always reflects reality without
+    requiring a manual cancel action from the user.
+    """
+    for job in list_jobs():
+        if job.get("status") != "running":
+            continue
+        pid = job.get("worker_pid")
+        if pid is None:
+            # No PID recorded — job may have just been picked up by the worker;
+            # give it a grace period by leaving it alone.
+            continue
+        if not _is_pid_alive(pid):
+            msg = f"Worker process (PID {pid}) no longer exists — marked as failed by server."
+            append_log(job["id"], f"[server] {msg}")
+            mark_failed(job["id"], msg)
 
 
 class EnqueueRequest(BaseModel):
@@ -53,6 +90,9 @@ class EnqueueRequest(BaseModel):
     lora_scale: Optional[float] = None
     steps: Optional[int] = None
     guidance_scale: Optional[float] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    gguf_file: Optional[str] = None
 
 
 @router.get("/stats")
@@ -62,6 +102,7 @@ def api_stats() -> dict[str, int]:
 
 @router.get("/jobs")
 def api_list_jobs() -> list[dict[str, Any]]:
+    _heal_stale_running_jobs()
     return list_jobs()
 
 
@@ -70,6 +111,13 @@ def api_get_job(job_id: str) -> dict[str, Any]:
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
+    # Heal stale running state for this specific job before returning.
+    if job.get("status") == "running":
+        pid = job.get("worker_pid")
+        if pid is not None and not _is_pid_alive(pid):
+            msg = f"Worker process (PID {pid}) no longer exists — marked as failed by server."
+            append_log(job_id, f"[server] {msg}")
+            job = mark_failed(job_id, msg) or job
     return job
 
 
@@ -88,6 +136,9 @@ def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
         lora_scale=req.lora_scale,
         steps=req.steps,
         guidance_scale=req.guidance_scale,
+        width=req.width,
+        height=req.height,
+        gguf_file=req.gguf_file,
     ))
     job = enqueue(
         cfg=cfg,
@@ -116,15 +167,22 @@ def api_retry_job(job_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Job not found")
     if job["status"] not in ("failed", "done"):
         raise HTTPException(status_code=409, detail="Only failed or done jobs can be retried")
-    updated = update_job(
-        job_id,
-        status="pending",
-        started_at=None,
-        finished_at=None,
-        result_path=None,
-        error=None,
+    # Create a new pending job with the same pipeline config and prompts.
+    # Leave the original job untouched.
+    pc_dict = job.get("pipeline_config") or {}
+    cfg = PipelineConfig.from_dict(pc_dict) if pc_dict else None
+    if cfg is None:
+        raise HTTPException(status_code=500, detail="Original job has no pipeline config")
+
+    new_job = enqueue(
+        cfg=cfg,
+        prompt=job.get("prompt", ""),
+        negative_prompt=job.get("negative_prompt", ""),
+        output=job.get("output"),
     )
-    return updated
+    if new_job is None:
+        raise HTTPException(status_code=500, detail="Failed to enqueue retry job")
+    return new_job
 
 
 @router.post("/jobs/{job_id}/cancel")
@@ -161,6 +219,8 @@ def api_cancel_job(job_id: str) -> dict[str, Any]:
         note = "No worker PID recorded (job was pending or PID not yet written)."
 
     updated = mark_failed(job_id, f"Cancelled by user via web UI. {note}")
+    if updated is None:
+        raise HTTPException(status_code=500, detail="Failed to mark job as cancelled")
     return updated
 
 

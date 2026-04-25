@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Image Generation Queue</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <style>
     :root {
       --bg: #0f1117;
@@ -30,49 +31,21 @@
       color: var(--text);
       font-family: system-ui, sans-serif;
       font-size: 14px;
-      padding: 24px;
+      padding: 12px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: var(--accent);
+      display: none;
     }
 
     h2 {
       font-size: 1rem;
       font-weight: 600;
       margin-bottom: 12px;
-    }
-
-    /* Stats bar */
-    .stats {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-
-    .stat {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 18px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .stat .num {
-      font-size: 1.6rem;
-      font-weight: 700;
-    }
-
-    .stat .lbl {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-transform: uppercase;
     }
 
     .stat.pending .num {
@@ -91,20 +64,120 @@
       color: var(--red);
     }
 
-    /* Layout: form left, queue right */
+    /* Layout: stats+form left, queue right */
     .layout {
       display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 20px;
+      grid-template-columns: var(--left-w, 400px) 4px 1fr;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+      column-gap: 0;
     }
 
     .layout>* {
       min-width: 0;
     }
 
-    @media(max-width: 800px) {
+    /* Left column: stats on top, form fills the rest */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      transition: min-width .2s, max-width .2s;
+    }
+
+    .left-col.collapsed {
+      min-width: 0 !important;
+      max-width: 0 !important;
+      overflow: hidden;
+      padding: 0;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .left-col .card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* Resize handle between columns */
+    .col-resizer {
+      width: 4px;
+      cursor: col-resize;
+      background: var(--border);
+      border-radius: 2px;
+      position: relative;
+      transition: background .15s;
+      z-index: 10;
+      align-self: stretch;
+      margin: 0 4px;
+    }
+
+    .col-resizer:hover,
+    .col-resizer.dragging {
+      background: var(--accent);
+    }
+
+    /* Collapse/expand toggle button on the resizer */
+    .col-toggle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 36px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--muted);
+      user-select: none;
+      transition: background .15s, color .15s;
+      z-index: 11;
+    }
+
+    .col-toggle:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* Right column: queue fills full height */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding-left: 8px;
+    }
+
+    .right-col .card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #job-list {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    @media(max-width: 600px) {
       .layout {
         grid-template-columns: 1fr;
+      }
+
+      .col-resizer {
+        display: none;
       }
     }
 
@@ -151,10 +224,11 @@
       outline: 2px solid var(--accent);
     }
 
-    input::placeholder,
-    textarea::placeholder {
-      color: var(--muted);
-      opacity: 1;
+    return ` <div class="job${expanded ? ' expanded' : ''}" id="job-${j.id}" onclick="toggleExpand('${j.id}')">$ {
+      inlineThumb
+    }
+
+    <div class="job-content">opacity: 1;
     }
 
     .row {
@@ -182,42 +256,126 @@
     }
 
     .btn-primary:hover {
+      z-index: 12;
       filter: brightness(1.15);
     }
 
+    /* Shared ghost style for all action buttons */
     .btn-sm {
-      padding: 4px 10px;
+      padding: 3px 9px;
       font-size: 11px;
+      font-weight: 600;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+
+    .btn-sm .material-icons-round {
+      font-size: 14px;
+      line-height: 1;
     }
 
     .btn-danger {
-      background: #3f1212;
-      color: var(--red);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-danger:hover {
+      background: color-mix(in srgb, var(--text) 8%, transparent);
+      border-color: var(--muted);
     }
 
     .btn-retry {
-      background: #1a2a3f;
-      color: var(--blue);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-retry:hover {
+      background: color-mix(in srgb, var(--text) 8%, transparent);
+      border-color: var(--muted);
     }
 
     .btn-cancel {
-      background: #3a1f1f;
-      color: var(--red);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-cancel:hover {
+      background: color-mix(in srgb, var(--text) 8%, transparent);
+      border-color: var(--muted);
     }
 
     .btn-clear {
-      background: #1f1f1f;
-      color: var(--muted);
+      color: var(--text);
+      border-color: var(--border);
+      background: transparent;
       font-size: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 0;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+
+    .btn-clear .material-icons-round {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .btn-clear:hover {
+      background: color-mix(in srgb, var(--text) 8%, transparent);
+      border-color: var(--muted);
     }
 
     /* Queue table */
     .queue-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 10px;
       margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+
+    .queue-header h2 {
+      margin-right: auto;
+      margin-bottom: 0;
+      line-height: 1;
+    }
+
+    /* Inline stats in queue header */
+    .stats {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .stat {
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      padding: 3px 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .stat .num {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .stat .lbl {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
     }
 
     .job {
@@ -229,6 +387,8 @@
       transition: border-color .15s;
       overflow: hidden;
       min-width: 0;
+      min-height: 100px;
+      position: relative;
     }
 
     .job:hover {
@@ -290,6 +450,14 @@
       font-size: 11px;
       color: var(--muted);
       margin-top: 6px;
+    }
+
+    .job-inner {
+      display: block;
+    }
+
+    .job-cfg {
+      display: none;
     }
 
     .job-actions {
@@ -396,9 +564,9 @@
     .hint-icon .hint-tooltip {
       display: none;
       position: absolute;
-      left: 50%;
-      bottom: calc(100% + 6px);
-      transform: translateX(-50%);
+      left: calc(100% + 8px);
+      top: calc(100% + 4px);
+      transform: none;
       background: #2c3040;
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -419,11 +587,11 @@
     .hint-icon .hint-tooltip::after {
       content: '';
       position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 6px;
+      right: 100%;
+      transform: none;
       border: 5px solid transparent;
-      border-top-color: #2c3040;
+      border-right-color: #2c3040;
     }
 
     .hint-icon:hover .hint-tooltip {
@@ -446,7 +614,9 @@
     }
 
     .detail-negative {
-      font-size: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.5;
       color: var(--muted);
       margin-bottom: 10px;
       white-space: pre-wrap;
@@ -571,14 +741,32 @@
     }
 
     .job-thumb {
-      width: 64px;
-      height: 64px;
-      object-fit: cover;
-      border-radius: 6px;
-      flex-shrink: 0;
-      border: 1px solid var(--border);
+      position: absolute;
+      top: -1px;
+      right: -1px;
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      object-position: right center;
+      border-radius: 0 8px 8px 0;
       cursor: zoom-in;
-      margin-left: auto;
+      z-index: 12;
+    }
+
+    .job-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Reserve space for the thumbnail in collapsed rows */
+    .job:not(.expanded) .job-content {
+      padding-right: 108px;
+    }
+
+    /* In expanded rows allow the content to use the full width; the
+       thumbnail remains top-right and overlays the content if necessary. */
+    .job.expanded .job-content {
+      padding-right: 0;
     }
 
     /* Lightbox */
@@ -635,89 +823,187 @@
 <body>
   <h1>🖼 Image Generation Queue</h1>
 
-  <!-- Stats -->
-  <div class="stats" id="stats">
-    <div class="stat pending"><span class="num" id="s-pending">–</span><span class="lbl">Pending</span></div>
-    <div class="stat running"><span class="num" id="s-running">–</span><span class="lbl">Running</span></div>
-    <div class="stat done"><span class="num" id="s-done">–</span><span class="lbl">Done</span></div>
-    <div class="stat failed"><span class="num" id="s-failed">–</span><span class="lbl">Failed</span></div>
-  </div>
-
   <div class="layout">
 
-    <!-- ── Enqueue form ── -->
-    <div class="card">
-      <h2>New Job</h2>
-      <form id="enqueue-form">
-        <div class="label-row"><label>Prompt *</label><span id="f-prompt-icon" class="hint-icon"
-            style="display:none">?<span class="hint-tooltip" id="f-prompt-tooltip"></span></span></div>
-        <textarea id="f-prompt" required placeholder="a sunset over mountains"></textarea>
+    <!-- ── Left column: form only ── -->
+    <div class="left-col">
 
-        <div class="label-row"><label>Negative Prompt</label><span id="f-negative-icon" class="hint-icon"
-            style="display:none">?<span class="hint-tooltip" id="f-negative-tooltip"></span></span></div>
-        <input id="f-negative" type="text" placeholder="blurry, low quality">
-
-        <div class="label-row"><label>Config</label></div>
-        <select id="f-config">
-          <option value="">Loading configs…</option>
-        </select>
-        <div id="f-config-hints" class="config-hints" style="display:none"></div>
-
-        <details style="margin-bottom:12px">
-          <summary style="cursor:pointer;color:var(--muted);font-size:12px;margin-bottom:8px">
-            Advanced overrides
-          </summary>
-          <div style="margin-top:8px">
-            <div class="label-row"><label>Model ID override</label><span id="f-model-id-icon" class="hint-icon"
-                style="display:none">?<span class="hint-tooltip" id="f-hint-model-tooltip"></span></span></div>
-            <input id="f-model-id" type="text">
-            <div class="row" style="align-items:flex-start">
-              <div style="flex:3">
-                <label>LoRA ID override</label>
-                <input id="f-lora-id" type="text">
-              </div>
-              <div style="flex:1">
-                <div class="label-row"><label>LoRA scale</label><span id="f-lora-scale-icon" class="hint-icon"
-                    style="display:none">?<span class="hint-tooltip" id="f-hint-lora-scale-tooltip"></span></span></div>
-                <input id="f-lora-scale" type="number" step="0.05" min="0" max="1">
-              </div>
-            </div>
-            <div class="row" style="align-items:flex-start">
-              <div>
-                <div class="label-row"><label>Steps</label><span id="f-steps-icon" class="hint-icon"
-                    style="display:none">?<span class="hint-tooltip" id="f-hint-steps-tooltip"></span></span></div>
-                <input id="f-steps" type="number" min="1">
-              </div>
-              <div>
-                <div class="label-row"><label>Guidance scale</label><span id="f-guidance-icon" class="hint-icon"
-                    style="display:none">?<span class="hint-tooltip" id="f-hint-cfg-tooltip"></span></span></div>
-                <input id="f-guidance" type="number" step="0.5">
-              </div>
-            </div>
-            <input id="f-output" type="hidden" value="">
+      <!-- Enqueue form -->
+      <div class="card">
+        <h2 style="display:none">New Job</h2>
+        <form id="enqueue-form">
+          <div class="label-row"><label>Prompt *</label><span id="f-prompt-icon" class="hint-icon"
+              style="display:none">?<span class="hint-tooltip" id="f-prompt-tooltip"></span></span></div>
+          <textarea id="f-prompt" required placeholder="a sunset over mountains"></textarea>
+          <div id="f-trigger-hint" style="display:none;margin-top:4px;font-size:12px;color:var(--muted)">
+            Trigger word: <code id="f-trigger-word"
+              style="background:var(--surface2,#2a2a3a);padding:1px 5px;border-radius:3px;font-size:11px"></code>
           </div>
-        </details>
 
-        <button type="submit" class="btn-primary">➕ Add to Queue</button>
-        <div id="form-msg" style="margin-top:8px;font-size:12px;min-height:18px"></div>
-      </form>
+          <div class="label-row"><label>Negative Prompt</label><span id="f-negative-icon" class="hint-icon"
+              style="display:none">?<span class="hint-tooltip" id="f-negative-tooltip"></span></span></div>
+          <input id="f-negative" type="text" placeholder="blurry, low quality">
+
+          <div class="label-row"><label>Config</label></div>
+          <select id="f-config">
+            <option value="">Loading configs…</option>
+          </select>
+          <div id="f-config-hints" class="config-hints" style="display:none"></div>
+
+          <details style="margin-bottom:12px">
+            <summary style="cursor:pointer;color:var(--muted);font-size:12px;margin-bottom:8px">
+              Advanced overrides
+            </summary>
+            <div style="margin-top:8px">
+              <div class="label-row"><label>Model ID override (Repositry)</label><span id="f-model-id-icon"
+                  class="hint-icon" style="display:none">?<span class="hint-tooltip"
+                    id="f-hint-model-tooltip"></span></span></div>
+              <input id="f-model-id" type="text">
+              <label>GGUF override (File in Repository)</label>
+              <input id="f-gguf-file" type="text" placeholder="(not set)">
+              <div class="row" style="align-items:flex-start">
+                <div style="flex:3">
+                  <label>LoRA ID override</label>
+                  <input id="f-lora-id" type="text">
+                </div>
+                <div style="flex:1">
+                  <div class="label-row"><label>LoRA scale</label><span id="f-lora-scale-icon" class="hint-icon"
+                      style="display:none">?<span class="hint-tooltip" id="f-hint-lora-scale-tooltip"></span></span>
+                  </div>
+                  <input id="f-lora-scale" type="number" step="0.05" min="0" max="1">
+                </div>
+              </div>
+              <div class="row" style="align-items:flex-start">
+                <div>
+                  <div class="label-row"><label>Steps</label><span id="f-steps-icon" class="hint-icon"
+                      style="display:none">?<span class="hint-tooltip" id="f-hint-steps-tooltip"></span></span></div>
+                  <input id="f-steps" type="number" min="1">
+                </div>
+                <div>
+                  <div class="label-row"><label>Guidance scale</label><span id="f-guidance-icon" class="hint-icon"
+                      style="display:none">?<span class="hint-tooltip" id="f-hint-cfg-tooltip"></span></span></div>
+                  <input id="f-guidance" type="number" step="0.5">
+                </div>
+              </div>
+              <div class="label-row"><label>Size</label><span id="f-size-icon" class="hint-icon"
+                  style="display:none">?<span class="hint-tooltip" id="f-hint-size-tooltip"></span></span></div>
+              <div class="row" style="align-items:center;gap:6px">
+                <input id="f-width" type="number" min="64" step="8" placeholder="Width">
+                <span style="color:var(--muted);font-size:13px;white-space:nowrap">×</span>
+                <input id="f-height" type="number" min="64" step="8" placeholder="Height">
+              </div>
+              <input id="f-output" type="hidden" value="">
+            </div>
+          </details>
+
+          <button type="submit" class="btn-primary">➕ Add to Queue</button>
+          <div id="form-msg" style="margin-top:8px;font-size:12px;min-height:18px"></div>
+        </form>
+      </div><!-- /.card (form) -->
+
+    </div><!-- /.left-col -->
+
+    <!-- ── Resize handle ── -->
+    <div class="col-resizer" id="col-resizer">
+      <div class="col-toggle" id="col-toggle" title="Collapse / expand sidebar">◀</div>
     </div>
 
-    <!-- ── Queue list ── -->
-    <div class="card">
-      <div class="queue-header">
-        <h2>Queue</h2>
-        <button class="btn-clear" onclick="clearFinished()">🗑 Clear finished</button>
+    <!-- ── Right column: Queue list ── -->
+    <div class="right-col">
+      <div class="card">
+        <div class="queue-header">
+          <h2>Queue</h2>
+          <div class="stats" id="stats">
+            <div class="stat pending"><span class="num" id="s-pending">–</span><span class="lbl">Pending</span></div>
+            <div class="stat running"><span class="num" id="s-running">–</span><span class="lbl">Running</span></div>
+            <div class="stat done"><span class="num" id="s-done">–</span><span class="lbl">Done</span></div>
+            <div class="stat failed"><span class="num" id="s-failed">–</span><span class="lbl">Failed</span></div>
+          </div>
+          <button class="btn-clear" onclick="clearFinished()"><span class="material-icons-round">delete_sweep</span>
+            Clear finished</button>
+        </div>
+        <div id="job-list">
+          <div class="empty">Loading…</div>
+        </div>
       </div>
-      <div id="job-list">
-        <div class="empty">Loading…</div>
-      </div>
-    </div>
+    </div><!-- /.right-col -->
 
-  </div>
+  </div><!-- /.layout -->
 
   <script>
     const $ = id => document.getElementById(id);
+
+    // ── Sidebar resize & collapse ──────────────────────────────────────────────
+    (function () {
+      const STORAGE_KEY_W = 'sidebar_width';
+      const STORAGE_KEY_C = 'sidebar_collapsed';
+      const MIN_W = 120;
+      const MAX_W = 700;
+
+      const layout = document.querySelector('.layout');
+      const leftCol = document.querySelector('.left-col');
+      const resizer = document.getElementById('col-resizer');
+      const toggle = document.getElementById('col-toggle');
+
+      let collapsed = localStorage.getItem(STORAGE_KEY_C) === '1';
+      let width = parseInt(localStorage.getItem(STORAGE_KEY_W) || '400', 10);
+
+      function applyState() {
+        if (collapsed) {
+          layout.style.gridTemplateColumns = `0 4px 1fr`;
+          leftCol.classList.add('collapsed');
+          toggle.textContent = '▶';
+          toggle.title = 'Expand sidebar';
+        } else {
+          layout.style.gridTemplateColumns = `${width}px 4px 1fr`;
+          leftCol.classList.remove('collapsed');
+          toggle.textContent = '◀';
+          toggle.title = 'Collapse sidebar';
+        }
+      }
+
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        collapsed = !collapsed;
+        localStorage.setItem(STORAGE_KEY_C, collapsed ? '1' : '0');
+        applyState();
+      });
+
+      // Drag-to-resize
+      let dragging = false;
+      let startX = 0;
+      let startW = 0;
+
+      resizer.addEventListener('mousedown', function (e) {
+        if (e.target === toggle) return; // handled by toggle
+        if (collapsed) return;
+        dragging = true;
+        startX = e.clientX;
+        startW = width;
+        resizer.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        const delta = e.clientX - startX;
+        width = Math.min(MAX_W, Math.max(MIN_W, startW + delta));
+        layout.style.gridTemplateColumns = `${width}px 4px 1fr`;
+      });
+
+      document.addEventListener('mouseup', function () {
+        if (!dragging) return;
+        dragging = false;
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        localStorage.setItem(STORAGE_KEY_W, width);
+      });
+
+      applyState();
+    })();
 
     // ── Helpers ────────────────────────────────────────────────────────────────
     async function apiFetch(path, opts = {}) {
@@ -791,46 +1077,66 @@
         const actions = [];
 
         if (j.status === 'pending') {
-          actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)">Delete</button>`);
+          actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)"><span class="material-icons-round">delete</span>Delete</button>`);
         }
         if (j.status === 'failed' || j.status === 'done') {
-          actions.push(`<button class="btn-sm btn-retry" onclick="retryJob('${j.id}',event)">Re-run</button>`);
+          actions.push(`<button class="btn-sm btn-retry" onclick="retryJob('${j.id}',event)"><span class="material-icons-round">replay</span>Re-run</button>`);
+        }
+        if (j.status === 'failed' || (j.status === 'done' && !j.result_path)) {
+          actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)"><span class="material-icons-round">delete</span>Delete</button>`);
+        }
+        if (j.status === 'done' && j.result_path) {
+          const fname = j.result_path.split('/').pop();
+          actions.push(`<button class="btn-sm btn-danger" onclick="deleteImage('${fname}','${j.id}',event)"><span class="material-icons-round">hide_image</span>Delete image</button>`);
         }
         if (j.status === 'running') {
-          actions.push(`<button class="btn-sm btn-cancel" onclick="cancelJob('${j.id}',event)">Cancel</button>`);
-          actions.push(`<span class="spinner"></span>`);
+          // Cancel + spinner are rendered inside the progress block
         }
         // Copy button moved into expanded detail to avoid toggling the entry when clicked
 
-        // ── progress bar (only while running and total is known) ──────────────
+        // ── progress bar ──────────────────────────────────────────────────────
         const step = j.progress_step || 0;
         const total = j.progress_total || 0;
-        // Clamp step so UI never shows > total
-        const safeStep = total > 0 ? Math.min(step, total) : step;
-        // If the job is running, backend sometimes reports the next step index.
-        // To avoid showing a step ahead of the console, display (safeStep - 1) while running.
-        // When finished, show total/total.
-        let displayStep;
-        if (total > 0) {
-          if (j.status === 'running') {
-            displayStep = Math.max(0, safeStep - 1);
-          } else if (j.status === 'done') {
-            displayStep = total;
-          } else {
-            displayStep = safeStep;
-          }
+
+        // Three states while running:
+        //   1. total unknown (0)  → "Preparing to generate",  0 %
+        //   2. steps in progress  → "X / N steps (Y %)",      Y %
+        //   3. all steps done     → "Completing process",      100 %
+        const allStepsDone = total > 0 && step >= total;
+        const stepsKnown = total > 0 && !allStepsDone;
+
+        let displayStep, pct, progressLabel, progressRight;
+        if (allStepsDone) {
+          displayStep = total;
+          pct = 100;
+          progressLabel = 'Completing process';
+          progressRight = `${total} / ${total} steps&nbsp;(100%)`;
+        } else if (stepsKnown) {
+          // step from backend is the *next* step index → completed = step - 1
+          displayStep = Math.max(0, step - 1);
+          pct = Math.round((displayStep / total) * 100);
+          progressLabel = `Generating…`;
+          progressRight = `${displayStep} / ${total} steps&nbsp;(${pct}%)`;
         } else {
-          displayStep = safeStep;
+          // total unknown yet — preparing phase
+          displayStep = 0;
+          pct = 0;
+          progressLabel = 'Preparing to generate';
+          progressRight = '';
         }
-        const pct = total > 0 ? Math.round((displayStep / total) * 100) : 0;
-        const showProgress = j.status === 'running' && total > 0;
+
+        const showProgress = j.status === 'running';
         const progressBlock = `
       <div class="job-progress${showProgress ? ' visible' : ''}">
         <div class="job-progress-labels">
-          <span>Generating…</span>
-          <span>${displayStep} / ${total} steps&nbsp;(${pct}%)</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <button class="btn-sm btn-cancel" onclick="cancelJob('${j.id}',event)"><span class="material-icons-round">cancel</span>Cancel</button>
+            <span class="spinner"></span>
+            <span>${escHtml(progressLabel)}</span>
+          </span>
+          <span>${progressRight}</span>
         </div>
-        <progress value="${displayStep}" max="${Math.max(total, 1)}"></progress>
+        <progress value="${pct}" max="100"></progress>
       </div>`;
 
         let detail = '';
@@ -840,6 +1146,7 @@
             ['Config', escHtml(pc.pipeline_type ?? '—')],
             ['Model', escHtml(pc.model_id ?? '—')],
             pc.lora_id ? ['LoRA', escHtml(pc.lora_id)] : null,
+            pc.lora_scale != null ? ['LoRA scale', pc.lora_scale] : null,
             ['Steps', pc.num_inference_steps ?? '—'],
             ['Guidance', pc.guidance_scale ?? '—'],
             ['Added', j.added_at ? new Date(j.added_at).toLocaleString() : '—'],
@@ -868,7 +1175,10 @@
             <button class="copy-inline-btn" data-prompt="${encodeURIComponent(j.prompt ?? '')}" onclick="copyPromptFromEl(this,event)">Copy</button>
             <div class="detail-prompt">${escHtml(j.prompt)}</div>
           </div>
-          ${j.negative_prompt ? `<div class="detail-negative">Negative prompt: ${escHtml(j.negative_prompt)}</div>` : ''}
+          ${j.negative_prompt ? `<div class="detail-prompt-row">
+            <button class="copy-inline-btn" data-prompt="${encodeURIComponent(j.negative_prompt ?? '')}" onclick="copyPromptFromEl(this,event)">Copy</button>
+            <div class="detail-negative">${escHtml(j.negative_prompt)}</div>
+          </div>` : ''}
           <table class="detail-table">${tableRows}</table>
           ${logBlock}
           ${errorBlock}
@@ -883,18 +1193,29 @@
               onclick="event.stopPropagation(); openLightbox('${thumbSrc}')">`
           : '';
 
+        // Build enriched subtitle
+        const modelShort = pc.model_id ? pc.model_id.split('/').pop() : null;
+        const metaParts = [];
+        metaParts.push(j.finished_at ? 'finished ' + relTime(j.finished_at) : 'added ' + relTime(j.added_at));
+        if (j.status === 'done' && durStr(j.started_at, j.finished_at)) metaParts.push('⏱ ' + durStr(j.started_at, j.finished_at));
+        if (cfg && cfg !== '—') metaParts.push(cfg);
+        if (modelShort) metaParts.push(modelShort);
+        if (pc.num_inference_steps != null) metaParts.push(pc.num_inference_steps + ' steps');
+        if (pc.guidance_scale != null) metaParts.push('cfg ' + pc.guidance_scale);
+
         return `
-      <div class="job" id="job-${j.id}" onclick="toggleExpand('${j.id}')">
-        <div class="job-top">
-          ${badge(j.status)}
-          <span class="job-prompt">${escHtml(j.prompt)}</span>
-          <span class="job-cfg">${escHtml(cfg)}</span>
-          ${inlineThumb}
+  <div class="job${expanded ? ' expanded' : ''}" id="job-${j.id}" onclick="toggleExpand('${j.id}')">
+        ${inlineThumb}
+        <div class="job-content">
+          <div class="job-top">
+            ${badge(j.status)}
+            <span class="job-prompt">${escHtml(j.prompt)}</span>
+          </div>
+          <div class="job-meta">${metaParts.join('  ·  ')}</div>
+          <div class="job-actions">${actions.join('')}</div>
+          ${progressBlock}
+          ${detail}
         </div>
-        <div class="job-meta">${j.finished_at ? 'finished ' + relTime(j.finished_at) : 'added ' + relTime(j.added_at)}${j.status === 'done' && durStr(j.started_at, j.finished_at) ? '  ·  ⏱ ' + durStr(j.started_at, j.finished_at) : ''}</div>
-        <div class="job-actions">${actions.join('')}</div>
-        ${progressBlock}
-        ${detail}
       </div>`;
       }).join('');
 
@@ -992,6 +1313,19 @@
       refresh();
     }
 
+    async function deleteImage(filename, jobId, evt) {
+      evt.stopPropagation();
+      if (!confirm('Bild unwiderruflich löschen?')) return;
+      await apiFetch(`/outputs/${filename}`, { method: 'DELETE' });
+      // Also remove the job entry so the generated image no longer appears in the list
+      try {
+        await apiFetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+      } catch (e) {
+        // If job deletion fails (e.g. job running), just continue and refresh the list
+      }
+      refresh();
+    }
+
     async function clearFinished() {
       await apiFetch('/api/clear-finished', { method: 'POST' });
       expandedId = null;
@@ -1024,6 +1358,8 @@
         const cfgTooltip = $('f-hint-cfg-tooltip');
         const loraScaleIcon = $('f-lora-scale-icon');
         const loraScaleTooltip = $('f-hint-lora-scale-tooltip');
+        const sizeIcon = $('f-size-icon');
+        const sizeTooltip = $('f-hint-size-tooltip');
 
         const HINT_LABEL = {
           '': 'Note',
@@ -1051,25 +1387,43 @@
           const meta = configMeta[sel.value];
           if (!meta) {
             hintsPanel.style.display = 'none';
-            [promptIcon, negativeIcon, modelIcon, stepsIcon, cfgIcon, loraScaleIcon]
+            [promptIcon, negativeIcon, modelIcon, stepsIcon, cfgIcon, loraScaleIcon, sizeIcon]
               .forEach(el => el.style.display = 'none');
-            $('f-model-id').placeholder = '(from config)';
-            $('f-lora-id').placeholder = '(from config)';
-            $('f-lora-scale').placeholder = '(from config)';
-            $('f-steps').placeholder = '(from config)';
-            $('f-guidance').placeholder = '(from config)';
+            $('f-trigger-hint').style.display = 'none';
+            $('f-model-id').placeholder = '(not set)';
+            $('f-lora-id').placeholder = '(not set)';
+            $('f-lora-scale').placeholder = '(not set)';
+            $('f-steps').placeholder = '(not set)';
+            $('f-guidance').placeholder = '(not set)';
+            $('f-width').placeholder = 'Width';
+            $('f-height').placeholder = 'Height';
+            $('f-gguf-file').placeholder = '(not set)';
             return;
           }
 
           const hints = meta.hints || {};
           const defs = meta.defaults || {};
+          const extras = meta.extras || {};
+
+          // ── Trigger word hint below prompt ──
+          const triggerWord = extras.trigger_word || null;
+          const triggerHint = $('f-trigger-hint');
+          if (triggerWord) {
+            $('f-trigger-word').textContent = triggerWord;
+            triggerHint.style.display = '';
+          } else {
+            triggerHint.style.display = 'none';
+          }
 
           // ── Override field placeholders from config defaults ──
-          $('f-model-id').placeholder = defs.model_id ?? '(from config)';
-          $('f-lora-id').placeholder = defs.lora_id ?? '(from config)';
-          $('f-lora-scale').placeholder = defs.lora_scale != null ? String(defs.lora_scale) : '(from config)';
-          $('f-steps').placeholder = defs.num_inference_steps != null ? String(defs.num_inference_steps) : '(from config)';
-          $('f-guidance').placeholder = defs.guidance_scale != null ? String(defs.guidance_scale) : '(from config)';
+          $('f-model-id').placeholder = defs.model_id ?? '(not set)';
+          $('f-lora-id').placeholder = defs.lora_id ?? '(not set)';
+          $('f-lora-scale').placeholder = defs.lora_scale != null ? String(defs.lora_scale) : '(not set)';
+          $('f-steps').placeholder = defs.num_inference_steps != null ? String(defs.num_inference_steps) : '(not set)';
+          $('f-guidance').placeholder = defs.guidance_scale != null ? String(defs.guidance_scale) : '(not set)';
+          $('f-width').placeholder = defs.width != null ? String(defs.width) : 'Width';
+          $('f-height').placeholder = defs.height != null ? String(defs.height) : 'Height';
+          $('f-gguf-file').placeholder = defs.gguf_file ?? '(not set)';
 
           // ── Prompt & negative hints ──
           const promptLines = [hints.prompt, hints.trigger].filter(Boolean);
@@ -1095,9 +1449,10 @@
           setFieldHint(stepsIcon, stepsTooltip, hints.steps || '');
           setFieldHint(cfgIcon, cfgTooltip, hints.cfg || hints.guidance || '');
           setFieldHint(loraScaleIcon, loraScaleTooltip, hints.lora_scale || '');
+          setFieldHint(sizeIcon, sizeTooltip, hints.size || '');
 
           // ── Config hints panel (all other _comment_* keys) ──
-          const skipKeys = new Set(['prompt', 'negative', 'trigger', 'steps', 'cfg', 'guidance', 'lora_scale', 'model']);
+          const skipKeys = new Set(['prompt', 'negative', 'trigger', 'steps', 'cfg', 'guidance', 'lora_scale', 'model', 'size']);
           const rows = Object.entries(hints).filter(([k]) => !skipKeys.has(k));
 
           if (rows.length === 0) {
@@ -1150,6 +1505,9 @@
         lora_scale: $('f-lora-scale').value ? +$('f-lora-scale').value : null,
         steps: $('f-steps').value ? +$('f-steps').value : null,
         guidance_scale: $('f-guidance').value ? +$('f-guidance').value : null,
+        width: $('f-width').value ? +$('f-width').value : null,
+        height: $('f-height').value ? +$('f-height').value : null,
+        gguf_file: $('f-gguf-file').value.trim() || null,
       };
 
       try {

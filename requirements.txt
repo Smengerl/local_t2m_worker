@@ -6,5 +6,6 @@ accelerate
 peft
 Pillow
 huggingface_hub  # for hf_hub_download used by the Anima pipeline
+gguf             # required for GGUF quantized model loading via diffusers
 fastapi
 uvicorn[standard]

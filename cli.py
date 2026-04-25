@@ -35,7 +35,7 @@ DEFAULTS: dict = {
     "width": 1024,
     "height": 1024,
     "output_dir": "outputs",
-    "cache_dir": "models",
+    "cache_dir": None,
     # Offload model submodules to CPU between steps to save GPU/MPS memory.
     # Slower, but necessary for SDXL / FLUX / SD3 on machines with ≤16 GB unified memory.
     "sequential_cpu_offload": False,
@@ -140,8 +140,9 @@ def parse_args() -> argparse.Namespace:
         "--cache-dir",
         metavar="DIR",
         help=(
-            "Directory for downloaded model weights. "
-            f"Default: models/. Overrides the built-in default."
+            "Directory for downloaded model weights. If not provided, the Hugging Face/diffusers"
+            " default cache location is used (e.g. ~/.cache/huggingface), allowing model sharing"
+            " between applications."
         ),
     )
 
@@ -223,6 +224,12 @@ def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, st
         raw["num_inference_steps"] = args.steps
     if args.guidance_scale is not None:
         raw["guidance_scale"] = args.guidance_scale
+    if getattr(args, "width", None) is not None:
+        raw["width"] = args.width
+    if getattr(args, "height", None) is not None:
+        raw["height"] = args.height
+    if getattr(args, "gguf_file", None) is not None:
+        raw["gguf_file"] = args.gguf_file
     if args.output_dir is not None:
         raw["output_dir"] = args.output_dir
     if args.cache_dir is not None:
@@ -232,7 +239,7 @@ def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, st
     cfg = PipelineConfig(
         pipeline_type=str(raw["pipeline_type"]),
         model_id=str(raw["model_id"]),
-        cache_dir=str(raw["cache_dir"]),
+        cache_dir=raw.get("cache_dir"),
         output_dir=str(raw["output_dir"]),
         num_inference_steps=int(raw["num_inference_steps"]),
         guidance_scale=float(raw["guidance_scale"]),
@@ -247,6 +254,9 @@ def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, st
         true_cfg_scale=float(raw["true_cfg_scale"]) if raw.get("true_cfg_scale") is not None else None,
         seed=int(raw["seed"]) if raw.get("seed") is not None else None,
         weight_name=raw.get("weight_name") or None,
+        max_sequence_length=int(raw["max_sequence_length"]) if raw.get("max_sequence_length") is not None else None,
+        gguf_file=raw.get("gguf_file") or None,
+        base_model_id=raw.get("base_model_id") or None,
     )
 
     # 5. Trigger-word check — prepend automatically if missing from the prompt

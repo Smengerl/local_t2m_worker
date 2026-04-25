@@ -31,7 +31,7 @@ class PipelineConfig:
         *,
         pipeline_type: str,
         model_id: str,
-        cache_dir: str,
+        cache_dir: Optional[str] = None,
         output_dir: str,
         num_inference_steps: int,
         guidance_scale: float,
@@ -46,11 +46,16 @@ class PipelineConfig:
         true_cfg_scale: Optional[float] = None,
         seed: Optional[int] = None,
         weight_name: Optional[str] = None,
+        max_sequence_length: Optional[int] = None,
+        gguf_file: Optional[str] = None,
+        base_model_id: Optional[str] = None,
     ) -> None:
         # ── Mandatory ────────────────────────────────────────────────────────
         self.pipeline_type: str = pipeline_type.lower()
         self.model_id: str = model_id
-        self.cache_dir: str = cache_dir
+        # If None, let Hugging Face / diffusers use its default cache directory
+        # (e.g. ~/.cache/huggingface), which allows sharing models between apps.
+        self.cache_dir: Optional[str] = cache_dir
         self.output_dir: str = output_dir
         self.num_inference_steps: int = num_inference_steps
         self.guidance_scale: float = guidance_scale
@@ -66,6 +71,14 @@ class PipelineConfig:
         self.true_cfg_scale: Optional[float] = true_cfg_scale
         self.seed: Optional[int] = seed
         self.weight_name: Optional[str] = weight_name or None
+        # FLUX-specific: T5 encoder context length (256 = schnell default, 512 = dev)
+        self.max_sequence_length: Optional[int] = max_sequence_length or None
+        # GGUF-specific: filename of the .gguf quantized transformer in the HF repo
+        self.gguf_file: Optional[str] = gguf_file or None
+        # GGUF-specific: base model ID supplying text encoders, VAE, scheduler, etc.
+        # Required when gguf_file is set. For FLUX.1-dev GGUF fine-tunes this is
+        # "black-forest-labs/FLUX.1-dev".
+        self.base_model_id: Optional[str] = base_model_id or None
 
     # ── Convenience ──────────────────────────────────────────────────────────
 
@@ -97,6 +110,9 @@ class PipelineConfig:
             "true_cfg_scale":        self.true_cfg_scale,
             "seed":                  self.seed,
             "weight_name":           self.weight_name,
+            "max_sequence_length":   self.max_sequence_length,
+            "gguf_file":             self.gguf_file,
+            "base_model_id":         self.base_model_id,
         }
 
     @classmethod
@@ -124,4 +140,6 @@ class PipelineConfig:
             self.sequential_cpu_offload,
             self.true_cfg_scale,
             self.weight_name,
+            self.gguf_file,
+            self.base_model_id,
         )

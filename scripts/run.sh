@@ -1,8 +1,9 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VENV="$SCRIPT_DIR/.venv"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=helpers/env.sh
+source "$ROOT_DIR/scripts/helpers/env.sh"
 
 # ── Usage hint ────────────────────────────────────────────────────────────────
 usage() {
@@ -44,25 +45,13 @@ done
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Activate virtual environment ─────────────────────────────────────────────
-if [[ ! -f "$VENV/bin/activate" ]]; then
-  echo "Virtual environment not found. Creating it now..."
-  python3 -m venv "$VENV"
-  source "$VENV/bin/activate"
-  echo "Installing dependencies..."
-  pip install --upgrade pip -q
-  pip install -r "$SCRIPT_DIR/requirements.txt"
-else
-  source "$VENV/bin/activate"
-fi
-
-# Resolve python executable (venv may only provide python3 on some systems)
-PYTHON="$VENV/bin/python"
-[[ -x "$PYTHON" ]] || PYTHON="$VENV/bin/python3"
+activate_venv --auto-create
+resolve_venv_python
 
 # ── Optional: HF token (needed for gated models like FLUX, SD3) ──────────────
 # diffusers reads HF_TOKEN from the environment automatically — no CLI login needed.
 # Priority: .hf_token file > HF_TOKEN env var > already cached credentials
-TOKEN_FILE="$SCRIPT_DIR/.hf_token"
+TOKEN_FILE="$ROOT_DIR/.hf_token"
 
 if [[ -f "$TOKEN_FILE" ]]; then
   export HF_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
@@ -97,6 +86,10 @@ if [[ "$OFFLINE" == true ]]; then
   echo "📴 Offline mode enabled — skipping HuggingFace update checks."
 fi
 
+# Allow MPS to use the full unified memory pool (including swap).
+# Without this macOS enforces a hard cap and kills the process on OOM.
+export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+
 # If no --config flag was given by the user, inject the default config
 has_config=0
 for arg in "${PASSTHROUGH_ARGS[@]}"; do
@@ -105,8 +98,8 @@ done
 
 if [[ "$QUEUE" == true ]]; then
   # ── Queue mode: ensure worker is running, then hand off ───────────────────
-  WORKER_PID_FILE="$SCRIPT_DIR/batch/worker.pid"
-  WORKER_LOG="$SCRIPT_DIR/batch/worker.log"
+  WORKER_PID_FILE="$ROOT_DIR/batch/worker.pid"
+  WORKER_LOG="$ROOT_DIR/batch/worker.log"
 
   _worker_running() {
     [[ -f "$WORKER_PID_FILE" ]] || return 1
@@ -135,7 +128,7 @@ if [[ "$QUEUE" == true ]]; then
 
   echo "📋 Adding job to batch queue..."
   if [[ $has_config -eq 0 ]]; then
-    DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
+    DEFAULT_CONFIG="$ROOT_DIR/configs/sd15_default.json"
     "$PYTHON" -m batch.enqueue --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
   else
     "$PYTHON" -m batch.enqueue "${PASSTHROUGH_ARGS[@]}"
@@ -143,10 +136,10 @@ if [[ "$QUEUE" == true ]]; then
 else
   # ── Direct mode: generate immediately ─────────────────────────────────────
   if [[ $has_config -eq 0 ]]; then
-    DEFAULT_CONFIG="$SCRIPT_DIR/configs/sd15_default.json"
+    DEFAULT_CONFIG="$ROOT_DIR/configs/sd15_default.json"
     echo "ℹ️  No --config specified, using default: $DEFAULT_CONFIG"
-    "$PYTHON" "$SCRIPT_DIR/generate.py" --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
+    "$PYTHON" "$ROOT_DIR/generate.py" --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
   else
-    "$PYTHON" "$SCRIPT_DIR/generate.py" "${PASSTHROUGH_ARGS[@]}"
+    "$PYTHON" "$ROOT_DIR/generate.py" "${PASSTHROUGH_ARGS[@]}"
   fi
 fi

@@ -97,8 +97,11 @@ class ZImageBackend(BasePipeline):
 
         if self.lora_id:
             self._log(f"Loading LoRA weights: {self.lora_id}  (scale={self.lora_scale}) ...")
+            lora_kwargs: dict = {"cache_dir": self.cache_dir}
+            if self.weight_name:
+                lora_kwargs["weight_name"] = self.weight_name
             try:
-                pipe.load_lora_weights(self.lora_id, cache_dir=self.cache_dir)
+                pipe.load_lora_weights(self.lora_id, **lora_kwargs)
                 pipe.fuse_lora(lora_scale=self.lora_scale)
                 self._log("LoRA weights fused successfully.")
             except ValueError as exc:
