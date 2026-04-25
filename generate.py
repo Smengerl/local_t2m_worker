@@ -87,6 +87,9 @@ def generate_image(
                 pipeline_cache.clear()   # free memory before storing new model
             pipeline_cache[cache_key] = pipeline
 
+
+    if progress_callback is not None:
+        progress_callback(0, cfg.num_inference_steps or 0)
     image = pipeline.generate(
         prompt=prompt,
         negative_prompt=negative_prompt,

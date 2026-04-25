@@ -1216,8 +1216,8 @@
           progressLabel = 'Completing process';
           progressRight = `${total} / ${total} steps&nbsp;(100%)`;
         } else if (stepsKnown) {
-          // step from backend is the *next* step index → completed = step - 1
-          displayStep = Math.max(0, step - 1);
+          // step from backend = number of completed steps (pipeline sends step_index + 1)
+          displayStep = step;
           pct = Math.round((displayStep / total) * 100);
           progressLabel = `Generating…`;
           progressRight = `${displayStep} / ${total} steps&nbsp;(${pct}%)`;
