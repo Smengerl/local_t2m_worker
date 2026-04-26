@@ -1,0 +1,26 @@
+{
+    "description": "High-quality 20-step text-to-image generation",
+    "backend": "flux",
+    "model": {
+        "repo": "city96/FLUX.1-dev-gguf",
+        "gguf_file": "flux1-dev-Q8_0.gguf",
+        "components_repo": "black-forest-labs/FLUX.1-dev",
+        "_hint": "Transformer: city96/FLUX.1-dev-gguf (flux1-dev-Q8_0.gguf, ~12 GB). Pipeline components (VAE, text encoders, scheduler): black-forest-labs/FLUX.1-dev (gated — HF token required). Q8_0 keeps near-bfloat16 quality with trivial dequantisation overhead on MPS. sequential_cpu_offload is disabled (incompatible with GGUF). | gguf_file points to the transformer weights only. components_repo supplies all other components from the gated FLUX.1-dev repo."
+    },
+    "generation": {
+        "steps": 20,
+        "cfg_scale": 3.5,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "10–50 steps. 20 is a good quality/speed balance; 30–50 for maximum detail. guidance_scale 3.5 is the recommended default — unlike schnell, dev uses CFG guidance. Arbitrary resolutions supported up to ~1 MP."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)"
+    },
+    "notes": {
+        "about": "Generates high-quality general-purpose images using the full FLUX.1-dev model with 20 steps. Produces significantly more detailed and coherent results than schnell — ideal for final renders, portraits, and complex scenes.",
+        "prompt_guide": "No trigger word. Write detailed descriptive prompts. Unlike schnell, dev responds well to guidance — more detail in the prompt improves results. Examples: 'a golden sunset over mountain peaks, cinematic lighting, wide angle', 'portrait of a young woman, soft natural light, photorealistic', 'a futuristic city street at night, neon reflections, rain'.",
+        "warnings": "FLUX.1-dev is a gated model — a HuggingFace token with access to black-forest-labs/FLUX.1-dev is required."
+    }
+}
