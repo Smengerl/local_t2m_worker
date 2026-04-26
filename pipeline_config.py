@@ -14,7 +14,7 @@ backwards-compatible with existing queue entries.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 from config_types import (
     ConfigFile,
@@ -152,7 +152,7 @@ class PipelineConfig(ConfigFile):
 
     # ── JSONL serialization ───────────────────────────────────────────────────
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialise to a flat dict using legacy field names (JSONL-compatible).
 
         The flat format is kept stable so that existing queue entries written by
@@ -238,11 +238,12 @@ class PipelineConfig(ConfigFile):
         """Return a hashable key that uniquely identifies a pipeline instance.
 
         Two PipelineConfig objects with the same key can safely share a loaded
-        pipeline (no model reload needed between jobs).  Every parameter that
-        affects the weights loaded into memory is included.
+        pipeline (no model reload needed between jobs).  Only parameters that
+        affect which weights are loaded into memory are included.
 
-        Note: ``seed`` is intentionally excluded — it affects the random noise
-        used during sampling but does not change which weights are loaded.
+        Note: ``seed``, ``steps``, ``cfg_scale``, ``width``, ``height`` are
+        intentionally excluded — they are sampling parameters passed at
+        ``generate()`` time and do not change which weights are loaded.
         ``notes`` is also excluded as it is GUI metadata only.
         """
         return (
@@ -250,10 +251,6 @@ class PipelineConfig(ConfigFile):
             self.model.repo,
             self.lora.repo if self.lora else None,
             self.lora.strength if self.lora else None,
-            self.generation.steps,
-            self.generation.cfg_scale,
-            self.generation.width,
-            self.generation.height,
             self.system.cpu_offload,
             self.generation.cfg_scale_secondary,
             self.weight_name,

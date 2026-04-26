@@ -6,12 +6,14 @@ the "pipeline_type" key in the config file.  The pipeline_type is mandatory —
 every config file must declare it explicitly.
 
 Available pipeline types:
-  sd      Stable Diffusion 1.5 / 2.x / 3  (diffusers)
-  sdxl    Stable Diffusion XL              (diffusers)
-  sd3     Stable Diffusion 3               (diffusers)
-  flux    FLUX.1-schnell / dev             (diffusers)
-  zimage  Z-Image-Turbo                    (diffusers ZImagePipeline)
-  qwen    Qwen-Image                       (diffusers QwenImagePipeline)
+  sd          Stable Diffusion 1.5 / 2.x / 3  (diffusers)
+  sdxl        Stable Diffusion XL              (diffusers)
+  sd3         Stable Diffusion 3               (diffusers)
+  flux        FLUX.1-schnell / dev             (diffusers)
+  flux2_klein FLUX.2 [klein] 4B distilled      (diffusers)
+  lumina2     Lumina-Image-2                   (diffusers)
+  zimage      Z-Image-Turbo                    (diffusers ZImagePipeline)
+  qwen        Qwen-Image                       (diffusers QwenImagePipeline)
 
 Run via run.sh or directly:
     python generate.py --config configs/sd15_default.json "a sunset"

@@ -148,6 +148,18 @@ def parse_args() -> argparse.Namespace:
             "If unset, the backend's default is used."
         ),
     )
+    parser.add_argument(
+        "--width",
+        type=int,
+        metavar="N",
+        help="Image width in pixels. Overrides config generation.width.",
+    )
+    parser.add_argument(
+        "--height",
+        type=int,
+        metavar="N",
+        help="Image height in pixels. Overrides config generation.height.",
+    )
 
     return parser.parse_args()
 
@@ -170,7 +182,6 @@ def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, st
         - *negative_prompt* is the negative prompt as supplied by the caller.
     """
     # 1. Load config file into typed objects.
-    # 1. Load config file into typed objects.
     pipeline_cfg = PipelineConfig.from_json(args.config)
 
     # 2. Apply explicit CLI overrides in one call.
@@ -181,8 +192,8 @@ def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, st
         lora_strength=args.lora_strength,
         steps=args.steps,
         cfg_scale=args.cfg_scale,
-        width=getattr(args, "width", None),
-        height=getattr(args, "height", None),
+        width=args.width,
+        height=args.height,
         cache_dir=args.cache_dir,
     )
 
@@ -197,7 +208,7 @@ def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, st
 
     negative_prompt: str = args.negative_prompt
 
-    # 5. Resolve output path:
+    # 4. Resolve output path:
     #    a) explicit --output  → use as-is
     #    b) --output-dir given → place timestamped file inside that directory
     #    c) neither given      → place timestamped file in current directory

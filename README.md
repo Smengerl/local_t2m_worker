@@ -95,7 +95,32 @@ python -m batch.server             # web server (default port: 8000)
 PORT=9000 ./scripts/health_check.sh # custom port
 ```
 
+All status data is fetched from a single `GET /api/health` call. The script shows worker task liveness, current job, pipeline cache state, queue counters, and network rates. It refreshes every ~5 seconds until Ctrl-C.
+
 See **[scripts/README.md](scripts/README.md#health_checksh)** for details on what each status line checks.
+
+### Runtime behaviour
+
+#### Model switching and pipeline cache
+
+Only one model is held in memory at a time. When consecutive jobs use the same config the pipeline is reused — no reload needed. When a job uses a different config the previous model is evicted from memory before the new one is loaded. **Model loading takes several minutes for large models (FLUX, SDXL).** Plan batch jobs to minimise config switches.
+
+#### Shutdown timeout
+
+When the server is stopped (Ctrl-C or SIGTERM) the worker is given **10 seconds** to finish the current denoising step and save the result. After that the shutdown proceeds regardless. The job is marked as `failed` if it could not be completed in time.
+
+#### Live generation logs in the web UI
+
+Progress bars from `tqdm` and HuggingFace download progress are captured and streamed into each job's log. Expand a job in the dashboard or poll `GET /api/jobs/{id}` to see live output.
+
+#### Offline mode
+
+Pass `--offline` to `run_batch_server.sh` (or `run.sh`) to skip all HuggingFace network calls. Diffusers normally performs a lightweight HEAD request on each model load to check for updates — `--offline` suppresses this. The model must be fully cached locally (use `scripts/preload_model.sh` first).
+
+```bash
+./scripts/run_batch_server.sh --offline
+./scripts/run.sh --offline "a misty forest"
+```
 
 ### Web dashboard (`http://localhost:8000`)
 
@@ -108,13 +133,14 @@ See **[scripts/README.md](scripts/README.md#health_checksh)** for details on wha
 ### Worker flags
 
 ```bash
-python -m batch.worker [--poll SECONDS] [--once]
+python -m batch.worker [--keep-alive]
 ```
 
 | Flag | Default | Description |
 |---|---|---|
-| `--poll N` | `5` | Seconds between queue checks when idle |
-| `--once` | off | Process exactly one pending job then exit (useful for cron) |
+| `--keep-alive` | off | Stay alive after the queue is empty and wait for new jobs. Without this flag the worker exits as soon as all current pending jobs are done (one-shot mode, useful for cron). |
+
+> **Note:** When running via `run_batch_server.sh` the worker is embedded inside the FastAPI server process as an asyncio task — the `--keep-alive` behaviour is always active and the standalone worker binary is not used.
 
 ### Job statuses
 
@@ -219,10 +245,11 @@ inference_test/
 ### How it works
 
 1. **Config resolution** — `cli.py` merges the JSON config file with any CLI flag overrides into a `PipelineConfig` object.
-2. **Pipeline selection** — `pipelines/__init__.py` reads `pipeline_type` from the config and lazily imports the matching backend class from `_REGISTRY`.
+2. **Pipeline selection** — `pipelines/__init__.py` reads `pipeline_type` from the config and lazily imports the matching backend class from `_REGISTRY`. Heavy dependencies (torch, diffusers) are only imported when a pipeline is actually created, keeping server startup fast.
 3. **Model loading** — The backend downloads and caches model weights from HuggingFace on first use (stored in `models/`). LoRA weights are loaded and fused into the base model in memory.
-4. **Inference** — `generate_image()` in `generate.py` calls `pipeline.generate(prompt, negative_prompt)` and saves the result as a PNG.
-5. **Batch mode** — `batch/worker.py` polls `queue.jsonl` for pending jobs and calls the same `generate_image()` function. The pipeline instance is cached between consecutive jobs that share the same config, avoiding redundant model reloads.
+4. **Inference** — `generate_image()` in `generate.py` calls `pipeline.generate(prompt, negative_prompt)` and saves the result as a PNG. This is the **single authorised entry point** for all generation — both CLI and batch worker call only this function.
+5. **Batch mode** — `batch/worker.py` runs as an asyncio coroutine (inside the FastAPI server process or as a standalone CLI worker). It dequeues pending jobs from `queue.jsonl` and calls `generate_image()` in a thread pool so the event loop stays free. The pipeline instance is cached between consecutive jobs that share the same config, avoiding redundant model reloads. Only one model is held in memory at a time.
+6. **Web server** — `batch/server.py` embeds the worker as an in-process asyncio task and exposes the queue and results via a REST API and browser dashboard.
 
 ### Adding a new backend
 
@@ -230,6 +257,20 @@ inference_test/
 2. Implement `generate(prompt, negative_prompt) -> PIL.Image`.
 3. Add an entry to `_REGISTRY` in `pipelines/__init__.py`.
 4. Create a config file in `configs/` with `"pipeline_type": "my_type"`.
+
+### Architecture layers
+
+The codebase is organised in three layers that only depend downward:
+
+```text
+Layer 3 — batch/server.py + batch/static/   Web server + dashboard
+               extends ↑
+Layer 2 — batch/worker.py + batch/queue.py  CLI worker + queue
+               extends ↑
+Layer 1 — generate.py + cli.py + pipelines/ Core CLI generation
+```
+
+`generate.py` has no knowledge of queues or HTTP. `batch/worker.py` has no knowledge of FastAPI. New features must be added at the correct layer — extending downward dependencies is not permitted.
 
 ---
 

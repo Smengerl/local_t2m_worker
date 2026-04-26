@@ -40,22 +40,9 @@ export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
 activate_venv
 resolve_venv_python
 
-echo "▶ Starting worker…"
-"$PYTHON" -m batch.worker &
-WORKER_PID=$!
-
-# Make sure the worker is killed when this script exits
-_cleanup() {
-  echo ""
-  echo "⏹ Stopping worker (pid $WORKER_PID)…"
-  kill "$WORKER_PID" 2>/dev/null || true
-  wait "$WORKER_PID" 2>/dev/null || true
-  echo "✅ Done."
-}
-trap _cleanup EXIT INT TERM
-
-echo "▶ Starting web server on http://localhost:${PORT}"
-echo "   Press Ctrl-C to stop both."
+echo "▶ Starting server + in-process worker on http://localhost:${PORT}"
+echo "   (Worker runs inside the server process — no separate PID to manage.)"
+echo "   Press Ctrl-C to stop."
 echo ""
 
 "$PYTHON" -m batch.server --port "$PORT"

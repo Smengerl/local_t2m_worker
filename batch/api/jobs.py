@@ -36,6 +36,8 @@ from batch.queue import (
     stats,
     update_job,
 )
+from batch import notify
+from batch import worker as _worker
 from pipeline_config import PipelineConfig
 
 router = APIRouter()
@@ -94,7 +96,6 @@ class EnqueueRequest(BaseModel):
     # Model overrides — mirror model.* config keys
     model_repo: Optional[str] = None        # → model.repo
     model_gguf_file: Optional[str] = None   # → model.gguf_file
-    adapter_id: Optional[str] = None        # CLI-only (no config equivalent)
     # LoRA overrides — mirror lora.* config keys
     lora_repo: Optional[str] = None         # → lora.repo
     lora_strength: Optional[float] = None   # → lora.strength
@@ -156,6 +157,7 @@ def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
         negative_prompt=req.negative_prompt,
         output=req.output,
     )
+    notify.notify()  # wake the in-process worker immediately (no-op in external-worker mode)
     return job
 
 
@@ -215,16 +217,25 @@ def api_cancel_job(job_id: str) -> dict[str, Any]:
     pid = job.get("worker_pid")
     note = ""
     if pid is not None:
-        try:
-            os.kill(pid, signal.SIGTERM)
-            note = f"SIGTERM sent to PID {pid}."
-            append_log(job_id, f"[server] Sent SIGTERM to worker pid {pid}")
-        except ProcessLookupError:
-            note = f"Worker PID {pid} was already gone."
-            append_log(job_id, f"[server] Worker pid {pid} already gone")
-        except PermissionError:
-            note = f"No permission to signal PID {pid}."
-            append_log(job_id, f"[server] Cannot kill pid {pid}: permission denied")
+        if pid == os.getpid():
+            # In-process worker — signal via cancel flag so only the job is
+            # interrupted, not the server.  The _progress callback inside
+            # process_job picks this up between denoising steps.
+            _worker.request_cancel()
+            note = "Cancellation requested via cancel flag (in-process worker)."
+            append_log(job_id, f"[server] {note}")
+        else:
+            # External worker process — use SIGTERM as before.
+            try:
+                os.kill(pid, signal.SIGTERM)
+                note = f"SIGTERM sent to PID {pid}."
+                append_log(job_id, f"[server] Sent SIGTERM to worker pid {pid}")
+            except ProcessLookupError:
+                note = f"Worker PID {pid} was already gone."
+                append_log(job_id, f"[server] Worker pid {pid} already gone")
+            except PermissionError:
+                note = f"No permission to signal PID {pid}."
+                append_log(job_id, f"[server] Cannot kill pid {pid}: permission denied")
     else:
         note = "No worker PID recorded (job was pending or PID not yet written)."
 

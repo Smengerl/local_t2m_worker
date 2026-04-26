@@ -4,6 +4,122 @@ Python project for running Hugging Face text-to-image models (Stable Diffusion) 
 
 > For usage, CLI flags, config keys, available presets, and batch system documentation see **README.md**.
 
+## Architecture: Strict Layer Hierarchy (CRITICAL)
+
+The codebase is structured in three layers. **Dependencies must only flow downward — never upward.**
+
+```
+Layer 3 ── batch/server.py  +  batch/static/  (FastAPI server + Web UI)
+               │  imports from / extends Layer 2
+Layer 2 ── batch/worker.py  +  batch/queue.py  +  batch/notify.py  (CLI Worker)
+               │  imports from / extends Layer 1
+Layer 1 ── generate.py  +  cli.py  +  pipelines/  +  pipeline_config.py  (Core CLI)
+```
+
+**Layer 1 — Core CLI** (`generate.py`, `cli.py`, `pipelines/`, `pipeline_config.py`, `config_types.py`)
+: Standalone image generation. Has **no knowledge** of queues, servers, or web UIs.
+: Entry point: `python generate.py` / `./run.sh`
+
+**Layer 2 — CLI Worker** (`batch/worker.py`, `batch/queue.py`, `batch/notify.py`, `batch/api/`)
+: Extends Layer 1 with a persistent FIFO queue and the async worker loop.
+: Calls `generate_image()` from Layer 1. Has **no knowledge** of FastAPI or HTTP servers.
+: Entry point: `python -m batch.worker`
+
+**Layer 3 — Server + Web UI** (`batch/server.py`, `batch/static/`)
+: Extends Layer 2 by embedding the worker as an in-process asyncio task and exposing everything via HTTP.
+: Calls `run_worker_async()` from Layer 2. The Web UI speaks only to the REST API.
+: Entry point: `python -m batch.server`
+
+### Forbidden dependency directions
+
+| ❌ Never do this | Why |
+|---|---|
+| `generate.py` imports from `batch/` | Layer 1 must not know about Layer 2 |
+| `batch/worker.py` imports from `batch/server.py` | Layer 2 must not know about Layer 3 |
+| `batch/queue.py` imports from FastAPI | Layer 2 must not depend on the HTTP framework |
+| `pipelines/` imports from `batch/` | Core pipeline backends are Layer 1 — no queue knowledge |
+
+### Practical implications for code changes
+
+- Adding a new generation parameter → change Layer 1 (`config_types.py`, `pipeline_config.py`, `cli.py`, `pipelines/`). Layers 2 and 3 pick it up automatically via `PipelineConfig`.
+- Adding a new worker behaviour → change Layer 2 (`batch/worker.py`). Layer 3 (`server.py`) exposes it transparently.
+- Adding a new API endpoint or UI feature → change Layer 3 only. Never reach into Layer 1 to add HTTP-specific code there.
+- `generate_image()` in `generate.py` is the **only authorised entry point** from Layer 2 into Layer 1. Do not call `create_pipeline()` or individual `BasePipeline` methods directly from `batch/`.
+
+## Runtime Design Constraints (CRITICAL)
+
+These invariants must be preserved across all code changes.
+
+### 1. Threading model: `process_job()` is always blocking, always in a thread
+
+`process_job()` runs PyTorch inference and **must always be called via `loop.run_in_executor()`** — never `await`ed directly and never called from the event loop thread. The contract is:
+
+```
+asyncio Event Loop (main thread)
+  └─ run_worker_async()            ← async coroutine in the loop
+       └─ loop.run_in_executor()   ← dispatches to ThreadPoolExecutor
+            └─ process_job()       ← blocking, PyTorch inference here
+```
+
+Calling `process_job()` directly from an async context would block the entire FastAPI server.
+
+### 2. Two-level cancellation — do not confuse them
+
+There are two independent cancellation mechanisms:
+
+| Level | Mechanism | Effect |
+|---|---|---|
+| **Job cancel** | `_cancel_event` (`threading.Event`), set by `request_cancel()` | Aborts current inference job; worker loop continues |
+| **Worker shutdown** | `asyncio.CancelledError` on the task | Tears down `run_worker_async` entirely; triggers `finally` cleanup |
+
+`_cancel_event` is checked between denoising steps in the `_progress` callback inside `process_job()`. Never use `CancelledError` to cancel a single job, and never use `_cancel_event` to shut down the worker.
+
+### 3. Pipeline cache holds exactly one model at a time
+
+`pipeline_cache` is a plain `dict` that **must never contain more than one entry**. Before storing a newly loaded pipeline, `generate.py` calls `pipeline_cache.clear()` to evict the previous model. Any code that adds a second entry to the cache will cause an OOM crash (each model is 5–20 GB).
+
+The module-level `_cached_model: str | None` in `batch/worker.py` mirrors this state and is read by `/api/health`. It is updated from the cache key after every job:
+```python
+_cached_model = next((k[0] for k in pipeline_cache if isinstance(k, tuple) and k), None)
+```
+If `PipelineConfig.pipeline_cache_key()` ever changes the tuple element order, this line must be updated to match.
+
+### 4. `_release_pipeline_cache()` must always run in the `finally` block
+
+On Apple Silicon (MPS), PyTorch crashes the interpreter with a refcount error if pipeline objects are garbage-collected after the MPS backend has started tearing down. `_release_pipeline_cache()` prevents this by calling `gc.collect()` + `torch.mps.empty_cache()` **before** the interpreter begins to exit.
+
+This call must remain in the `finally` block of `run_worker_async()`. Never move it into a conditional branch or remove it.
+
+### 5. `notify.init()` is owned by the worker, not by callers
+
+`run_worker_async(keep_alive=True)` calls `notify.init()` internally. Callers (e.g. `batch/server.py`) must **not** call `notify.init()` themselves. Likewise, `notify.reset()` is called in the `finally` block of `run_worker_async` — never elsewhere.
+
+This keeps `batch/notify.py` state lifecycle strictly coupled to the worker task.
+
+### 6. Queue file: full rewrite on every update — no partial writes
+
+The JSONL queue file is protected by `filelock`. Every mutating operation (enqueue, status update, log append) calls `_write_all()`, which rewrites the **entire file**. There are no append-only or in-place mutations. Code must never write directly to `queue.jsonl` without holding the lock, and must never assume partial-write atomicity.
+
+### 7. `_heal_stale_running_jobs()` must be called on every `GET /api/jobs`
+
+`GET /api/jobs` calls `_heal_stale_running_jobs()` on every request. This auto-marks jobs as `failed` when their recorded `worker_pid` is no longer alive. This is the only recovery path for jobs that got stuck in `running` after a worker crash. Do not remove this call or move it behind a flag.
+
+### 8. Pipeline backends are loaded lazily — never import them at module level
+
+`pipelines/__init__.py` uses `importlib.import_module()` to load backend classes only when `create_pipeline()` is called. This prevents importing `torch` and `diffusers` at server startup. Never add top-level imports of pipeline backend modules in `generate.py`, `batch/`, or `batch/server.py`.
+
+### 9. `EnqueueRequest` fields, CLI flags, and config keys form a naming triplet
+
+Every override parameter must exist consistently in three places with matching names:
+
+| Layer | Format | Example |
+|---|---|---|
+| Config JSON | `section.field` | `generation.cfg_scale` |
+| CLI flag | `--section-field` | `--cfg-scale` |
+| `EnqueueRequest` field | `section_field` | `cfg_scale` |
+
+Breaking this triplet (e.g. renaming only the CLI flag) causes silent mismatches between the web UI, REST API, and config file.
+
 ## Available Skills
 
 | Skill | Trigger | Purpose |

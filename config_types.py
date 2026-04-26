@@ -24,6 +24,11 @@ from typing import Any, Optional, Self
 _DEFAULT_LORA_STRENGTH: float = 0.9
 
 
+def _strip(d: dict[str, Any]) -> dict[str, Any]:
+    """Remove annotation-only keys (``_hint``, ``_comment*``) from a config dict."""
+    return {k: v for k, v in d.items() if not k.startswith("_")}
+
+
 # ── Section dataclasses ───────────────────────────────────────────────────────
 
 @dataclass
@@ -215,8 +220,14 @@ class ConfigFile:
         raw_lora = raw.get("lora")
         if isinstance(raw_lora, dict):
             lo = _strip(raw_lora)
+            if not lo.get("repo"):
+                raise ValueError(
+                    f"{path}: lora section requires a non-empty 'repo' key "
+                    "(e.g. \"lora\": {{\"repo\": \"org/lora-name\"}}). "
+                    "Omit the 'lora' section entirely if no LoRA is used."
+                )
             lora = LoraConfig(
-                repo=lo.get("repo") or "",
+                repo=lo["repo"],
                 file=lo.get("file") or None,
                 strength=float(lo["strength"]) if "strength" in lo else _DEFAULT_LORA_STRENGTH,
                 trigger=lo.get("trigger") or None,

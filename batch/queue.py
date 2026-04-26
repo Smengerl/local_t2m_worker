@@ -164,10 +164,10 @@ def append_log(job_id: str, line: str, max_lines: int = 300) -> None:
                 return
 
 
-def mark_running(job_id: str) -> Optional[dict[str, Any]]:
+def mark_running(job_id: str, worker_pid: Optional[int] = None) -> Optional[dict[str, Any]]:
     return update_job(job_id, status="running", started_at=_now(),
                       progress_step=0, progress_total=0, log_lines=[],
-                      worker_pid=None)
+                      worker_pid=worker_pid)
 
 
 def mark_done(job_id: str, result_path: str) -> Optional[dict[str, Any]]:

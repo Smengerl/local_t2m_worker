@@ -11,7 +11,6 @@ set -euo pipefail
 #  * Web GUI traffic rate   (RX on loopback lo0 = localhost-only traffic)
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PID_FILE="$ROOT_DIR/batch/worker.pid"
 QUEUE_FILE="$ROOT_DIR/queue.jsonl"
 PORT="${PORT:-8000}"
 # shellcheck source=helpers/env.sh
@@ -46,14 +45,31 @@ ext_iface=$(route get default 2>/dev/null | awk '/interface:/ {print $2; exit}')
 ext_iface="${ext_iface:-en0}"
 
 run_checks() {
-  # 1) Batch worker running? (PID file + process liveness)
+  # 1) Worker alive? + pipeline/queue details — all from GET /api/health
   worker_ok=false
-  if [[ -f "$PID_FILE" ]]; then
-    PID=$(<"$PID_FILE")
-    if kill -0 "$PID" 2>/dev/null; then
-      worker_ok=true
-    fi
+  worker_error=""
+  current_job=""
+  pipeline_cached=false
+  loaded_model=""
+  q_pending=0; q_running=0; q_done=0; q_failed=0
+
+  health_json=$(curl -fsS --max-time 2 "http://localhost:$PORT/api/health" 2>/dev/null || true)
+  if [[ -n "$health_json" ]]; then
+    _jq() { echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d$1)" 2>/dev/null || true; }
+    [[ "$(_jq "['worker_alive']")" == "True" ]] && worker_ok=true
+    worker_error=$(_jq "['worker_error'] or ''")
+    current_job=$(_jq "['current_job_id'] or ''")
+    [[ "$(_jq "['pipeline_cached']")" == "True" ]] && pipeline_cached=true
+    loaded_model=$(_jq "['loaded_model'] or ''")
+    q_pending=$(_jq "['queue']['pending']")
+    q_running=$(_jq "['queue']['running']")
+    q_done=$(_jq "['queue']['done']")
+    q_failed=$(_jq "['queue']['failed']")
   fi
+
+  # Derive generation_ok from the queue data we already have
+  generation_ok=false
+  [[ "${q_running:-0}" -gt 0 ]] && generation_ok=true
 
   # 2) Server process running? (pgrep matches -m batch.server in argv)
   server_proc_ok=false
@@ -67,33 +83,7 @@ run_checks() {
     server_http_ok=true
   fi
 
-  # 4) Generation running? (job.status == "running" in queue.jsonl)
-  generation_ok=false
-  if [[ -f "$QUEUE_FILE" ]]; then
-    if command -v jq >/dev/null 2>&1; then
-      # --slurp (-s) reads all JSONL lines into a single array before filtering
-      running_count=$(jq -s '[.[] | select(.status=="running")] | length' "$QUEUE_FILE" 2>/dev/null || echo 0)
-      [[ "$running_count" -gt 0 ]] && generation_ok=true
-    else
-      running=$("$SYS_PYTHON" - "$QUEUE_FILE" <<'PY'
-import json, sys
-from pathlib import Path
-for line in Path(sys.argv[1]).read_text(encoding='utf-8').splitlines():
-    if not line.strip():
-        continue
-    j = json.loads(line)
-    if j.get('status') == 'running':
-        print(1)
-        break
-else:
-    print(0)
-PY
-)
-      [[ "$running" == "1" ]] && generation_ok=true
-    fi
-  fi
-
-  # 5) Network rates — sample RX on external iface (HF) and lo0 (web GUI) over 1 s
+  # 4) Network rates — sample RX on external iface (HF) and lo0 (web GUI) over 1 s
   ext_rx1=$(get_rx "$ext_iface"); lo_rx1=$(get_rx "lo0")
   sleep 1
   ext_rx2=$(get_rx "$ext_iface"); lo_rx2=$(get_rx "lo0")
@@ -108,10 +98,32 @@ PY
   # ── output ────────────────────────────────────────────────────────────────
   clear
   printf "  Local T2M Worker  —  %s  (Ctrl-C to quit)\n\n" "$(date '+%H:%M:%S')"
-  status $worker_ok      "Batch worker running"
+
+  status $worker_ok      "Worker task alive"
+  if ! $worker_ok && [[ -n "$worker_error" && "$worker_error" != "None" ]]; then
+    printf "    ↳ %s\n" "$worker_error"
+  fi
   status $server_proc_ok "Server process running"
   status $server_http_ok "Server reachable (localhost:$PORT)"
   status $generation_ok  "Generation running"
+  if $generation_ok && [[ -n "$current_job" && "$current_job" != "None" ]]; then
+    printf "    ↳ job %s\n" "${current_job:0:8}"
+  fi
+
+  printf "\n  Pipeline cache\n"
+  if $pipeline_cached && [[ -n "$loaded_model" && "$loaded_model" != "None" ]]; then
+    printf "  ✔ Loaded   %s\n" "$loaded_model"
+  else
+    printf "  ✖ Empty    (no model in memory)\n"
+  fi
+
+  printf "\n  Queue\n"
+  printf "    pending  %s\n" "${q_pending:-0}"
+  printf "    running  %s\n" "${q_running:-0}"
+  printf "    done     %s\n" "${q_done:-0}"
+  printf "    failed   %s\n" "${q_failed:-0}"
+
+  printf "\n  Network\n"
   if $hf_ok; then
     printf "  ✔ HF download   $(fmt_rate $ext_rate) (via %s)\n" "$ext_iface"
   else

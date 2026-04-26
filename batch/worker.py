@@ -1,38 +1,48 @@
 """
 Batch worker — processes the FIFO queue sequentially.
 
-The worker polls queue.jsonl for pending jobs, runs them one by one using the
-same generate.py logic, and updates each job's status in the queue file.
+The worker runs as an asyncio coroutine.  ``process_job()`` itself is
+blocking (PyTorch inference) and always runs in a ``ThreadPoolExecutor`` via
+``asyncio.run_in_executor`` so the event loop stays free.
 
-The pipeline is loaded once per unique (config + all overrides) combination.
-When the next job requires the same model, the already-loaded pipeline is
-reused; otherwise it is replaced.  This avoids the expensive reload on
-back-to-back jobs that share the same config.
+Idle behaviour is controlled by the ``keep_alive`` parameter:
+  * ``keep_alive=True``  — wait for a job-ready ``asyncio.Event`` when the
+                           queue is empty; run forever until cancelled.
+                           Used by the FastAPI server (event supplied by
+                           ``batch.notify``).
+  * ``keep_alive=False`` — exit once all current pending jobs are done.
+                           Default for the CLI entry point.
 
-Usage:
-    python -m batch.worker               # poll every 5 s (default)
-    python -m batch.worker --poll 10     # poll every 10 s
-    python -m batch.worker --once        # process all current pending jobs, then exit
+Cancellation of the *current job* (not the whole worker) is requested via
+``request_cancel()``, which sets a thread-safe flag that the ``_progress``
+callback inside ``process_job`` checks between denoising steps.
+
+Usage (CLI):
+    python -m batch.worker               # process pending jobs, then exit
+    python -m batch.worker --keep-alive  # stay alive, wait for new jobs
 """
 
 import argparse
+import asyncio
+import gc
 import logging
 import os
 import re
 import signal
 import sys
-import time
+import threading
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # ── Make sure the project root is on sys.path when run as a module ────────────
 _ROOT = Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from batch.queue import mark_done, mark_failed, mark_running, next_pending, update_job, append_log, set_worker_pid
+from batch.queue import mark_done, mark_failed, mark_running, next_pending, update_job, append_log
+from batch import notify
 from generate import generate_image
 from pipeline_config import PipelineConfig
 
@@ -43,37 +53,47 @@ logging.basicConfig(
 )
 log = logging.getLogger("worker")
 
+# Maximum seconds to wait for the current inference thread to finish after a
+# cancellation or SIGTERM before giving up.  Matches the server-side lifespan
+# shutdown timeout so behaviour is identical in both modes.
+_SHUTDOWN_TIMEOUT_S = 10
+
 # Force tqdm to always write progress bars, even when stdout/stderr is not a
 # TTY.  Must be set before any tqdm import so the global default is picked up.
 os.environ.setdefault("TQDM_DISABLE", "0")
 
 
 class _CancellationError(Exception):
-    """Raised by the SIGTERM handler to cancel the current job without killing the worker."""
+    """Raised to cancel the current job without stopping the worker."""
 
 
-# Tracks the job ID currently being processed so the SIGTERM handler knows
-# whether to cancel a job or shut down the worker.
-_running_job_id: Optional[str] = None
+# ── Cancel flag (thread-safe) ─────────────────────────────────────────────────
+# Set by request_cancel() (called from the HTTP cancel endpoint or the CLI
+# signal handler) and cleared at the start of every job.
+# The _progress callback inside process_job checks it between denoising steps.
+_cancel_event = threading.Event()
 
 
-def _install_sigterm_handler() -> None:
-    """Install a SIGTERM handler that cancels the active job without stopping the worker loop.
+def request_cancel() -> None:
+    """Request cancellation of the currently running job (thread-safe)."""
+    _cancel_event.set()
 
-    If a job is currently running, SIGTERM raises _CancellationError which unwinds
-    generate_image() and is caught by the worker loop — the loop then continues with
-    the next pending job.  If the worker is idle, SIGTERM exits cleanly via sys.exit(0).
-    """
-    def _handler(signum: int, frame: Any) -> None:  # noqa: ANN001
-        if _running_job_id is not None:
-            log.info("SIGTERM received — cancelling job %s", _running_job_id[:8])
-            raise _CancellationError(f"Cancelled via SIGTERM (job {_running_job_id[:8]})")
-        # No job in progress — honour the signal and exit the worker.
-        log.info("SIGTERM received while idle — worker exiting.")
-        sys.exit(0)
 
-    signal.signal(signal.SIGTERM, _handler)
+# ── Worker state (readable by /api/health) ────────────────────────────────────
+# These module-level variables are written only by the worker coroutine/thread
+# and read by the health endpoint.  All are set before/after process_job so
+# no additional locking is required beyond the GIL.
 
+# Key of the currently loaded pipeline, or None when the cache is empty.
+# Matches the key format used in pipeline_cache: (config_hash, ...).
+# Exposed as a human-readable model repo string for the health endpoint.
+_cached_model: str | None = None
+
+# Job ID currently being executed, or None when idle.
+_current_job_id: str | None = None
+
+
+# ── Logging helpers ───────────────────────────────────────────────────────────
 
 class _JobLogHandler(logging.Handler):
     """Logging handler that appends formatted records to a job's log_lines."""
@@ -106,7 +126,7 @@ class _StderrCapture:
 
     _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
-    def __init__(self, job_id: str, real_stderr) -> None:
+    def __init__(self, job_id: str, real_stderr: Any) -> None:
         self.job_id = job_id
         self.real_stderr = real_stderr
         self._buf = ""  # accumulate until newline or CR
@@ -119,14 +139,9 @@ class _StderrCapture:
         # Strip ANSI escape sequences.
         text = self._ANSI_RE.sub("", text)
 
-        # Process character by character so we handle \r and \n correctly.
-        # \r (carriage-return): tqdm rewrites the same line — discard the
-        # intermediate buffer so only the *final* state of the line is logged.
-        # \n: flush the buffer as a completed log line.
+        # \r: tqdm rewrites the same line — discard buffer, log only on \n.
         for ch in text:
             if ch == "\r":
-                # Discard accumulated text — next write will overwrite it.
-                # We only log on \n so the web UI sees the last/final value.
                 self._buf = ""
             elif ch == "\n":
                 line = self._buf.strip()
@@ -142,7 +157,6 @@ class _StderrCapture:
         return len(text)
 
     def flush(self) -> None:
-        # Flush any incomplete line that didn't end with \n or \r.
         line = self._buf.strip()
         if line:
             try:
@@ -156,130 +170,235 @@ class _StderrCapture:
         return self.real_stderr.fileno()
 
     def isatty(self) -> bool:
-        # Pretend to be a TTY so tqdm and huggingface_hub don't suppress their
-        # progress bars.  Without this, tqdm detects a non-interactive stream
-        # and either disables or heavily throttles output.
+        # Pretend to be a TTY so tqdm/huggingface_hub don't suppress progress bars.
         return True
 
-    # Delegate everything else (e.g. .encoding, .errors) to the real stderr.
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self.real_stderr, name)
 
-# ─────────────────────────────────────────────────────────────────────────────
 
+# ── Core job execution ────────────────────────────────────────────────────────
 
 def process_job(
     job: dict[str, Any],
     pipeline_cache: dict[tuple, Any],
 ) -> str:
-    """Run a single job. Returns the result path. Raises on failure."""
-    global _running_job_id
+    """Run a single job. Returns the result path. Raises on failure.
+
+    Blocking — always call from a ThreadPoolExecutor, never from the event loop.
+    """
+    global _current_job_id
 
     log.info("Starting job %s  prompt=%r", job["id"][:8], job["prompt"])
-    mark_running(job["id"])
-    set_worker_pid(job["id"], os.getpid())
-    _running_job_id = job["id"]
+    mark_running(job["id"], worker_pid=os.getpid())
+    _current_job_id = job["id"]
+    _cancel_event.clear()  # reset any leftover cancel request from a previous job
 
-    # ── attach per-job log handler to the root logger (captures all libs) ──
+    # ── attach per-job log handler to the root logger ─────────────────────────
     job_handler = _JobLogHandler(job["id"])
     job_handler.setLevel(logging.DEBUG)
     root_logger = logging.getLogger()
     root_logger.addHandler(job_handler)
 
-    # ── redirect stderr so tqdm/hf-hub progress bars appear in web logs ──────
+    # ── redirect stderr so tqdm/hf-hub progress bars appear in web logs ───────
     real_stderr = sys.stderr
     sys.stderr = _StderrCapture(job["id"], real_stderr)
 
     try:
         cfg = PipelineConfig.from_dict(job["pipeline_config"])
 
-        # Resolve output path: use explicit path from job or auto-generate.
-        if job.get("output"):
-            output_path = job["output"]
-        else:
-            from datetime import datetime
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = str(Path(cfg.output_dir) / f"{ts}.png")
-
-        effective_prompt = job["prompt"]
-        negative_prompt = job.get("negative_prompt") or ""
+        output_path = job.get("output") or str(
+            Path(cfg.output_dir) / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        )
 
         job_id = job["id"]
 
         def _progress(step: int, total: int) -> None:
+            if _cancel_event.is_set():
+                raise _CancellationError(f"Cancelled by user request (job {job_id[:8]})")
             update_job(job_id, progress_step=step, progress_total=total)
 
-        generate_image(cfg, output_path, effective_prompt, negative_prompt, pipeline_cache=pipeline_cache, progress_callback=_progress)
+        generate_image(
+            cfg, output_path,
+            job["prompt"], job.get("negative_prompt") or "",
+            pipeline_cache=pipeline_cache,
+            progress_callback=_progress,
+        )
         log.info("Job %s done → %s", job["id"][:8], output_path)
         return output_path
     finally:
-        _running_job_id = None
+        _current_job_id = None
         sys.stderr = real_stderr
         root_logger.removeHandler(job_handler)
 
 
-def run_worker(poll_interval: int = 5, run_once: bool = False) -> None:
-    """Main worker loop."""
-    log.info("Worker started (poll_interval=%ds, run_once=%s)", poll_interval, run_once)
+def _release_pipeline_cache(pipeline_cache: dict[tuple, Any]) -> None:
+    """Explicitly release cached pipeline objects and free GPU/MPS memory.
 
-    # Write PID file so external tools (e.g. run.sh) can check if we're alive.
-    pid_file = _ROOT / "batch" / "worker.pid"
-    pid_file.write_text(str(os.getpid()))
+    On Apple Silicon (MPS) PyTorch pipelines crash the interpreter during normal
+    GC at shutdown if the MPS backend has already started tearing down.  Clearing
+    the cache here — before the interpreter begins to exit — avoids that race.
+    """
+    global _cached_model
+    pipeline_cache.clear()
+    _cached_model = None
+    gc.collect()
     try:
-        _run_worker_loop(poll_interval=poll_interval, run_once=run_once)
-    finally:
-        pid_file.unlink(missing_ok=True)
+        import torch
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+        elif torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass  # best-effort; never crash the worker on cleanup
 
 
-def _run_worker_loop(poll_interval: int = 5, run_once: bool = False) -> None:
-    """Inner worker loop (separated so the PID file teardown is always clean)."""
-    _install_sigterm_handler()
+def _finish_job(
+    job: dict[str, Any],
+    result_path: str | None,
+    exc: BaseException | None,
+    pipeline_cache: dict[tuple, Any],
+) -> None:
+    """Centralised post-job bookkeeping.
+
+    Called after process_job() returns or raises.  Exactly one of
+    ``result_path`` (success) or ``exc`` (failure/cancel) will be non-None.
+    """
+    if result_path is not None:
+        mark_done(job["id"], result_path)
+        return
+
+    assert exc is not None
+    if isinstance(exc, _CancellationError):
+        log.info("Job %s cancelled.", job["id"][:8])
+        mark_failed(job["id"], str(exc))
+        _cancel_event.clear()
+    else:
+        log.error("Job %s FAILED: %s", job["id"][:8], exc)
+        mark_failed(job["id"], traceback.format_exc())
+    # Pipeline state may be inconsistent after a cancel or unexpected error.
+    _release_pipeline_cache(pipeline_cache)
+
+
+# ── Unified worker loop ───────────────────────────────────────────────────────
+
+async def run_worker_async(*, keep_alive: bool = True) -> None:
+    """Unified async worker loop — used by both the CLI and the FastAPI server.
+
+    Args:
+        keep_alive: When ``True`` (default) the worker registers itself with
+                    ``batch.notify`` and waits for new jobs when the queue is
+                    empty.  Runs until the task is cancelled (Ctrl-C / SIGTERM
+                    / server shutdown).
+                    When ``False`` the worker exits as soon as no more pending
+                    jobs remain — useful for one-shot CLI use.
+    """
+    loop = asyncio.get_running_loop()
     pipeline_cache: dict[tuple, Any] = {}
 
-    while True:
-        job = next_pending()
-        if job is None:
-            if run_once:
-                log.info("No pending jobs left — exiting (--once).")
-                break
-            time.sleep(poll_interval)
-            continue
+    # Register with the notification module so POST /api/jobs (and the CLI
+    # equivalent) can wake this loop without polling.
+    event: asyncio.Event | None = notify.init() if keep_alive else None
 
-        try:
-            result_path = process_job(job, pipeline_cache)
-            mark_done(job["id"], result_path)
-        except _CancellationError as exc:
-            # Job was cancelled via SIGTERM from the web UI / cancel tool.
-            # The API already called mark_failed; call it again to record the
-            # cancellation reason in the error field (idempotent).
-            log.info("Job %s cancelled.", job["id"][:8])
-            mark_failed(job["id"], str(exc))
-            pipeline_cache.clear()   # pipeline state may be inconsistent
-        except Exception as exc:
-            err = traceback.format_exc()
-            log.error("Job %s FAILED: %s", job["id"][:8], exc)
-            mark_failed(job["id"], err)
-            pipeline_cache.clear()   # discard potentially broken pipeline state
+    # Pre-set the event if there are already pending jobs in the queue at
+    # startup.  This covers two cases:
+    #   1. Jobs were added before the server started (no API request, so
+    #      notify() was never called for them).
+    #   2. Jobs were submitted via POST /api/jobs in the brief window between
+    #      the server accepting connections and this worker task being
+    #      scheduled for the first time — in that window notify() runs from
+    #      a FastAPI thread but notify.init() has not been called yet, so
+    #      _event is still None and the call is silently dropped.
+    if event is not None and next_pending() is not None:
+        event.set()
+        log.info("Pre-existing pending jobs found — worker starting immediately.")
 
-        if run_once:
-            # keep consuming until queue is empty
-            continue
+    log.info("Worker started (keep_alive=%s).", keep_alive)
 
+    try:
+        while True:
+            job = next_pending()
+            if job is None:
+                if not keep_alive:
+                    log.info("No pending jobs left — exiting.")
+                    break
+                # Double-check after clearing to close the TOCTOU window.
+                assert event is not None
+                event.clear()
+                if next_pending() is None:
+                    # Use wait_for with a timeout as a safety-net poll.
+                    # notify() is the primary wake-up mechanism, but it can be
+                    # silently dropped in a narrow startup race window: if a
+                    # POST /api/jobs request arrives between the server
+                    # accepting connections and notify.init() being called by
+                    # this coroutine, _event is still None so notify() is a
+                    # no-op.  The timeout (5 s) ensures the worker recovers
+                    # automatically without requiring a server restart.
+                    try:
+                        await asyncio.wait_for(event.wait(), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        pass  # normal — just re-check the queue
+                continue
+
+            result_path: str | None = None
+            caught: BaseException | None = None
+            try:
+                result_path = await loop.run_in_executor(
+                    None, process_job, job, pipeline_cache
+                )
+            except (_CancellationError, Exception) as exc:
+                caught = exc
+            _finish_job(job, result_path, caught, pipeline_cache)
+
+            # Update cached-model indicator from the pipeline_cache key.
+            # The cache maps (model_repo, ...) tuples → pipeline objects.
+            # After _finish_job the cache may be empty (on error) or still
+            # populated (on success); reflect the current state.
+            _cached_model = next(
+                (k[0] for k in pipeline_cache if isinstance(k, tuple) and k),
+                None,
+            )
+
+    except asyncio.CancelledError:
+        log.info("Worker task cancelled — shutting down.")
+    finally:
+        _release_pipeline_cache(pipeline_cache)
+        notify.reset()
+        log.info("Worker shut down cleanly.")
+
+
+# ── CLI entry point ───────────────────────────────────────────────────────────
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Batch worker — processes the image-generation queue.",
     )
     parser.add_argument(
-        "--poll", type=int, default=5, metavar="SECONDS",
-        help="Seconds to wait between queue polls when idle (default: 5).",
-    )
-    parser.add_argument(
-        "--once", action="store_true",
-        help="Process all current pending jobs and exit instead of looping forever.",
+        "--keep-alive", action="store_true", default=False,
+        help=(
+            "Stay alive after the queue is empty and wait for new jobs "
+            "instead of exiting.  Without this flag the worker exits as "
+            "soon as all current pending jobs are done."
+        ),
     )
     args = parser.parse_args()
-    run_worker(poll_interval=args.poll, run_once=args.once)
+
+    async def _run() -> None:
+        loop = asyncio.get_running_loop()
+        task = asyncio.current_task()
+        assert task is not None
+
+        # Translate SIGTERM into task cancellation so the worker shuts down
+        # cleanly (pipeline cache released, job marked failed) instead of
+        # being killed mid-inference.
+        loop.add_signal_handler(signal.SIGTERM, task.cancel)
+
+        try:
+            await run_worker_async(keep_alive=args.keep_alive)
+        except asyncio.CancelledError:
+            pass  # normal shutdown path — already handled inside run_worker_async
+
+    asyncio.run(_run())
 
 
 if __name__ == "__main__":
