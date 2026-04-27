@@ -111,10 +111,25 @@ def api_stats() -> dict[str, int]:
     return stats()
 
 
+def _sanitise_result_path(job: dict[str, Any]) -> dict[str, Any]:
+    """Clear ``result_path`` if the referenced output file no longer exists.
+
+    Prevents 404 noise in logs and broken thumbnails in the UI when an output
+    file is deleted from disk while the job entry is still in the queue.
+    """
+    rp = job.get("result_path")
+    if rp:
+        output_file = _ROOT / rp
+        if not output_file.exists():
+            job = dict(job)  # shallow copy — do not mutate the in-memory store
+            job["result_path"] = None
+    return job
+
+
 @router.get("/jobs")
 def api_list_jobs() -> list[dict[str, Any]]:
     _heal_stale_running_jobs()
-    return list_jobs()
+    return [_sanitise_result_path(j) for j in list_jobs()]
 
 
 @router.get("/jobs/{job_id}")
@@ -129,10 +144,7 @@ def api_get_job(job_id: str) -> dict[str, Any]:
             msg = f"Worker process (PID {pid}) no longer exists — marked as failed by server."
             append_log(job_id, f"[server] {msg}")
             job = mark_failed(job_id, msg) or job
-    return job
-
-
-@router.post("/jobs", status_code=201)
+    return _sanitise_result_path(job)
 def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
     pipeline_cfg = PipelineConfig.from_json(req.config)
     pipeline_cfg.apply_overrides(

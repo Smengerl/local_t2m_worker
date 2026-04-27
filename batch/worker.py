@@ -295,6 +295,7 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
     """
     loop = asyncio.get_running_loop()
     pipeline_cache: dict[tuple, Any] = {}
+    global _cached_model
 
     # Register with the notification module so POST /api/jobs (and the CLI
     # equivalent) can wake this loop without polling.
@@ -342,10 +343,35 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
 
             result_path: str | None = None
             caught: BaseException | None = None
+
+            # Check if this job requires a different model than the one currently cached.
+            # If so, clear the cache beforehand to free up memory for the new model.
+            # This is critical on devices with limited RAM (like MacBook Air).
+            job_config = job.get("pipeline_config", {})
+            target_model = job_config.get("model", {}).get("repo")
+            if target_model and _cached_model and target_model != _cached_model:
+                log.info("Model change detected (%s -> %s). Clearing cache...", 
+                         _cached_model, target_model)
+                _release_pipeline_cache(pipeline_cache)
+
             try:
-                result_path = await loop.run_in_executor(
-                    None, process_job, job, pipeline_cache
-                )
+                fut = loop.run_in_executor(None, process_job, job, pipeline_cache)
+                result_path = await fut
+            except asyncio.CancelledError:
+                # Der Worker-Task selbst wurde abgebrochen (z.B. durch Server-Shutdown).
+                # Wir müssen den Hintergrund-Thread benachrichtigen und auf ihn warten,
+                # um verwaiste Threads und Abstürze beim Beenden des Interpreters zu vermeiden.
+                request_cancel()
+                log.info("Worker cancelled — waiting for current job thread...")
+                try:
+                    # Dem Thread Zeit geben, das Abbruch-Flag zu sehen und sich sauber zu beenden.
+                    await asyncio.wait_for(fut, timeout=_SHUTDOWN_TIMEOUT_S)
+                except (asyncio.TimeoutError, Exception):
+                    # Falls es zu lange dauert, fahren wir trotzdem mit dem Shutdown fort.
+                    pass
+
+                _finish_job(job, None, _CancellationError("Worker shutdown"), pipeline_cache)
+                raise
             except (_CancellationError, Exception) as exc:
                 caught = exc
             _finish_job(job, result_path, caught, pipeline_cache)

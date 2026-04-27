@@ -35,6 +35,10 @@ fi
 # Allow MPS to use the full unified memory pool (including swap).
 # Without this macOS enforces a hard cap and kills the process on OOM.
 export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+# Set a limit for MPS memory allocations (e.g., 80% of total RAM).
+# This allows PyTorch to raise a catchable Python RuntimeError instead of 
+# letting the macOS OOM Killer terminate the process with "Killed: 9".
+# export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.8
 
 # Activate virtual environment and resolve python
 activate_venv

@@ -132,7 +132,39 @@ def next_pending() -> Optional[dict[str, Any]]:
                 return job
     return None
 
+def reorder_pending(job_ids: list[str]) -> None:
+    """Change the order of pending jobs based on a list of IDs.
 
+    Jobs not in 'pending' status are left at their current positions in the file.
+    Pending jobs missing from 'job_ids' are appended after the reordered ones.
+    """
+    with _lock():
+        all_jobs = _read_all()
+
+        # Extract all pending jobs and map them by ID
+        pending_map = {j["id"]: j for j in all_jobs if j["status"] == "pending"}
+
+        # Build the new sequence of pending jobs
+        new_pending_list = []
+        for jid in job_ids:
+            if jid in pending_map:
+                new_pending_list.append(pending_map.pop(jid))
+
+        # Any pending jobs NOT in the input list go to the end of the pending group
+        new_pending_list.extend(pending_map.values())
+
+        # Reassemble all jobs: replace old pending slots with the new sequence
+        final_jobs = []
+        pending_iter = iter(new_pending_list)
+        for j in all_jobs:
+            if j["status"] == "pending":
+                final_jobs.append(next(pending_iter))
+            else:
+                final_jobs.append(j)
+
+        _write_all(final_jobs)
+
+        
 def update_job(job_id: str, **fields: Any) -> Optional[dict[str, Any]]:
     """Update fields on a job in-place and return the updated job."""
     with _lock():

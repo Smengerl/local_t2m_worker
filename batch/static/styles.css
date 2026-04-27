@@ -1,0 +1,1019 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   Image Generation Queue — Stylesheet
+   Naming conventions
+     Design tokens : --category[-variant]     e.g. --color-surface-card
+     Components    : .component-element       e.g. .job-card, .job-col-left
+     State classes : .component.state         e.g. .badge.pending
+     Utilities     : .descriptor              e.g. .text-truncate
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Design Tokens ────────────────────────────────────────────────────── */
+:root {
+    /* --- Surface colours ------------------------------------------------- */
+    --color-surface-base: #0f1117;
+    /* page / body background             */
+    --color-surface-card: #1a1d27;
+    /* card and panel backgrounds         */
+    --color-surface-overlay: #2c3040;
+    /* tooltips and modal overlays        */
+
+    /* --- Border ---------------------------------------------------------- */
+    --color-border: #2a2d3e;
+
+    /* --- Semantic state colours ------------------------------------------ */
+    --color-accent: #7c6af7;
+    /* primary interactive / brand  */
+    --color-success: #22c55e;
+    /* done / ok                    */
+    --color-danger: #ef4444;
+    /* error / destructive action   */
+    --color-warning: #eab308;
+    /* pending / caution            */
+    --color-info: #3b82f6;
+    /* running / informational      */
+
+    /* --- Text ------------------------------------------------------------ */
+    --color-text-primary: #e2e8f0;
+    --color-text-muted: #64748b;
+    --color-text-inverted: #ffffff;
+    /* white text on coloured bg  */
+
+    /* --- Badge tint backgrounds (one per job status) --------------------- */
+    --color-badge-bg-pending: #3a2e00;
+    --color-badge-bg-running: #0d1f3c;
+    --color-badge-bg-done: #052015;
+    --color-badge-bg-failed: #2a0808;
+
+    /* --- Typography ------------------------------------------------------ */
+    --font-family-base: system-ui, -apple-system, sans-serif;
+    --font-size-xs: 10px;
+    /* tiny labels, step counters       */
+    --font-size-sm: 12px;
+    /* badges, meta, uppercase labels   */
+    --font-size-base: 14px;
+    /* body / form field text           */
+    --font-size-lg: 1rem;
+    /* section headings                 */
+
+    /* --- Spacing scale --------------------------------------------------- */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 20px;
+
+    /* --- Border radius --------------------------------------------------- */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 10px;
+
+    /* --- Layout ---------------------------------------------------------- */
+    --sidebar-width: 400px;
+}
+
+
+/* ── 2. Reset & Base ─────────────────────────────────────────────────────── */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--color-surface-base);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-base);
+    padding: var(--space-md);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Page title — accessible to screen readers; visually hidden in favour of queue header */
+h1 {
+    display: none;
+}
+
+/* Section headings inside cards */
+h2 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+}
+
+
+/* ── 3. Two-Column Layout ────────────────────────────────────────────────── */
+.layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 4px 1fr;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Left sidebar — contains the enqueue form */
+.left-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    transition: min-width .2s, max-width .2s, opacity .2s;
+}
+
+/* Collapsed state hides the sidebar while keeping the resizer strip visible */
+.left-col.collapsed {
+    min-width: 0 !important;
+    max-width: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* The form card inside the sidebar scrolls independently */
+.left-col .card {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Right main column — contains the queue list.
+   min-width: 0 is required so the 1fr grid track can shrink when the
+   resizer is dragged; without it the column overflows its track. */
+.right-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    padding-left: var(--space-sm);
+}
+
+/* The queue card stretches to fill all available vertical space */
+.right-col .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Job list inside the card — scrolls vertically when content overflows */
+#queue-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+
+/* ── 4. Column Resizer & Sidebar Toggle ──────────────────────────────────── */
+
+/* Draggable divider strip between the two layout columns */
+.col-resizer {
+    width: 4px;
+    cursor: col-resize;
+    background: var(--color-border);
+    margin: 0 var(--space-xs);
+    position: relative;
+    transition: background .15s;
+    z-index: 10;
+}
+
+.col-resizer:hover,
+.col-resizer.dragging {
+    background: var(--color-accent);
+}
+
+/* Pill-shaped toggle button centred on the resizer strip */
+.col-toggle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 36px;
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+
+/* ── 5. Card Container ───────────────────────────────────────────────────── */
+.card {
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+}
+
+
+/* ── 6. Buttons ──────────────────────────────────────────────────────────── */
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family-base);
+    transition: filter .15s, background .15s, border-color .15s;
+}
+
+/* Full-width primary CTA — "Add to Queue" */
+.btn-primary {
+    background: var(--color-accent);
+    color: var(--color-text-inverted);
+    width: 100%;
+    padding: 10px;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.1);
+}
+
+/* Shared base for small bordered buttons — in-card (.btn-sm) and queue header (.btn-clear) */
+.btn-sm,
+.btn-clear {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    border-radius: var(--radius-md);
+}
+
+.btn-sm:hover,
+.btn-clear:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-text-muted);
+}
+
+/* In-card action button */
+.btn-sm {
+    padding: 3px 9px;
+    color: var(--color-text-primary);
+}
+
+/* Queue header management button (Clear finished) */
+.btn-clear {
+    padding: var(--space-xs) 10px;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+}
+
+.btn-clear:hover {
+    color: var(--color-text-primary);
+}
+
+/* ── Queue section dividers (between Pending / Running / Finished) ── */
+.queue-section-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: var(--space-md) 0 var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.queue-section-divider::before,
+.queue-section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+}
+
+/* Row that holds the centred Clear-finished button */
+.queue-clear-row {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-md) 0 var(--space-sm);
+}
+
+/* Danger variant — destructive actions (delete job / delete image) */
+.btn-danger {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Retry variant — re-run a finished or failed job */
+.btn-retry {
+    border-color: var(--color-info);
+    color: var(--color-info);
+}
+
+.btn-retry:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Cancel variant — abort a running job */
+.btn-cancel {
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+}
+
+.btn-cancel:hover {
+    background: rgba(234, 179, 8, 0.1);
+}
+
+/* Icon-only button (expand/collapse, copy prompt) */
+.btn-icon-only {
+    background: transparent;
+    color: var(--color-text-muted);
+    padding: var(--space-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-only:hover {
+    color: var(--color-text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+
+/* ── 7. Form Elements ────────────────────────────────────────────────────── */
+
+/* Uppercase field label */
+label {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xs);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* Label row: label + optional hint icon side-by-side */
+.label-row {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    margin-bottom: var(--space-xs);
+}
+
+.label-row label {
+    margin-bottom: 0;
+}
+
+/* Generic horizontal flex row for paired or grouped form fields */
+.row {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: flex-start;
+}
+
+/* Width x Height input pair with a centred separator glyph */
+.size-input-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.size-input-row input {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* The "x" glyph between width and height fields */
+.size-separator {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-base);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    background: var(--color-surface-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    padding: var(--space-sm) 10px;
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-md);
+    font-family: var(--font-family-base);
+}
+
+textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--color-accent);
+    border-color: transparent;
+}
+
+/* Feedback message shown below the enqueue form after submit */
+.form-feedback {
+    margin-top: var(--space-sm);
+    font-size: 12px;
+    min-height: 18px;
+}
+
+
+/* ── 8. Config Section Accordion ─────────────────────────────────────────── */
+
+/* Collapsible <details> wrapping model / lora / generation override fields */
+.cfg-section {
+    margin-bottom: var(--space-sm);
+}
+
+.cfg-section:last-of-type {
+    margin-bottom: var(--space-md);
+}
+
+/* Summary header — acts as the accordion click target */
+.cfg-section-header {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-sm);
+}
+
+/* Triangular arrow that rotates 90deg when the section is open */
+.cfg-toggle-arrow {
+    font-size: var(--font-size-xs);
+    transition: transform .15s;
+}
+
+details[open] .cfg-toggle-arrow {
+    transform: rotate(90deg);
+}
+
+/* Inner content area below the accordion header */
+.cfg-section-body {
+    margin-top: var(--space-sm);
+}
+
+
+/* ── 9. Notes & Info Boxes ───────────────────────────────────────────────── */
+
+/* Shared structure for config notes boxes */
+.notes-about,
+.notes-warning {
+    border-left: 3px solid;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-md);
+}
+
+/* Grey informational note (model "about" text) */
+.notes-about {
+    border-color: var(--color-text-muted);
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Yellow warning box (e.g. cpu_offload must be false) */
+.notes-warning {
+    border-color: var(--color-warning);
+    background: rgba(234, 179, 8, 0.05);
+    color: var(--color-warning);
+}
+
+/* Collapsible prompt guide — rendered as a <details> element */
+.notes-guide {
+    margin-bottom: var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.notes-guide summary {
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--color-text-muted);
+}
+
+/* Body text inside the prompt guide */
+.notes-guide-body {
+    margin-top: var(--space-sm);
+    line-height: 1.6;
+    color: var(--color-text-primary);
+}
+
+
+/* ── 10. Queue Header ────────────────────────────────────────────────────── */
+.queue-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+/* Stat counter group (Pending / Running / Done / Failed) */
+.stats {
+    display: flex;
+    gap: var(--space-md);
+    margin-right: auto;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.stat .lbl {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+}
+
+/* Numeric value inside each stat counter */
+.stat .num {
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+}
+
+/* State-coloured numbers */
+.stat.pending .num {
+    color: var(--color-warning);
+}
+
+.stat.running .num {
+    color: var(--color-info);
+}
+
+.stat.done .num {
+    color: var(--color-success);
+}
+
+.stat.failed .num {
+    color: var(--color-danger);
+}
+
+
+/* ── 11. Status Badges ───────────────────────────────────────────────────── */
+
+/* Inline pill badge showing the status of a single job */
+.badge {
+    border-radius: var(--radius-sm);
+    padding: 2px var(--space-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.badge.pending {
+    background: var(--color-badge-bg-pending);
+    color: var(--color-warning);
+}
+
+.badge.running {
+    background: var(--color-badge-bg-running);
+    color: var(--color-info);
+}
+
+.badge.done {
+    background: var(--color-badge-bg-done);
+    color: var(--color-success);
+}
+
+.badge.failed {
+    background: var(--color-badge-bg-failed);
+    color: var(--color-danger);
+}
+
+/* Alert badge shown in the queue header when the worker is offline / degraded */
+.status-alert__badge {
+    background: var(--color-danger);
+    color: var(--color-text-inverted);
+    padding: 2px var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.85em;
+    margin-right: var(--space-md);
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+
+/* ── 12. Job Cards ───────────────────────────────────────────────────────── */
+
+/* Outer wrapper for a single job entry in the list */
+.job-card {
+    background-color: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-sm);
+    transition: border-color .15s;
+    overflow: hidden;
+}
+
+.job-card:hover {
+    border-color: var(--color-accent);
+}
+
+/* Three-column flex layout inside each job card */
+.job-grid {
+    display: flex;
+    align-items: flex-start;
+    padding: var(--space-md);
+    gap: var(--space-lg);
+    min-height: 90px;
+}
+
+/* Column 1: drag handle and expand/collapse toggle */
+.job-col-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 32px;
+    flex-shrink: 0;
+}
+
+/* Column 2: prompt text, timestamp meta, and action buttons */
+.job-col-middle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+/* Prompt headline */
+.job-row-prompt {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+}
+
+/* Truncated prompt text span — block display required for text-truncate */
+.job-prompt {
+    display: block;
+}
+
+/* Timestamp, duration, and config type meta line */
+.job-row-meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Inline row of action buttons (Delete / Retry / Cancel) */
+.job-row-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+/* Column 3: status badge and preview thumbnail or progress bar.
+   Negative margins cancel the parent grid's padding on all sides so the
+   thumbnail can sit flush against the card border. */
+.job-col-right {
+    width: 120px;
+    flex-shrink: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
+    gap: var(--space-sm);
+    text-align: right;
+    /* pull flush to top, right, and bottom of the card */
+    margin-top: calc(-1 * var(--space-md));
+    margin-right: calc(-1 * var(--space-md));
+    margin-bottom: calc(-1 * var(--space-md));
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+/* Badge wrapper — fills the full column, centred vertically and horizontally */
+.job-status-badge {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+/* Preview thumbnail for completed jobs — fills the column flush, crops to fit */
+.job-thumb {
+    flex: 1;
+    min-height: 60px;
+    width: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    border: none;
+    cursor: zoom-in;
+    display: block;
+}
+
+/* Drag-and-drop reorder handle */
+.drag-handle {
+    cursor: grab;
+    color: var(--color-text-muted);
+    display: flex;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Ghost placeholder element rendered by SortableJS during dragging */
+.sortable-ghost {
+    opacity: 0.2;
+    background-color: var(--color-accent) !important;
+    border: 1px dashed var(--color-accent) !important;
+}
+
+
+/* ── 13. Job Detail Panel ────────────────────────────────────────────────── */
+
+/* Expanded detail pane rendered below the job grid row */
+.detail {
+    padding: var(--space-md) var(--space-lg) var(--space-lg) 60px;
+    /* left indent aligns with job-col-middle */
+    border-top: 1px solid var(--color-border);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* Single key / value row inside the detail pane */
+.detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-size-base);
+}
+
+/* Fixed-width label column */
+.detail-label {
+    width: 85px;
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    padding-top: 2px;
+}
+
+/* Value column fills remaining width */
+.detail-value {
+    flex: 1;
+    min-width: 0;
+    color: var(--color-text-primary);
+    line-height: 1.5;
+}
+
+/* Error traceback block shown for failed jobs */
+.detail-error {
+    margin-top: var(--space-md);
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+/* Separator between settings rows and the log block */
+.detail-divider {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: var(--space-md) 0;
+}
+
+/* Shared base for preformatted content blocks in the detail pane */
+.detail-error pre,
+.detail-log pre {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    margin-top: var(--space-xs);
+    white-space: pre-wrap;
+}
+
+.detail-error pre {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Scrollable log output block shown below the settings */
+.detail-log pre {
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    font-size: var(--font-size-xs);
+    line-height: 1.55;
+    color: var(--color-text-muted);
+    word-break: break-all;
+    max-height: 240px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+
+/* ── 14. Progress Bar ────────────────────────────────────────────────────── */
+
+/* Progress block — fills job-col-right vertically, centred content */
+.job-progress {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    width: 100%;
+    padding: var(--space-sm);
+}
+
+/* Spinner + status label row */
+.job-progress-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--color-info);
+}
+
+/* Status text ("Generating…" / "Completing…") */
+.job-progress-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+/* Textual step counter below the bar */
+.job-progress-steps {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+progress {
+    width: 100%;
+    height: 6px;
+    accent-color: var(--color-accent);
+    border-radius: 3px;
+    border: none;
+    background: var(--color-surface-base);
+}
+
+
+/* ── 15. Spinner ─────────────────────────────────────────────────────────── */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+
+
+/* ── 16. Lightbox Overlay ────────────────────────────────────────────────── */
+#lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+}
+
+#lightbox.open {
+    display: flex;
+}
+
+#lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    border-radius: var(--radius-lg);
+}
+
+
+/* ── 17. Hint Tooltips ───────────────────────────────────────────────────── */
+
+/* Circular "?" badge rendered next to a form label */
+.hint-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    background: var(--color-text-muted);
+    color: var(--color-surface-base);
+    border-radius: 50%;
+    font-size: var(--font-size-xs);
+    margin-left: var(--space-xs);
+    cursor: help;
+    position: relative;
+}
+
+/* Floating tooltip revealed on hover */
+.hint-tooltip {
+    display: none;
+    position: absolute;
+    left: 24px;
+    top: 0;
+    background: var(--color-surface-overlay);
+    border: 1px solid var(--color-border);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    width: 240px;
+    z-index: 100;
+    line-height: 1.4;
+    color: var(--color-text-primary);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.hint-icon:hover .hint-tooltip {
+    display: block;
+}
+
+
+/* ── 18. Utilities ───────────────────────────────────────────────────────── */
+
+/* Single-line text with ellipsis overflow */
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Centred placeholder shown when the queue is empty or still loading */
+.empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+/* JS-controlled visibility — toggled via classList instead of inline style */
+.hidden {
+    display: none !important;
+}
+
+/* Inline form feedback messages after queue submit */
+.form-feedback--success {
+    color: var(--color-success);
+}
+
+.form-feedback--error {
+    color: var(--color-danger);
+}
+
+/* LoRA repo / strength column widths inside the .row flex container */
+.lora-repo-col {
+    flex: 3;
+}
+
+.lora-strength-col {
+    flex: 1;
+}
+
+/* Queue status alert badge — inline-block by default, shown/hidden via .hidden */
+#queue-status-alert {
+    display: inline-block;
+}
+
+/* Toast notification for clipboard copy */
+.copied-toast {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    background: rgba(20, 20, 30, 0.95);
+    color: var(--color-text-inverted);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    z-index: 2000;
+    transition: opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.copied-toast.visible {
+    opacity: 1;
+}

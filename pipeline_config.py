@@ -5,10 +5,8 @@ layer and JSONL serialization.
 PipelineConfig is a ConfigFile subclass that provides:
   - Flat property aliases for all nested section fields used by pipeline backends
     (e.g. ``cfg.model_id``, ``cfg.num_inference_steps``)
-  - JSONL serialization (to_dict / from_dict) for the batch queue
-
-JSONL serialization uses the same flat field names as before to remain
-backwards-compatible with existing queue entries.
+  - JSONL serialization (to_dict / from_dict) for the batch queue using the
+    nested v2 format (matching the ConfigFile section structure)
 """
 
 from __future__ import annotations
@@ -153,67 +151,103 @@ class PipelineConfig(ConfigFile):
     # ── JSONL serialization ───────────────────────────────────────────────────
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialise to a flat dict using legacy field names (JSONL-compatible).
+        """Serialise to a nested dict matching the v2 config file structure.
 
-        The flat format is kept stable so that existing queue entries written by
-        older versions of the code can still be loaded by ``from_dict()``.
+        The nested format mirrors the ConfigFile / section dataclasses so that
+        ``from_dict()`` can reconstruct a PipelineConfig without any remapping.
+        ``from_dict()`` also accepts the legacy flat format for backward
+        compatibility with JSONL entries written by older versions of the code.
         """
-        return {
-            "pipeline_type":          self.backend,
-            "model_id":               self.model.repo,
-            "cache_dir":              self.system.cache_dir,
-            "output_dir":             self.system.output_dir,
-            "num_inference_steps":    self.generation.steps,
-            "guidance_scale":         self.generation.cfg_scale,
-            "width":                  self.generation.width,
-            "height":                 self.generation.height,
-            "lora_scale":             self.lora.strength if self.lora else _DEFAULT_LORA_STRENGTH,
-            "sequential_cpu_offload": self.system.cpu_offload,
-            "lora_id":                self.lora.repo if self.lora else None,
-            "trigger_word":           self.lora.trigger if self.lora else None,
-            "description":            self.description,
-            "true_cfg_scale":         self.generation.cfg_scale_secondary,
-            "seed":                   self.generation.seed,
-            "weight_name":            self.weight_name,
-            "max_sequence_length":    self.generation.max_prompt_tokens,
-            "gguf_file":              self.model.gguf_file,
-            "base_model_id":          self.model.components_repo,
-            "notes":                  self.notes.to_dict() if self.notes else None,
+        model_dict: dict[str, Any] = {"repo": self.model.repo}
+        if self.model.gguf_file:
+            model_dict["gguf_file"] = self.model.gguf_file
+        if self.model.components_repo:
+            model_dict["components_repo"] = self.model.components_repo
+        if self.model.file:
+            model_dict["file"] = self.model.file
+
+        gen_dict: dict[str, Any] = {
+            "steps":               self.generation.steps,
+            "cfg_scale":           self.generation.cfg_scale,
+            "width":               self.generation.width,
+            "height":              self.generation.height,
+            "seed":                self.generation.seed,
+            "max_prompt_tokens":   self.generation.max_prompt_tokens,
+            "cfg_scale_secondary": self.generation.cfg_scale_secondary,
         }
+
+        system_dict: dict[str, Any] = {
+            "cpu_offload": self.system.cpu_offload,
+            "cache_dir":   self.system.cache_dir,
+            "output_dir":  self.system.output_dir,
+        }
+
+        result: dict[str, Any] = {
+            "backend":     self.backend,
+            "description": self.description,
+            "model":       model_dict,
+            "generation":  gen_dict,
+            "system":      system_dict,
+        }
+
+        if self.lora:
+            lora_dict: dict[str, Any] = {
+                "repo":     self.lora.repo,
+                "strength": self.lora.strength,
+            }
+            if self.lora.file:
+                lora_dict["file"] = self.lora.file
+            if self.lora.trigger:
+                lora_dict["trigger"] = self.lora.trigger
+            result["lora"] = lora_dict
+
+        if self.notes:
+            result["notes"] = self.notes.to_dict()
+
+        return result
 
     @classmethod
     def from_dict(cls, d: dict) -> "PipelineConfig":
-        """Reconstruct a PipelineConfig from a flat JSONL dict.
+        """Reconstruct a PipelineConfig from a nested v2 dict (as written by ``to_dict()``).
 
-        Accepts the legacy flat format written by ``to_dict()``.  Unknown keys
-        are silently ignored so that JSONL jobs written by an older version of
-        the code can still be loaded after new fields are added.
+        Args:
+            d: Dict produced by ``to_dict()``.  Must use the nested v2 format
+               with ``model``, ``generation``, and ``system`` sub-dicts.
+
+        Returns:
+            Reconstructed PipelineConfig.
         """
+        m = d["model"]
         model = ModelConfig(
-            repo=d.get("model_id", ""),
-            gguf_file=d.get("gguf_file") or None,
-            components_repo=d.get("base_model_id") or None,
+            repo=m.get("repo", ""),
+            gguf_file=m.get("gguf_file") or None,
+            components_repo=m.get("components_repo") or None,
+            file=m.get("file") or None,
         )
         lora: Optional[LoraConfig] = None
-        if d.get("lora_id"):
+        lo = d.get("lora")
+        if lo and isinstance(lo, dict):
             lora = LoraConfig(
-                repo=d["lora_id"],
-                strength=float(d.get("lora_scale", _DEFAULT_LORA_STRENGTH)),
-                trigger=d.get("trigger_word") or None,
+                repo=lo["repo"],
+                strength=float(lo.get("strength", _DEFAULT_LORA_STRENGTH)),
+                file=lo.get("file") or None,
+                trigger=lo.get("trigger") or None,
             )
+        g = d.get("generation") or {}
         generation = GenerationConfig(
-            steps=int(d["num_inference_steps"]) if d.get("num_inference_steps") is not None else None,
-            cfg_scale=float(d["guidance_scale"]) if d.get("guidance_scale") is not None else None,
-            width=int(d["width"]) if d.get("width") is not None else None,
-            height=int(d["height"]) if d.get("height") is not None else None,
-            seed=d.get("seed"),
-            max_prompt_tokens=d.get("max_sequence_length"),
-            cfg_scale_secondary=d.get("true_cfg_scale"),
+            steps=int(g["steps"]) if g.get("steps") is not None else None,
+            cfg_scale=float(g["cfg_scale"]) if g.get("cfg_scale") is not None else None,
+            width=int(g["width"]) if g.get("width") is not None else None,
+            height=int(g["height"]) if g.get("height") is not None else None,
+            seed=g.get("seed"),
+            max_prompt_tokens=g.get("max_prompt_tokens"),
+            cfg_scale_secondary=g.get("cfg_scale_secondary"),
         )
+        s = d.get("system") or {}
         system = SystemConfig(
-            cpu_offload=bool(d.get("sequential_cpu_offload", False)),
-            cache_dir=d.get("cache_dir") or None,
-            output_dir=str(d.get("output_dir", "outputs")),
+            cpu_offload=bool(s.get("cpu_offload", False)),
+            cache_dir=s.get("cache_dir") or None,
+            output_dir=str(s.get("output_dir", "outputs")),
         )
         notes_dict = d.get("notes")
         notes: Optional[NotesConfig] = None
@@ -223,7 +257,7 @@ class PipelineConfig(ConfigFile):
                 if k in ("about", "prompt_guide", "warnings")
             })
         return cls(
-            backend=str(d.get("pipeline_type", "sd")),
+            backend=str(d.get("backend", "sd")),
             model=model,
             description=d.get("description") or None,
             lora=lora,

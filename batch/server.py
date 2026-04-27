@@ -20,6 +20,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+
 _ROOT = Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -33,7 +36,7 @@ from batch import worker as _worker
 from batch.api import configs as configs_router
 from batch.api import jobs as jobs_router
 from batch.api import outputs as outputs_router
-from batch.queue import stats as queue_stats
+from batch.queue import stats as queue_stats, reorder_pending
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -65,8 +68,21 @@ app.include_router(jobs_router.router,    prefix="/api")
 app.include_router(configs_router.router, prefix="/api")
 app.include_router(outputs_router.router)
 
+# ── Reordering API ───────────────────────────────────────────────────────────
+class ReorderRequest(BaseModel):
+    job_ids: list[str]
+
+@app.post("/api/jobs/reorder")
+async def api_reorder_jobs(req: ReorderRequest):
+    """Update the sequence of pending jobs in the queue."""
+    reorder_pending(req.job_ids)
+    notify.notify()
+    return {"status": "ok"}
+
 # ── Frontend ──────────────────────────────────────────────────────────────────
 _STATIC = Path(__file__).parent / "static"
+
+app.mount("/static", StaticFiles(directory=_STATIC), name="static")
 
 
 @app.get("/", include_in_schema=False)
