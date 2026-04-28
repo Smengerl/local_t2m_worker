@@ -47,20 +47,9 @@ done
 activate_venv --auto-create
 resolve_venv_python
 
-# ── Optional: HF token (needed for gated models like FLUX, SD3) ──────────────
-# diffusers reads HF_TOKEN from the environment automatically — no CLI login needed.
-# Priority: .hf_token file > HF_TOKEN env var > already cached credentials
-TOKEN_FILE="$ROOT_DIR/.hf_token"
-
-if [[ -f "$TOKEN_FILE" ]]; then
-  export HF_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
-  echo "🔑 HF token loaded from .hf_token."
-elif [[ -n "${HF_TOKEN:-}" ]]; then
-  echo "🔑 HF token found in environment."
-else
-  echo "ℹ️  No HF token found — gated models (FLUX, SD3) will not be accessible."
-fi
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Worker status helper ─────────────────────────────────────────────────────
+# shellcheck source=helpers/worker_status.sh
+source "$ROOT_DIR/scripts/helpers/worker_status.sh"
 
 # ── Run the generator ─────────────────────────────────────────────────────────
 echo "Python: $PYTHON"
@@ -79,11 +68,57 @@ for arg in "$@"; do
   fi
 done
 
-# Apply offline mode: set env var so huggingface_hub skips all network calls
-if [[ "$OFFLINE" == true ]]; then
-  export HF_HUB_OFFLINE=1
-  echo "📴 Offline mode enabled — skipping HuggingFace update checks."
-fi
+
+# Helper: Load HuggingFace token if not offline
+load_hf_token() {
+  TOKEN_FILE="$ROOT_DIR/.hf_token"
+  if [[ -f "$TOKEN_FILE" ]]; then
+    export HF_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
+    echo "🔑 HF token loaded from .hf_token."
+  elif [[ -n "${HF_TOKEN:-}" ]]; then
+    echo "🔑 HF token found in environment."
+  else
+    echo "ℹ️  No HF token found — gated models (FLUX, SD3) will not be accessible."
+  fi
+}
+
+# Helper: Start worker in background and wait for PID
+start_worker_bg() {
+  nohup "$PYTHON" -m batch.worker >> "$WORKER_LOG" 2>&1 &
+  STARTED_WORKER_PID=$!
+  for i in {1..40}; do
+    sleep 0.25
+    if worker_running; then
+      break
+    fi
+  done
+  if worker_running; then
+    # Print PID if available
+    local pid
+    pid=""
+    if [[ -f "$WORKER_PID_FILE" ]]; then pid=$(cat "$WORKER_PID_FILE"); fi
+    echo "✅ Worker started (pid ${pid:-?}, log: $WORKER_LOG)."
+  else
+    echo "❌ Worker could not be started after enqueuing the job. Check $WORKER_LOG for errors."
+    exit 1
+  fi
+}
+
+# Helper: Run direct generation
+run_generate() {
+  if [[ $has_config -eq 0 ]]; then
+    DEFAULT_CONFIG="$ROOT_DIR/configs/sd15_default.json"
+    echo "ℹ️  No --config specified, using default: $DEFAULT_CONFIG"
+    "$PYTHON" "$ROOT_DIR/generate.py" --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
+  else
+    "$PYTHON" "$ROOT_DIR/generate.py" "${PASSTHROUGH_ARGS[@]}"
+  fi
+}
+
+
+WORKER_LOG="$ROOT_DIR/batch/worker.log"
+
+
 
 # Allow MPS to use the full unified memory pool (including swap).
 # Without this macOS enforces a hard cap and kills the process on OOM.
@@ -95,36 +130,15 @@ for arg in "${PASSTHROUGH_ARGS[@]}"; do
   [[ "$arg" == "--config" || "$arg" == "-c" ]] && has_config=1 && break
 done
 
+# Apply offline mode: set env var so huggingface_hub skips all network calls
+if [[ "$OFFLINE" == true ]]; then
+  export HF_HUB_OFFLINE=1
+  echo "📴 Offline mode enabled — skipping HuggingFace update checks."
+fi
+
+
 if [[ "$QUEUE" == true ]]; then
-  # ── Queue mode: ensure worker is running, then hand off ───────────────────
-  WORKER_PID_FILE="$ROOT_DIR/batch/worker.pid"
-  WORKER_LOG="$ROOT_DIR/batch/worker.log"
-
-  _worker_running() {
-    [[ -f "$WORKER_PID_FILE" ]] || return 1
-    local pid
-    pid=$(cat "$WORKER_PID_FILE")
-    kill -0 "$pid" 2>/dev/null
-  }
-
-  if _worker_running; then
-    echo "✅ Worker already running (pid $(cat "$WORKER_PID_FILE"))."
-  else
-    echo "🚀 Worker not running — starting it in the background..."
-    nohup "$PYTHON" -m batch.worker >> "$WORKER_LOG" 2>&1 &
-    STARTED_WORKER_PID=$!
-    # Give it a moment to write its PID file before we proceed
-    for i in {1..10}; do
-      sleep 0.3
-      _worker_running && break
-    done
-    if _worker_running; then
-      echo "✅ Worker started (pid $(cat "$WORKER_PID_FILE"), log: $WORKER_LOG)."
-    else
-      echo "⚠️  Worker may not have started correctly — check $WORKER_LOG"
-    fi
-  fi
-
+  # ── Queue mode: enqueue job first, then ensure worker is running ──────────
   echo "📋 Adding job to batch queue..."
   if [[ $has_config -eq 0 ]]; then
     DEFAULT_CONFIG="$ROOT_DIR/configs/sd15_default.json"
@@ -132,13 +146,22 @@ if [[ "$QUEUE" == true ]]; then
   else
     "$PYTHON" -m batch.enqueue "${PASSTHROUGH_ARGS[@]}"
   fi
+
+  if worker_running; then
+  pid=""
+  if [[ -f "$WORKER_PID_FILE" ]]; then pid=$(cat "$WORKER_PID_FILE"); fi
+  echo "✅ Worker already running (pid ${pid:-?})."
+  else
+    echo "🚀 Worker not running — starting it in the background..."
+    if [[ "$OFFLINE" != true ]]; then
+      load_hf_token
+    fi
+    start_worker_bg
+  fi
 else
   # ── Direct mode: generate immediately ─────────────────────────────────────
-  if [[ $has_config -eq 0 ]]; then
-    DEFAULT_CONFIG="$ROOT_DIR/configs/sd15_default.json"
-    echo "ℹ️  No --config specified, using default: $DEFAULT_CONFIG"
-    "$PYTHON" "$ROOT_DIR/generate.py" --config "$DEFAULT_CONFIG" "${PASSTHROUGH_ARGS[@]}"
-  else
-    "$PYTHON" "$ROOT_DIR/generate.py" "${PASSTHROUGH_ARGS[@]}"
+  if [[ "$OFFLINE" != true ]]; then
+    load_hf_token
   fi
+  run_generate
 fi
