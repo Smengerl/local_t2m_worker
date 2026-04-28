@@ -410,6 +410,24 @@ def main() -> None:
     args = parser.parse_args()
 
     async def _run() -> None:
+        # Solution B: On startup, the worker checks if another worker is already running (PID file + process check).
+        pid_file = Path(__file__).parent.parent / "batch/worker.pid"
+        if pid_file.exists():
+            try:
+                existing_pid = int(pid_file.read_text().strip())
+                if existing_pid != os.getpid():
+                    # Check if the process is still alive
+                    try:
+                        os.kill(existing_pid, 0)
+                        print(f"[worker] Another worker is already running (pid {existing_pid}), exiting.", file=sys.stderr)
+                        return
+                    except OSError:
+                        pass  # Process does not exist anymore, continue
+            except Exception:
+                pass  # Error reading/parsing PID file, continue
+        # Write own PID to the file
+        pid_file.write_text(str(os.getpid()))
+
         loop = asyncio.get_running_loop()
         task = asyncio.current_task()
         assert task is not None
