@@ -814,15 +814,13 @@ details[open] .cfg-toggle-arrow {
     background: rgba(239, 68, 68, 0.1);
 }
 
-/* Scrollable log output block shown below the settings */
+/* Log output block — grows with content, never scrolls */
 .detail-log pre {
     font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
     font-size: var(--font-size-xs);
     line-height: 1.55;
     color: var(--color-text-muted);
     word-break: break-all;
-    max-height: 240px;
-    overflow-y: auto;
     background: rgba(0, 0, 0, 0.15);
 }
 
