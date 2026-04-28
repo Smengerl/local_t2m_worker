@@ -235,6 +235,8 @@ inference_test/
 ├── configs/                # JSON config files, one per model/LoRA combination
 │   └── CONFIGS.md          # Config reference and full list of available configs
 │
+├── examples/               # Showcase scripts — enqueue one job per config (see examples/README.md)
+│
 ├── scripts/                # Entry points and utilities — see scripts/README.md
 │
 ├── outputs/                # Generated images (auto-created)
