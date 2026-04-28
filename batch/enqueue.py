@@ -32,11 +32,14 @@ def main() -> None:
     )
 
     s = stats()
-    print(f"✅ Job enqueued  id={job['id'][:8]}…")
-    print(f"   config  : {job['pipeline_config']['pipeline_type']}  {job['pipeline_config']['model_id']}")
-    print(f"   prompt  : {job['prompt']!r}")
-    print(f"   Queue   : {s['pending']} pending  {s['running']} running  "
-          f"{s['done']} done  {s['failed']} failed")
+    print(f"✅ Job enqueued  id={job.get('id', 'unknown')[:8]}…")
+    pipeline_cfg = job.get('pipeline_config', {})
+    pipeline_type = pipeline_cfg.get('pipeline_type', 'unknown')
+    model_id = pipeline_cfg.get('model_id', 'unknown')
+    print(f"   config  : {pipeline_type}  {model_id}")
+    print(f"   prompt  : {job.get('prompt', '')!r}")
+    print(f"   Queue   : {s.get('pending', '?')} pending  {s.get('running', '?')} running  "
+        f"{s.get('done', '?')} done  {s.get('failed', '?')} failed")
 
 
 if __name__ == "__main__":
