@@ -87,6 +87,19 @@ def generate_image(
         if pipeline_cache is not None:
             if pipeline_cache:
                 pipeline_cache.clear()   # free memory before storing new model
+                # On MPS (Apple Silicon) the Metal heap is not released by
+                # Python GC alone — explicitly empty the MPS allocator cache
+                # so the old model's memory is reclaimed *before* the new model
+                # is stored.  Without this, both models coexist briefly in the
+                # 16 GB unified memory pool and the OS kills the process.
+                import gc
+                gc.collect()
+                try:
+                    import torch
+                    if torch.backends.mps.is_available():
+                        torch.mps.empty_cache()
+                except Exception:
+                    pass
             pipeline_cache[cache_key] = pipeline
 
 
