@@ -61,6 +61,17 @@ start_worker_bg() {
     [[ -f "$WORKER_PID_FILE" ]] && pid=$(cat "$WORKER_PID_FILE")
     echo "✅ Worker started (pid ${pid:-?}, log: $WORKER_LOG)."
   else
+    # The worker failed to start within the timeout. Common reason: another
+    # process already holds the exclusive lock (see batch/instance_lock.py).
+    # In that case the job was still enqueued successfully and the existing
+    # process (batch.server or batch.worker) will process the queue. Treat
+    # this as a non-fatal condition to avoid reporting enqueue as failed.
+    if server_process_running >/dev/null 2>&1 || pgrep -f "batch\.worker" >/dev/null 2>&1; then
+      echo "⚠  Worker start skipped — another batch.server or batch.worker process is already running. " \
+           "Assuming existing instance will process the queue (log: $WORKER_LOG)."
+      return 0
+    fi
+
     echo "❌ Worker could not be started. Check $WORKER_LOG for errors." >&2
     exit 1
   fi
