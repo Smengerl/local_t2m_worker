@@ -1,23 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=helpers/env.sh
+source "$ROOT_DIR/scripts/helpers/env.sh"
 # shellcheck source=helpers/worker_status.sh
-source "$(cd "$(dirname "$0")/.." && pwd)/scripts/helpers/worker_status.sh"
+source "$ROOT_DIR/scripts/helpers/worker_status.sh"
+# shellcheck source=helpers/network.sh
+source "$ROOT_DIR/scripts/helpers/network.sh"
 
 # Cyclic health check — refreshes every ~5 s until Ctrl-C.
 # Prints six status lines per cycle:
 #  * Batch worker running   (PID file + kill -0)
-#  * Server process running (pgrep batch.server)
+#  * Server process running (pgrep / wmic batch.server)
 #  * Server reachable       (HTTP probe on localhost)
 #  * Generation running     (job with status=running in queue.jsonl)
-#  * HF download rate       (RX on external interface, e.g. en0/wifi)
-#  * Web GUI traffic rate   (RX on loopback lo0 = localhost-only traffic)
+#  * HF download rate       (RX on external interface)
+#  * Web GUI traffic rate   (RX on loopback)
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 QUEUE_FILE="$ROOT_DIR/queue.jsonl"
 PORT="${PORT:-8000}"
-# shellcheck source=helpers/env.sh
-source "$ROOT_DIR/scripts/helpers/env.sh"
+
+# Detect interfaces once at startup
+detect_ext_iface
+LOOPBACK_IFACE=$(get_loopback_iface)
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -29,24 +35,6 @@ status() {
   fi
 }
 
-get_rx() {
-  # macOS: netstat -ib, column 7 (Ibytes) on the <Link#> row for a given interface
-  netstat -ib 2>/dev/null | awk -v iface="$1" '$1==iface && /Link/ {print $7; exit}' || echo 0
-}
-
-fmt_rate() {
-  # Format bytes/s as human-readable string
-  local bytes=$1
-  if   (( bytes >= 1048576 )); then printf "%.1f MB/s" "$(echo "scale=1; $bytes/1048576" | bc)"
-  elif (( bytes >= 1024 ));    then printf "%d KiB/s"  "$(( bytes / 1024 ))"
-  else                              printf "%d B/s"    "$bytes"
-  fi
-}
-
-# Detect primary external network interface once at startup
-ext_iface=$(route get default 2>/dev/null | awk '/interface:/ {print $2; exit}')
-ext_iface="${ext_iface:-en0}"
-
 run_checks() {
 
   # 0) Local CLI worker running?
@@ -55,9 +43,9 @@ run_checks() {
     local_worker_ok=true
   fi
 
-  # 1) Server process running? (pgrep matches -m batch.server in argv)
+  # 1) Server process running?
   server_proc_ok=false
-  if pgrep -f "batch\.server" >/dev/null 2>&1; then
+  if server_process_running; then
     server_proc_ok=true
   fi
 
@@ -78,7 +66,7 @@ run_checks() {
   if $server_http_ok; then
     health_json=$(curl -fsS --max-time 2 "http://localhost:$PORT/api/health" 2>/dev/null || true)
     if [[ -n "$health_json" ]]; then
-      _jq() { echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d$1)" 2>/dev/null || true; }
+      _jq() { echo "$health_json" | "$SYS_PYTHON" -c "import sys,json; d=json.load(sys.stdin); print(d$1)" 2>/dev/null || true; }
       [[ "$(_jq "['worker_alive']")" == "True" ]] && worker_ok=true
       worker_error=$(_jq "['worker_error'] or ''")
       current_job=$(_jq "['current_job_id'] or ''")
@@ -92,10 +80,10 @@ run_checks() {
     fi
   fi
 
-  # 4) Network rates — sample RX on external iface (HF) and lo0 (web GUI) over 1 s
-  ext_rx1=$(get_rx "$ext_iface"); lo_rx1=$(get_rx "lo0")
+  # 4) Network rates — sample RX over 1 s
+  ext_rx1=$(get_rx "$EXT_IFACE"); lo_rx1=$(get_rx "$LOOPBACK_IFACE")
   sleep 1
-  ext_rx2=$(get_rx "$ext_iface"); lo_rx2=$(get_rx "lo0")
+  ext_rx2=$(get_rx "$EXT_IFACE"); lo_rx2=$(get_rx "$LOOPBACK_IFACE")
 
   ext_rate=0; lo_rate=0
   [[ "$ext_rx1" =~ ^[0-9]+$ && "$ext_rx2" =~ ^[0-9]+$ ]] && ext_rate=$(( ext_rx2 - ext_rx1 ))
@@ -137,16 +125,8 @@ run_checks() {
   fi
 
   printf "\n  Network\n"
-  if $hf_ok; then
-    printf "  ✔ HF download   $(fmt_rate $ext_rate) (via %s)\n" "$ext_iface"
-  else
-    printf "  ✖ HF download   $(fmt_rate $ext_rate) (via %s)\n" "$ext_iface"
-  fi
-  if $gui_ok; then
-    printf "  ✔ Web GUI traffic  $(fmt_rate $lo_rate) (lo0)\n"
-  else
-    printf "  ✖ Web GUI traffic  $(fmt_rate $lo_rate) (lo0)\n"
-  fi
+  status $hf_ok  "HF download   $(fmt_rate $ext_rate) (via $EXT_IFACE)"
+  status $gui_ok "Web GUI traffic  $(fmt_rate $lo_rate) ($LOOPBACK_IFACE)"
 }
 
 # ── main loop ─────────────────────────────────────────────────────────────────
@@ -154,6 +134,9 @@ run_checks() {
 trap 'printf "\nStopped.\n"; exit 0' INT TERM
 
 while true; do
+  run_checks
+  sleep 5
+done
   run_checks
   # refresh every 5 s
   sleep 5

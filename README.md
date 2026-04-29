@@ -11,15 +11,20 @@ A growing collection of ready-to-use JSON config files covers a wide range of mo
 ## Quick start
 
 ```bash
-# 1. Create virtual environment and install dependencies
+# Run the interactive setup script (creates venv, installs deps, saves HF token)
+bash scripts/quickstart.sh
+```
+
+**Manual setup (alternative):**
+```bash
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+echo "hf_..." > .hf_token  # Optional: for gated models
+```
 
-# 2. (Optional) Store your HuggingFace token for gated models (FLUX, SD3)
-echo "hf_..." > .hf_token
-
-# 3. Generate an image
+Then generate an image:
+```bash
 ./scripts/run.sh "a misty forest at dawn"
 ```
 

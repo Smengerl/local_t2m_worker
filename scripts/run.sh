@@ -4,6 +4,8 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=helpers/env.sh
 source "$ROOT_DIR/scripts/helpers/env.sh"
+# shellcheck source=helpers/worker_status.sh
+source "$ROOT_DIR/scripts/helpers/worker_status.sh"
 
 # ── Usage hint ────────────────────────────────────────────────────────────────
 usage() {
@@ -48,8 +50,7 @@ activate_venv --auto-create
 resolve_venv_python
 
 # ── Worker status helper ─────────────────────────────────────────────────────
-# shellcheck source=helpers/worker_status.sh
-source "$ROOT_DIR/scripts/helpers/worker_status.sh"
+# (already sourced above via helpers/worker_status.sh)
 
 # ── Run the generator ─────────────────────────────────────────────────────────
 echo "Python: $PYTHON"
@@ -70,39 +71,10 @@ done
 
 
 # Helper: Load HuggingFace token if not offline
-load_hf_token() {
-  TOKEN_FILE="$ROOT_DIR/.hf_token"
-  if [[ -f "$TOKEN_FILE" ]]; then
-    export HF_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
-    echo "🔑 HF token loaded from .hf_token."
-  elif [[ -n "${HF_TOKEN:-}" ]]; then
-    echo "🔑 HF token found in environment."
-  else
-    echo "ℹ️  No HF token found — gated models (FLUX, SD3) will not be accessible."
-  fi
-}
+# (provided by helpers/env.sh → load_hf_token)
 
 # Helper: Start worker in background and wait for PID
-start_worker_bg() {
-  nohup "$PYTHON" -m batch.worker >> "$WORKER_LOG" 2>&1 &
-  STARTED_WORKER_PID=$!
-  for i in {1..40}; do
-    sleep 0.25
-    if worker_running; then
-      break
-    fi
-  done
-  if worker_running; then
-    # Print PID if available
-    local pid
-    pid=""
-    if [[ -f "$WORKER_PID_FILE" ]]; then pid=$(cat "$WORKER_PID_FILE"); fi
-    echo "✅ Worker started (pid ${pid:-?}, log: $WORKER_LOG)."
-  else
-    echo "❌ Worker could not be started after enqueuing the job. Check $WORKER_LOG for errors."
-    exit 1
-  fi
-}
+# (provided by helpers/worker_status.sh → start_worker_bg)
 
 # Helper: Run direct generation
 run_generate() {
@@ -115,14 +87,8 @@ run_generate() {
   fi
 }
 
-
-WORKER_LOG="$ROOT_DIR/batch/worker.log"
-
-
-
-# Allow MPS to use the full unified memory pool (including swap).
-# Without this macOS enforces a hard cap and kills the process on OOM.
-export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+# Apply MPS memory settings on macOS
+apply_pytorch_mps_env
 
 # If no --config flag was given by the user, inject the default config
 has_config=0
@@ -132,8 +98,7 @@ done
 
 # Apply offline mode: set env var so huggingface_hub skips all network calls
 if [[ "$OFFLINE" == true ]]; then
-  export HF_HUB_OFFLINE=1
-  echo "📴 Offline mode enabled — skipping HuggingFace update checks."
+  apply_offline_mode
 fi
 
 

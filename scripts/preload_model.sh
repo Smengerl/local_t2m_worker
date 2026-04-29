@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_NAME="$0"
 # shellcheck source=helpers/env.sh
 source "$ROOT_DIR/scripts/helpers/env.sh"
+# (platform.sh is sourced transitively by env.sh)
 
 # ── Usage hint ────────────────────────────────────────────────────────────────
 usage() {

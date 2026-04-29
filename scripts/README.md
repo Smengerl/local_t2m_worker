@@ -4,6 +4,7 @@ All executable entry points for the project live in this directory.
 
 | Script | Type | Purpose |
 |---|---|---|
+| [`quickstart.sh`](#quickstartsh) | Shell | First-time setup: venv, dependencies, HF token |
 | [`run.sh`](#runsh) | Shell | Generate a single image via CLI |
 | [`run_batch_server.sh`](#run_batch_serversh) | Shell | Start worker + web server together |
 | [`health_check.sh`](#health_checksh) | Shell | Check server system status at a glance |
@@ -13,6 +14,23 @@ All executable entry points for the project live in this directory.
 All scripts are run from the **project root** or from this directory — they resolve their own paths automatically.
 
 > **Example scripts** (showcase jobs per config) have moved to **[`examples/`](../examples/README.md)**.
+
+---
+
+## `quickstart.sh`
+
+Cross-platform first-time setup script (macOS, Linux, Windows via Git Bash). Run this once after cloning.
+
+```bash
+bash scripts/quickstart.sh
+```
+
+What it does:
+1. Creates `.venv` and installs `requirements.txt` (skipped if already present).
+2. Optionally saves your HuggingFace token to `.hf_token` (required for gated models like FLUX, SD3).
+3. Prints the command to generate your first image.
+
+---
 
 ---
 
