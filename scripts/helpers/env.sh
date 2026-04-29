@@ -112,7 +112,11 @@ load_hf_token() {
   local token_file="$ROOT_DIR/.hf_token"
   if [[ -f "$token_file" ]]; then
     export HF_TOKEN
-    HF_TOKEN="$(tr -d '[:space:]' < "$token_file")"
+    # Strip all whitespace AND carriage returns (\r) — the latter occur when the
+    # file was created or edited on Windows (CRLF line endings).  tr -d '[:space:]'
+    # removes spaces, tabs and newlines but does NOT remove bare \r on some
+    # platforms, so we strip \r explicitly first.
+    HF_TOKEN="$(tr -d '\r' < "$token_file" | tr -d '[:space:]')"
     echo "🔑 HF token loaded from .hf_token."
   elif [[ -n "${HF_TOKEN:-}" ]]; then
     echo "🔑 HF token found in environment."
