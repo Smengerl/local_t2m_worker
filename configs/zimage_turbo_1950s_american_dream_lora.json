@@ -1,0 +1,38 @@
+{
+    "description": "1950s American Dream painting style via Z-Image-Turbo + LoRA",
+    "backend": "zimage",
+
+    "model": {
+        "repo": "unsloth/Z-Image-Turbo-GGUF",
+        "gguf_file": "z-image-turbo-Q8_0.gguf",
+        "components_repo": "Tongyi-MAI/Z-Image-Turbo",
+        "_hint": "Transformer: unsloth/Z-Image-Turbo-GGUF (z-image-turbo-Q8_0.gguf, ~7.22 GB). Pipeline components (VAE, text encoder, scheduler, tokenizer): Tongyi-MAI/Z-Image-Turbo. Q8_0 keeps near-bfloat16 quality and fits in 16 GB without cpu_offload — all layers stay on MPS for faster inference. LoRA is applied via set_adapters() (GGUF-compatible) instead of fuse_lora()."
+    },
+
+    "lora": {
+        "repo": "damnthatai/1950s_American_Dream",
+        "file": "5os4m3r1c4n4_z.safetensors",
+        "strength": 0.75,
+        "trigger": "5os4m3r1c4n4",
+        "_hint": "Trigger words: 5os4m3r1c4n4, 1950s, painting — include all three at the start of the prompt. strength range: 0.25–1.0; 0.75 for authentic style (author recommendation), 0.25–0.50 for better prompt adherence and composition (then use img2img pass at 0.85 strength + 0.50–0.75 denoise)."
+    },
+
+    "generation": {
+        "steps": 9,
+        "cfg_scale": 0.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "9 steps = 8 DiT forwards per model card. Range: 8–16 practical. | CRITICAL: guidance_scale MUST be 0.0 — Z-Image-Turbo is CFG-distilled; any positive value degrades quality. | 1024×1024 native. Arbitrary resolutions up to ~1 MP (e.g. 1152×896 landscape, 896×1152 portrait)."
+    },
+
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~7.22 GB peak (Q8_0 GGUF) — fits comfortably in 16 GB unified memory without cpu_offload. All layers stay on MPS throughout inference, avoiding CPU↔GPU roundtrips between denoising steps."
+    },
+
+    "notes": {
+        "about": "Generates images in a stylised 1950s American painting aesthetic using Z-Image-Turbo with the 1950s American Dream LoRA. Captures vintage poster and advertisement art, Americana colour palettes, retro illustration style, and period-typical compositions. Works well for travel posters, product labels, portraits, and satirical scenes.",
+        "prompt_guide": "Always include all three trigger words at the start: 5os4m3r1c4n4, 1950s, painting\n\nExamples:\n  5os4m3r1c4n4, 1950s, painting, a painting of a cheerful american family at a drive-in diner, pastel colours, chrome details\n  5os4m3r1c4n4, 1950s, painting, a painting of a 1950s travel poster for Route 66, bold typography, sunny desert landscape\n  5os4m3r1c4n4, 1950s, painting, a painting of a 1950s housewife in a colourful kitchen, vintage appliances, warm lighting\n  5os4m3r1c4n4, 1950s, painting, 1950s logo text at bottom says 'SUBURBIA', a painting of a perfect american suburb with white picket fences\n\nFor better composition at lower LoRA strength: set strength to 0.25–0.50 for the first pass, then run img2img with strength 0.85 and denoise 0.50–0.75.\n\nNegative prompt: generally not effective at cfg_scale=0.0 (CFG-distilled model).",
+        "warnings": "CRITICAL: guidance_scale MUST be 0.0. | Include all three trigger words: 5os4m3r1c4n4, 1950s, painting — omitting them weakens the style significantly. | LoRA is applied via set_adapters() in GGUF mode — effect is comparable to fuse_lora() but applied dynamically each forward pass."
+    }
+}

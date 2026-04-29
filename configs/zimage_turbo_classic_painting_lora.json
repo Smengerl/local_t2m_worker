@@ -1,0 +1,38 @@
+{
+    "description": "Classic oil-painting style via Z-Image-Turbo + LoRA",
+    "backend": "zimage",
+
+    "model": {
+        "repo": "unsloth/Z-Image-Turbo-GGUF",
+        "gguf_file": "z-image-turbo-Q8_0.gguf",
+        "components_repo": "Tongyi-MAI/Z-Image-Turbo",
+        "_hint": "Transformer: unsloth/Z-Image-Turbo-GGUF (z-image-turbo-Q8_0.gguf, ~7.22 GB). Pipeline components (VAE, text encoder, scheduler, tokenizer): Tongyi-MAI/Z-Image-Turbo. Q8_0 keeps near-bfloat16 quality and fits in 16 GB without cpu_offload — all layers stay on MPS for faster inference. LoRA is applied via set_adapters() (GGUF-compatible) instead of fuse_lora()."
+    },
+
+    "lora": {
+        "repo": "renderartist/Classic-Painting-Z-Image-Turbo-LoRA",
+        "file": "Classic_Painting_Z_Image_Turbo_v1_renderartist_1750.safetensors",
+        "strength": 1.0,
+        "trigger": "class1cpa1nt",
+        "_hint": "Trigger word: class1cpa1nt — place at the start of the prompt. Trained for 1,750 steps on public domain masterpieces from the Art Institute of Chicago. strength range: 0.7–1.0; 1.0 for maximum painterly effect, 0.8 for a lighter stylistic blend."
+    },
+
+    "generation": {
+        "steps": 9,
+        "cfg_scale": 0.0,
+        "width": 1024,
+        "height": 1024,
+        "_hint": "9 steps = 8 DiT forwards (per model card). Range: 8–16 practical. | CRITICAL: guidance_scale MUST be 0.0 — Z-Image-Turbo is CFG-distilled; any positive value degrades quality. | 1024×1024 native. Arbitrary resolutions up to ~1 MP (e.g. 1152×896 landscape, 896×1152 portrait)."
+    },
+
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~7.22 GB peak (Q8_0 GGUF) — fits comfortably in 16 GB unified memory without cpu_offload. All layers stay on MPS throughout inference, avoiding CPU↔GPU roundtrips between denoising steps."
+    },
+
+    "notes": {
+        "about": "Generates images in the style of historical Old Masters oil paintings using Z-Image-Turbo with the Classic Painting Z LoRA. Trained on public domain masterpieces from the Art Institute of Chicago — captures brushwork textures, canvas grain, dramatic chiaroscuro lighting, and classical composition. Best for portraits, landscapes, still life, and surreal classical concepts.",
+        "prompt_guide": "Always start prompt with trigger word: class1cpa1nt\n\nExamples:\n  class1cpa1nt classic oil painting of a pensive woman in 17th-century attire, soft candlelight, dark background, catchlight details in her eyes\n  class1cpa1nt Jan van Eyck style portrait of a young nobleman, intricate collar, neutral grey background, photorealistic brushwork\n  class1cpa1nt still life of pomegranates and roses on a velvet cloth, warm side lighting, aged canvas texture\n  class1cpa1nt surrealist landscape with rolling hills and dramatic storm clouds, oil painting style, golden hour\n\nNegative prompt: generally not effective at cfg_scale=0.0 (CFG-distilled model).",
+        "warnings": "CRITICAL: guidance_scale MUST be 0.0. | Trigger word class1cpa1nt is required to activate the painting style. | LoRA is applied via set_adapters() in GGUF mode — effect is comparable to fuse_lora() but applied dynamically each forward pass."
+    }
+}

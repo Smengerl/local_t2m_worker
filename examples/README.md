@@ -18,12 +18,12 @@ Use these scripts to verify that all configs work end-to-end and to produce a vi
 
 | Script | Pipeline backend | Jobs | Description |
 |---|---|---|---|
-| [`create_examples_flux.sh`](create_examples_flux.sh) | `flux`, `flux2_klein` | 7 | FLUX.1 and FLUX.2 configs |
+| [`create_examples_flux.sh`](create_examples_flux.sh) | `flux`, `flux2_klein` | 8 | FLUX.1 and FLUX.2 configs |
 | [`create_examples_sd.sh`](create_examples_sd.sh) | `sd` | 12 | SD 1.5 · SD 2.1 |
 | [`create_examples_sd3.sh`](create_examples_sd3.sh) | `sd3` | 1 | Stable Diffusion 3 |
 | [`create_examples_sdxl.sh`](create_examples_sdxl.sh) | `sdxl` | 11 | SDXL base and LoRA configs |
-| [`create_examples_zimage.sh`](create_examples_zimage.sh) | `zimage` | 1 | Z-Image Turbo |
-| [`create_examples_all.sh`](create_examples_all.sh) | all | 32 | Orchestrator — runs all scripts above |
+| [`create_examples_zimage.sh`](create_examples_zimage.sh) | `zimage` | 3 | Z-Image Turbo — base + Classic Painting LoRA + 1950s American Dream LoRA |
+| [`create_examples_all.sh`](create_examples_all.sh) | all | 35 | Orchestrator — runs all scripts above |
 | [`_helper.sh`](_helper.sh) | — | — | Shared helper (source only, not executable) |
 
 ---
@@ -74,7 +74,7 @@ open http://localhost:8000
 
 ---
 
-## Configs covered (32 jobs)
+## Configs covered (35 jobs)
 
 Images appear automatically once the scripts have been run and the images generated.
 
@@ -119,6 +119,14 @@ Images appear automatically once the scripts have been run and the images genera
    <div style="font-size: 1em; margin-bottom: 12px;"><strong>Prompt:</strong><br>miniature people hiking on a sandwich used as a mountain trail, macro photography, shallow depth of field</div>
    <hr>
    <div style="text-align: center; font-family: monospace; font-size: 0.95em; color: #444;"><code>configs/flux_miniature_people_lora.json</code></div>
+  </div>
+ </div>
+ <div style="flex: 0 1 320px; border: 1px solid #ddd; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden; background: transparent;">
+  <img src="flux_dev_wong_kar_wai_fallen_angels_lora.png" alt="flux_dev_wong_kar_wai_fallen_angels_lora" style="width: 100%; display: block; aspect-ratio: 1/1; object-fit: cover;">
+  <div style="padding: 16px;">
+   <div style="font-size: 1em; margin-bottom: 12px;"><strong>Prompt:</strong><br>WKW style, tilted view of a woman with long dark hair standing in a neon-lit subway station, rain streaking the windows, moody neo-noir atmosphere, vivid green and red neon reflections</div>
+   <hr>
+   <div style="text-align: center; font-family: monospace; font-size: 0.95em; color: #444;"><code>configs/flux_dev_wong_kar_wai_fallen_angels_lora.json</code></div>
   </div>
  </div>
 </div>
@@ -349,6 +357,22 @@ Images appear automatically once the scripts have been run and the images genera
    <div style="font-size: 1em; margin-bottom: 12px;"><strong>Prompt:</strong><br>a photorealistic portrait of a woman in soft evening light, warm golden background, sharp focus</div>
    <hr>
    <div style="text-align: center; font-family: monospace; font-size: 0.95em; color: #444;"><code>configs/zimage_turbo.json</code></div>
+  </div>
+ </div>
+ <div style="flex: 0 1 320px; border: 1px solid #ddd; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden; background: transparent;">
+  <img src="zimage_turbo_classic_painting_lora.png" alt="zimage_turbo_classic_painting_lora" style="width: 100%; display: block; aspect-ratio: 1/1; object-fit: cover;">
+  <div style="padding: 16px;">
+   <div style="font-size: 1em; margin-bottom: 12px;"><strong>Prompt:</strong><br>class1cpa1nt classic oil painting of a pensive woman in 17th-century attire, soft candlelight, dark textured background, catchlight details in her eyes, photorealistic brushwork</div>
+   <hr>
+   <div style="text-align: center; font-family: monospace; font-size: 0.95em; color: #444;"><code>configs/zimage_turbo_classic_painting_lora.json</code></div>
+  </div>
+ </div>
+ <div style="flex: 0 1 320px; border: 1px solid #ddd; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden; background: transparent;">
+  <img src="zimage_turbo_1950s_american_dream_lora.png" alt="zimage_turbo_1950s_american_dream_lora" style="width: 100%; display: block; aspect-ratio: 1/1; object-fit: cover;">
+  <div style="padding: 16px;">
+   <div style="font-size: 1em; margin-bottom: 12px;"><strong>Prompt:</strong><br>5os4m3r1c4n4, 1950s, painting, a painting of a cheerful american family at a drive-in diner, pastel colours, chrome details, sunny afternoon, retro Americana</div>
+   <hr>
+   <div style="text-align: center; font-family: monospace; font-size: 0.95em; color: #444;"><code>configs/zimage_turbo_1950s_american_dream_lora.json</code></div>
   </div>
  </div>
 </div>

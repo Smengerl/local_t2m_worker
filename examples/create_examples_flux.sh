@@ -70,6 +70,12 @@ enqueue \
     "miniature people camping next to a candle flame at night, macro photography, bokeh" \
     "flux_dev_miniature_people_lora"
 
+# FLUX.1-dev + Wong Kar Wai Fallen Angels LoRA (neo-noir cinematic style)
+enqueue \
+    "configs/flux_dev_wong_kar_wai_fallen_angels_lora.json" \
+    "tilted view of a woman with long dark hair standing in a neon-lit subway station" \
+    "flux_dev_wong_kar_wai_fallen_angels_lora"
+
 echo
 
 # ---------------------------------------------------------------------------

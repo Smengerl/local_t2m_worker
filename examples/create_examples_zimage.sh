@@ -34,4 +34,16 @@ enqueue \
     "a photorealistic portrait of a woman in soft evening light, warm golden background, sharp focus" \
     "zimage_turbo"
 
+# Z-Image Turbo + Classic Painting Z LoRA (Old Masters oil-painting style)
+enqueue \
+    "configs/zimage_turbo_classic_painting_lora.json" \
+    "A pensive woman in 17th-century attire riding a motorcycle flicking off viewer with middle finger" \
+    "zimage_turbo_classic_painting_lora"
+
+# Z-Image Turbo + 1950s American Dream LoRA (vintage Americana painting style)
+enqueue \
+    "configs/zimage_turbo_1950s_american_dream_lora.json" \
+    "a cheerful american family at a drive-in diner, nuclear explosion mushroom cloud on the horizon" \
+    "zimage_turbo_1950s_american_dream_lora"
+
 echo
