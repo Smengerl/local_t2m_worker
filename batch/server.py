@@ -130,6 +130,13 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000).")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload (development only).")
     args = parser.parse_args()
+
+    # Acquire the exclusive instance lock before starting uvicorn.
+    # This prevents running both batch.server and batch.worker simultaneously,
+    # which would cause double-generation races on the shared queue.
+    from batch.instance_lock import acquire_exclusive
+    _instance_lock = acquire_exclusive("server")  # exits if worker/server already running  # noqa: F841
+
     uvicorn.run("batch.server:app", host=args.host, port=args.port, reload=args.reload)
 
 

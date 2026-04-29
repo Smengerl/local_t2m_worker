@@ -132,6 +132,32 @@ def next_pending() -> Optional[dict[str, Any]]:
                 return job
     return None
 
+
+def claim_next_pending(worker_pid: Optional[int] = None) -> Optional[dict[str, Any]]:
+    """Atomically find the oldest pending job and mark it as running.
+
+    Unlike calling ``next_pending()`` followed by ``mark_running()``, this
+    function holds the file lock across both the read and the status update.
+    This closes the TOCTOU window where two concurrent workers could both see
+    the same job as ``pending`` and start processing it simultaneously.
+
+    Returns the job dict (with status already set to ``"running"``), or
+    ``None`` if the queue has no pending jobs.
+    """
+    with _lock():
+        jobs = _read_all()
+        for job in jobs:
+            if job["status"] == "pending":
+                job["status"] = "running"
+                job["started_at"] = _now()
+                job["progress_step"] = 0
+                job["progress_total"] = 0
+                job["log_lines"] = []
+                job["worker_pid"] = worker_pid
+                _write_all(jobs)
+                return job
+    return None
+
 def reorder_pending(job_ids: list[str]) -> None:
     """Change the order of pending jobs based on a list of IDs.
 

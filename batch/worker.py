@@ -41,7 +41,7 @@ _ROOT = Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from batch.queue import mark_done, mark_failed, mark_running, next_pending, update_job, append_log
+from batch.queue import mark_done, mark_failed, mark_running, next_pending, claim_next_pending, update_job, append_log
 from batch import notify
 from generate import generate_image
 from pipeline_config import PipelineConfig
@@ -190,7 +190,9 @@ def process_job(
     global _current_job_id
 
     log.info("Starting job %s  prompt=%r", job["id"][:8], job["prompt"])
-    mark_running(job["id"], worker_pid=os.getpid())
+    # NOTE: mark_running() is NOT called here — the job was already atomically
+    # transitioned to "running" by claim_next_pending() in the worker loop,
+    # which closes the TOCTOU window between next_pending() and mark_running().
     _current_job_id = job["id"]
     _cancel_event.clear()  # reset any leftover cancel request from a previous job
 
@@ -341,6 +343,14 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
                         pass  # normal — just re-check the queue
                 continue
 
+            # Atomically claim the job: transition pending → running under the
+            # file lock so no concurrent worker can pick up the same job.
+            job = claim_next_pending(worker_pid=os.getpid())
+            if job is None:
+                # Another worker claimed it in the brief window between
+                # next_pending() and claim_next_pending() — just loop again.
+                continue
+
             result_path: str | None = None
             caught: BaseException | None = None
 
@@ -410,23 +420,8 @@ def main() -> None:
     args = parser.parse_args()
 
     async def _run() -> None:
-        # Solution B: On startup, the worker checks if another worker is already running (PID file + process check).
-        pid_file = Path(__file__).parent.parent / "batch/worker.pid"
-        if pid_file.exists():
-            try:
-                existing_pid = int(pid_file.read_text().strip())
-                if existing_pid != os.getpid():
-                    # Check if the process is still alive
-                    try:
-                        os.kill(existing_pid, 0)
-                        print(f"[worker] Another worker is already running (pid {existing_pid}), exiting.", file=sys.stderr)
-                        return
-                    except OSError:
-                        pass  # Process does not exist anymore, continue
-            except Exception:
-                pass  # Error reading/parsing PID file, continue
-        # Write own PID to the file
-        pid_file.write_text(str(os.getpid()))
+        from batch.instance_lock import acquire_exclusive
+        _instance_lock = acquire_exclusive("worker")  # exits if server/worker already running  # noqa: F841
 
         loop = asyncio.get_running_loop()
         task = asyncio.current_task()
