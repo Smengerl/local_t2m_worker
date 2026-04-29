@@ -122,11 +122,16 @@ def main() -> None:
         level=logging.INFO,
         format="%(message)s",
     )
+    import traceback
     args = parse_args()
     cfg, output_path, effective_prompt, negative_prompt = build_config(args)
     print_config(cfg, output_path, effective_prompt, negative_prompt, args.prompt)
-    generate_image(cfg, output_path, effective_prompt, negative_prompt)
-    print(f"✅ Image saved to: {output_path}")
+    try:
+        generate_image(cfg, output_path, effective_prompt, negative_prompt)
+        print(f"✅ Image saved to: {output_path}")
+    except Exception as e:
+        print("❌ Generation failed with exception:")
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
