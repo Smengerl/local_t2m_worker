@@ -1,18 +1,22 @@
 ---
 name: hugging-face-config-builder
 description: >
-  Creates a JSON config file for a Hugging Face text-to-image model and
-  documents it in README.md. Researches model parameters from the HF Hub,
-  chooses the correct pipeline_type, adds rich _comment fields, and checks
-  whether a new pipeline class is required.
+  Creates a JSON config file for a Hugging Face text-to-image model,
+  documents it in README.md, and wires it into the automatic example
+  generation scripts (examples/create_examples_*.sh + examples/README.md).
+  Researches model parameters from the HF Hub, chooses the correct
+  pipeline_type, adds rich _comment fields, and checks whether a new
+  pipeline class is required.
 allowed-tools: web-search
 ---
 
 ## Goal
 
 Given a Hugging Face model name or URL, produce a complete, runnable
-`configs/<slug>.json` file for this project's text-to-image generation system
-and update `README.md` accordingly.
+`configs/<slug>.json` file for this project's text-to-image generation system,
+update `README.md` accordingly, and wire the new config into the automatic
+example-generation scripts so it appears in `create_examples_all.sh` and
+`examples/README.md`.
 
 ---
 
@@ -215,7 +219,76 @@ Add a row for the new `pipeline_type`:
 
 ---
 
-## Step 7 — Report to the user
+## Step 7 — Register the config in the examples system
+
+Every new config must be wired into the automatic example generation so that
+`create_examples_all.sh` can produce a showcase image for it.
+
+### 7a — Find the correct per-pipeline script
+
+Map `pipeline_type` → script file:
+
+| `pipeline_type` | Script |
+|---|---|
+| `flux`, `flux2_klein` | `examples/create_examples_flux.sh` |
+| `sd`, (sd15, sd21) | `examples/create_examples_sd.sh` |
+| `sd3` | `examples/create_examples_sd3.sh` |
+| `sdxl` | `examples/create_examples_sdxl.sh` |
+| `zimage` | `examples/create_examples_zimage.sh` |
+| `qwen` | `examples/create_examples_qwen.sh` (create if it does not exist yet) |
+| New architecture | Create `examples/create_examples_<arch>.sh` following the pattern of an existing script, and add it to `create_examples_all.sh` |
+
+### 7b — Add an `enqueue` call to the script
+
+Append a new `enqueue` call at the end of the script's job block (before the closing `echo`), following the existing pattern:
+
+```bash
+# <One-line description of this config>
+enqueue \
+    "configs/<slug>.json" \
+    "<showcase prompt — uses trigger word if required, demonstrates the style>" \
+    "<slug-without-.json>"
+```
+
+**Prompt guidelines:**
+- Must include the trigger word if one is required.
+- Should showcase the model's distinctive style in one sentence.
+- Keep it concise but evocative — it will appear in the docs.
+
+### 7c — Update the job counts
+
+After adding the `enqueue` call, increment **two** job counters:
+
+1. In `examples/README.md` — the Scripts table row for the affected script:
+   ```
+   | [`create_examples_<arch>.sh`](...) | `<type>` | **N+1** | ... |
+   ```
+2. In `examples/README.md` — the `create_examples_all.sh` row total:
+   ```
+   | [`create_examples_all.sh`](...) | all | **M+1** | ... |
+   ```
+3. In `examples/README.md` — the `## Configs covered (N jobs)` heading.
+
+### 7d — Add an image card to `examples/README.md`
+
+Append a new HTML card inside the correct `<div style="display: flex; ...">` block for the pipeline section. Follow the existing card pattern exactly:
+
+```html
+ <div style="flex: 0 1 320px; border: 1px solid #ddd; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden; background: transparent;">
+  <img src="<slug>.png" alt="<slug>" style="width: 100%; display: block; aspect-ratio: 1/1; object-fit: cover;">
+  <div style="padding: 16px;">
+   <div style="font-size: 1em; margin-bottom: 12px;"><strong>Prompt:</strong><br><same showcase prompt used in the enqueue call></div>
+   <hr>
+   <div style="text-align: center; font-family: monospace; font-size: 0.95em; color: #444;"><code>configs/<slug>.json</code></div>
+  </div>
+ </div>
+```
+
+The image (`<slug>.png`) will not exist yet — that is expected. It is a placeholder that fills in automatically once the example script has been run.
+
+---
+
+## Step 8 — Report to the user
 
 Summarise what was done:
 
@@ -224,7 +297,8 @@ Summarise what was done:
 3. Whether a new pipeline was required and what was created/registered
 4. Any caveats (gated model, unusual CFG, memory requirements)
 5. README.md sections updated
-6. A quick-start example command:
+6. Examples wired in: which script was updated, job counts incremented, card added to `examples/README.md`
+7. A quick-start example command:
    ```
    ./run.sh -c ./configs/<slug>.json "YOUR PROMPT HERE"
    ```
@@ -269,3 +343,4 @@ Summarise what was done:
    }
    ```
 4. Update README.md config table and backends table.
+5. Add `enqueue` call to `examples/create_examples_flux.sh`, increment job counts in the Scripts table and `## Configs covered` heading, add image card to `examples/README.md`.
