@@ -1,7 +1,7 @@
 # =============================================================================
 # Queue mode toggle
 # Set QUEUE_MODE=true to enqueue jobs (default), false for direct synchronous generation
-QUEUE_MODE=false
+QUEUE_MODE=true
 
 # Kill running worker (if any)
 kill_worker() {
@@ -64,12 +64,7 @@ enqueue() {
     echo "[DEBUG] enqueue() called with:"
     echo "        config      = $config"
     echo "        prompt      = $prompt"
-    echo "        output_name = $output_name"
-    echo "        abs_config  = $abs_config"
-    echo "        abs_run_sh  = $abs_run_sh"
     echo "        output_path = $output_path"
-    echo "        REPO_ROOT   = $REPO_ROOT"
-    echo "        OUT_DIR     = $OUT_DIR"
 
     set -x
     # Always run from repo root so Python can import batch.*
