@@ -27,6 +27,9 @@ fi
 # Apply MPS memory settings on macOS
 apply_pytorch_mps_env
 
+# Load HuggingFace token from .hf_token (required for gated models like FLUX)
+load_hf_token
+
 # Activate virtual environment and resolve python
 activate_venv
 resolve_venv_python
