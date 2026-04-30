@@ -18,10 +18,14 @@ Adding a new backend:
 """
 
 import importlib
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from pipeline_config import PipelineConfig
-from pipelines.base import BasePipeline
+
+# BasePipeline is only imported for static type checking — never at runtime
+# here, so that importing `pipelines` does not pull in torch/diffusers.
+if TYPE_CHECKING:
+    from pipelines.base import BasePipeline
 
 # Maps the "pipeline_type" config value to its implementation class.
 # Import the classes lazily inside create_pipeline to avoid loading heavy
@@ -38,7 +42,7 @@ _REGISTRY: dict[str, str] = {
 }
 
 
-def create_pipeline(cfg: PipelineConfig) -> BasePipeline:
+def create_pipeline(cfg: PipelineConfig) -> "BasePipeline":
     """Instantiate and return the pipeline described by *cfg*.
 
     The concrete class is selected from ``_REGISTRY`` using
@@ -65,6 +69,6 @@ def create_pipeline(cfg: PipelineConfig) -> BasePipeline:
     # Lazy import: split "module.path.ClassName" and import on demand
     module_path, class_name = dotted.rsplit(".", 1)
     module = importlib.import_module(module_path)
-    cls: type[BasePipeline] = getattr(module, class_name)
+    cls = getattr(module, class_name)
 
     return cls(cfg)
