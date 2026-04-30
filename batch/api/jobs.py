@@ -15,6 +15,7 @@ Routes:
 import os
 import signal
 import sys
+import ctypes
 from pathlib import Path
 from typing import Any, Optional
 
@@ -46,17 +47,27 @@ router = APIRouter()
 def _is_pid_alive(pid: int) -> bool:
     """Return True if a process with *pid* is currently running.
 
-    Uses os.kill(pid, 0) which sends no signal but raises OSError if the
-    process does not exist or is not accessible.
+    On Unix, uses os.kill(pid, 0) which sends no signal but raises OSError
+    if the process does not exist. On Windows, os.kill(pid, 0) raises
+    WinError 87 (invalid parameter), so we use OpenProcess via ctypes instead.
     """
-    try:
-        os.kill(pid, 0)
+    if sys.platform == "win32":
+        # SYNCHRONIZE access right (0x00100000) is sufficient to check existence.
+        SYNCHRONIZE = 0x00100000
+        handle = ctypes.windll.kernel32.OpenProcess(SYNCHRONIZE, False, pid)
+        if handle == 0:
+            return False
+        ctypes.windll.kernel32.CloseHandle(handle)
         return True
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        # Process exists but we cannot signal it — treat as alive.
-        return True
+    else:
+        try:
+            os.kill(pid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            # Process exists but we cannot signal it — treat as alive.
+            return True
 
 
 def _heal_stale_running_jobs() -> None:
