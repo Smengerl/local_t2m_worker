@@ -145,6 +145,9 @@ def api_get_job(job_id: str) -> dict[str, Any]:
             append_log(job_id, f"[server] {msg}")
             job = mark_failed(job_id, msg) or job
     return _sanitise_result_path(job)
+
+
+@router.post("/jobs")
 def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
     pipeline_cfg = PipelineConfig.from_json(req.config)
     pipeline_cfg.apply_overrides(
