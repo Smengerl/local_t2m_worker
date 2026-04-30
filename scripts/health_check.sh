@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
+# health_check.sh — Cyclic health display. Can also be sourced to get run_checks().
+#
+# Standalone: ./scripts/health_check.sh   — loops until Ctrl-C
+# Sourceable: source .../health_check.sh  — provides run_checks(), requires
+#             ROOT_DIR, PYTHON, SYS_PYTHON, EXT_IFACE, LOOPBACK_IFACE to be set
+
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 # shellcheck source=helpers/env.sh
 source "$ROOT_DIR/scripts/helpers/env.sh"
 # shellcheck source=helpers/worker_status.sh
@@ -9,19 +15,14 @@ source "$ROOT_DIR/scripts/helpers/worker_status.sh"
 # shellcheck source=helpers/network.sh
 source "$ROOT_DIR/scripts/helpers/network.sh"
 
-# Cyclic health check — refreshes every ~5 s until Ctrl-C.
-# Prints six status lines per cycle:
-#  * Batch worker running   (PID file + kill -0)
-#  * Server process running (pgrep / wmic batch.server)
-#  * Server reachable       (HTTP probe on localhost)
-#  * Generation running     (job with status=running in queue.jsonl)
-#  * HF download rate       (RX on external interface)
-#  * Web GUI traffic rate   (RX on loopback)
-
-QUEUE_FILE="$ROOT_DIR/queue.jsonl"
 PORT="${PORT:-8000}"
+WORKER_LOG="${WORKER_LOG:-$ROOT_DIR/batch/worker.log}"
 
-# Detect interfaces once at startup
+# Activate venv and resolve PYTHON so batch_instance_running() can spawn Python.
+activate_venv
+resolve_venv_python
+
+# Detect interfaces (safe to call multiple times — no-op if already set)
 detect_ext_iface
 LOOPBACK_IFACE=$(get_loopback_iface)
 
@@ -37,16 +38,10 @@ status() {
 
 run_checks() {
 
-  # 0) Local CLI worker running?
-  local_worker_ok=false
-  if worker_running; then
-    local_worker_ok=true
-  fi
-
-  # 1) Server process running?
-  server_proc_ok=false
-  if server_process_running; then
-    server_proc_ok=true
+  # 0+1) batch.server OR batch.worker running? (single lock-based check)
+  batch_proc_ok=false
+  if batch_instance_running; then
+    batch_proc_ok=true
   fi
 
   # 2) Server reachable? (HTTP probe on localhost)
@@ -97,8 +92,7 @@ run_checks() {
   clear
   printf "  Local T2M Worker Server Health Check —  %s  (Ctrl-C to quit)\n\n" "$(date '+%H:%M:%S')"
 
-  status $local_worker_ok "Local CLI worker running (batch.worker)"
-  status $server_proc_ok "Server process running"
+  status $batch_proc_ok  "batch.worker / batch.server running (batch.lock)"
   status $server_http_ok "Server reachable (localhost:$PORT)"
   if $server_http_ok; then
     status $worker_ok      "Server batch worker task alive"
@@ -127,17 +121,24 @@ run_checks() {
   printf "\n  Network\n"
   status $hf_ok  "HF download   $(fmt_rate $ext_rate) (via $EXT_IFACE)"
   status $gui_ok "Web GUI traffic  $(fmt_rate $lo_rate) ($LOOPBACK_IFACE)"
+
+  # ── worker log tail ───────────────────────────────────────────────────────
+  if $batch_proc_ok && [[ -f "$WORKER_LOG" ]]; then
+    printf "\n  Worker log  (last 8 lines — %s)\n" "$WORKER_LOG"
+    printf "  %s\n" "$(printf '─%.0s' {1..60})"
+    tail -8 "$WORKER_LOG" | while IFS= read -r line; do
+      printf "  %s\n" "$line"
+    done
+  fi
 }
 
 # ── main loop ─────────────────────────────────────────────────────────────────
+# Only run the loop when executed directly — not when sourced by _helper.sh.
 
-trap 'printf "\nStopped.\n"; exit 0' INT TERM
-
-while true; do
-  run_checks
-  sleep 5
-done
-  run_checks
-  # refresh every 5 s
-  sleep 5
-done
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  trap 'printf "\nStopped.\n"; exit 0' INT TERM
+  while true; do
+    run_checks
+    sleep 5
+  done
+fi

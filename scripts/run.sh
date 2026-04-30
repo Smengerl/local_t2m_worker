@@ -112,12 +112,10 @@ if [[ "$QUEUE" == true ]]; then
     "$PYTHON" -m batch.enqueue "${PASSTHROUGH_ARGS[@]}"
   fi
 
-  if worker_running; then
-  pid=""
-  if [[ -f "$WORKER_PID_FILE" ]]; then pid=$(cat "$WORKER_PID_FILE"); fi
-  echo "✅ Worker already running (pid ${pid:-?})."
+  if batch_instance_running; then
+    echo "ℹ️  Worker/server already running — job will be picked up automatically."
   else
-    echo "🚀 Worker not running — starting it in the background..."
+    echo "🚀 No batch instance running — starting worker in the background..."
     if [[ "$OFFLINE" != true ]]; then
       load_hf_token
     fi
