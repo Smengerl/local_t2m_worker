@@ -7,27 +7,27 @@ A growing collection of ready-to-use JSON config files covers a wide range of mo
 **Examples:**
 <table style="width:100%; border-collapse:collapse; table-layout:fixed; margin-bottom:32px;">
 <tr>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/zimage_turbo_classic_painting_lora.png"        alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0; width:16.666%;"><div style="position:relative; padding-bottom:100%;"><img src="examples/flux_dev.png"                               alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0; width:16.666%;"><div style="position:relative; padding-bottom:100%;"><img src="examples/flux_cute_comic_lora.png"                   alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0; width:16.666%;"><div style="position:relative; padding-bottom:100%;"><img src="examples/flux_miniature_people_lora.png"             alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0; width:16.666%;"><div style="position:relative; padding-bottom:100%;"><img src="examples/flux_dev_wong_kar_wai_fallen_angels_lora.png" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/zimage_turbo_1950s_american_dream_lora.png"    alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
+<td style="padding:0;"><img src="examples/zimage_turbo_classic_painting_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/flux_dev.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/flux_cute_comic_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/flux_miniature_people_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/flux_dev_wong_kar_wai_fallen_angels_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/zimage_turbo_1950s_american_dream_lora.png" alt="" style="width:100%;display:block;"></td>
 </tr><tr>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd15_default.png"                              alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd15_dreamshaper8.png"                         alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd15_inkpunk_lora.png"                         alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd15_pixel_art_lora.png"                       alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd15_comic_diffusion_andreasrocha.png"         alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd15_comic_diffusion_charliebo.png"            alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
+<td style="padding:0;"><img src="examples/sd15_default.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sd15_dreamshaper8.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sd15_inkpunk_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sd15_pixel_art_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sd15_comic_diffusion_andreasrocha.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sd15_comic_diffusion_charliebo.png" alt="" style="width:100%;display:block;"></td>
 </tr><tr>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd3_medium.png"                                alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sdxl_turbo.png"                                alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sdxl_littletinies_lora.png"                    alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sdxl_storyboard_sketch_lora.png"               alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/zimage_turbo.png"                              alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-<td style="padding:0;"><div style="position:relative; padding-bottom:100%;"><img src="examples/sd21_coloringbook_redmond_lora.png"            alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div></td>
-</tr><tr>
+<td style="padding:0;"><img src="examples/sd3_medium.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sdxl_turbo.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sdxl_littletinies_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sdxl_storyboard_sketch_lora.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/zimage_turbo.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sd21_coloringbook_redmond_lora.png" alt="" style="width:100%;display:block;"></td>
+</tr>
 </table>
 
 **Supported hardware:** Apple Silicon (MPS), NVIDIA GPU (CUDA), CPU fallback.
