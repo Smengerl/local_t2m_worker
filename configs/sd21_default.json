@@ -1,0 +1,23 @@
+{
+    "description": "Stable Diffusion 2.1 base",
+    "backend": "sd",
+    "model": {
+        "repo": "Manojb/stable-diffusion-2-1-base",
+        "_hint": "Base: Manojb/stable-diffusion-2-1-base (community mirror, original Stability AI repo removed). ~2 GB; no sequential offload needed."
+    },
+    "generation": {
+        "steps": 30,
+        "cfg_scale": 7.5,
+        "width": 512,
+        "height": 512,
+        "_hint": "30 steps recommended. CFG 7.5 per model card. SD 2.1 base native 512×512; 768×768 also supported."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)"
+    },
+    "notes": {
+        "about": "Vanilla Stable Diffusion 2.1 base checkpoint — no LoRA, no fine-tune. Good general-purpose starting point for photorealistic and artistic prompts at 512×512.",
+        "prompt_guide": "Works best with detailed, descriptive prompts. Negative prompts are effective: 'blurry, low quality, deformed, watermark' helps improve output quality."
+    }
+}
