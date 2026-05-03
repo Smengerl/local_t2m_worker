@@ -52,23 +52,11 @@ enqueue \
     "a brave little fox on an adventure through an enchanted forest, in the style of TOK" \
     "flux_cute_comic_lora"
 
-# FLUX.1-dev + cute-comic LoRA (higher quality than schnell variant)
-enqueue \
-    "configs/flux_dev_cute_comic_lora.json" \
-    "a cheerful robot baking cookies in a cosy kitchen, in the style of TOK" \
-    "flux_dev_cute_comic_lora"
-
 # FLUX.1-schnell + miniature-people LoRA
 enqueue \
     "configs/flux_miniature_people_lora.json" \
     "miniature people hiking on a sandwich used as a mountain trail, macro photography, shallow depth of field" \
     "flux_miniature_people_lora"
-
-# FLUX.1-dev + miniature-people LoRA (higher quality variant)
-enqueue \
-    "configs/flux_dev_miniature_people_lora.json" \
-    "miniature people camping next to a candle flame at night, macro photography, bokeh" \
-    "flux_dev_miniature_people_lora"
 
 # FLUX.1-dev + Wong Kar Wai Fallen Angels LoRA (neo-noir cinematic style)
 enqueue \
