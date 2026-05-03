@@ -53,32 +53,6 @@ class ZImageBackend(BasePipeline):
 
     # ── public ───────────────────────────────────────────────────────────────
 
-    def generate(
-        self,
-        prompt: str,
-        negative_prompt: str = "",
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> Image.Image:
-        total = self.num_inference_steps
-        kwargs: dict = dict(
-            prompt=prompt,
-            height=self.height,
-            width=self.width,
-            num_inference_steps=total,
-            guidance_scale=self.guidance_scale,
-        )
-        if negative_prompt:
-            kwargs["negative_prompt"] = negative_prompt
-
-        if progress_callback is not None:
-            def _cb(pipe, step_index: int, timestep, callback_kwargs: dict) -> dict:
-                progress_callback(step_index + 1, total)
-                return callback_kwargs
-            kwargs["callback_on_step_end"] = _cb
-
-        result = self._pipe(**kwargs)
-        return result.images[0]  # type: ignore[index]
-
     # ── private ──────────────────────────────────────────────────────────────
 
     def _load(self) -> _AnyZImagePipe:

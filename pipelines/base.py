@@ -7,7 +7,7 @@ Every concrete pipeline must:
 """
 
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Callable, ClassVar, Optional
 
 import torch
@@ -177,6 +177,39 @@ class BasePipeline(ABC):
                 f"Original error: {exc}"
             ) from exc
 
+    def _build_step_callback(
+        self,
+        total: int,
+        progress_callback: Optional[Callable[[int, int], None]],
+    ) -> Optional[Callable]:
+        """Build a diffusers ``callback_on_step_end`` that reports progress.
+
+        Wraps *progress_callback* in the four-argument signature expected by
+        diffusers and returns ``None`` when no callback is needed (so callers
+        can skip setting ``callback_on_step_end`` entirely).
+
+        Any exception raised inside *progress_callback* (e.g.
+        ``_CancellationError`` from the batch worker) propagates out of the
+        diffusers denoising loop immediately, aborting inference at the next
+        inter-step boundary.
+
+        Args:
+            total: Total number of inference steps (used for progress reporting).
+            progress_callback: Optional callable ``(step, total_steps)`` or
+                ``None``.  When ``None`` this method returns ``None``.
+
+        Returns:
+            A diffusers-compatible callback or ``None``.
+        """
+        if progress_callback is None:
+            return None
+
+        def _cb(pipe: Any, step_index: int, timestep: Any, callback_kwargs: dict) -> dict:
+            progress_callback(step_index + 1, total)  # 0-based → 1-based
+            return callback_kwargs
+
+        return _cb
+
     def _log(self, msg: str) -> None:
         """Emit *msg* at INFO level.
 
@@ -199,7 +232,6 @@ class BasePipeline(ABC):
         self._log("Using device: CPU (this will be slow)")
         return torch.device("cpu")
 
-    @abstractmethod
     def generate(
         self,
         prompt: str,
@@ -207,6 +239,10 @@ class BasePipeline(ABC):
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Image.Image:
         """Run inference and return a PIL Image.
+
+        Template method: orchestrates the common generate flow.  Subclasses
+        customise behaviour by overriding ``_build_generate_kwargs()`` and/or
+        ``_before_inference()``.
 
         Args:
             prompt: Text description of the image to generate.
@@ -218,4 +254,58 @@ class BasePipeline(ABC):
         Returns:
             Generated PIL Image.
         """
-        ...
+        total = self.num_inference_steps
+        self._before_inference(progress_callback, total)
+        kwargs = self._build_generate_kwargs(prompt, negative_prompt, total)
+        cb = self._build_step_callback(total, progress_callback)
+        if cb is not None:
+            kwargs["callback_on_step_end"] = cb
+        result = self._pipe(**kwargs)  # type: ignore[attr-defined]
+        return result.images[0]  # type: ignore[index]
+
+    def _before_inference(
+        self,
+        progress_callback: Optional[Callable[[int, int], None]],
+        total: int,
+    ) -> None:
+        """Hook called at the start of ``generate()``, before kwargs are built.
+
+        Override to perform pre-inference actions such as signalling the
+        initial progress state to the UI.  Default implementation does nothing.
+
+        Args:
+            progress_callback: The callback passed to ``generate()``.
+            total: Total number of inference steps.
+        """
+
+    def _build_generate_kwargs(
+        self,
+        prompt: str,
+        negative_prompt: str,
+        total: int,
+    ) -> dict:
+        """Build the kwargs dict passed to the diffusers pipeline call.
+
+        Default implementation covers the common SD-style signature:
+        ``prompt``, ``negative_prompt`` (omitted when empty), standard
+        generation parameters.  Override in subclasses to add or replace
+        pipeline-specific parameters.
+
+        Args:
+            prompt: The generation prompt.
+            negative_prompt: Negative prompt string (may be empty).
+            total: Number of inference steps (already resolved from config).
+
+        Returns:
+            Dict of keyword arguments for ``self._pipe(**kwargs)``.
+        """
+        kwargs: dict = dict(
+            prompt=prompt,
+            num_inference_steps=total,
+            guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
+        )
+        if negative_prompt:
+            kwargs["negative_prompt"] = negative_prompt
+        return kwargs

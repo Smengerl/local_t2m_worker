@@ -40,31 +40,6 @@ class StableDiffusionBackend(BasePipeline):
 
     # ── public ───────────────────────────────────────────────────────────────
 
-    def generate(
-        self,
-        prompt: str,
-        negative_prompt: str = "",
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> Image.Image:
-        total = self.num_inference_steps
-        kwargs: dict = dict(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            num_inference_steps=total,
-            guidance_scale=self.guidance_scale,
-            width=self.width,
-            height=self.height,
-        )
-
-        if progress_callback is not None:
-            def _cb(pipe, step_index: int, timestep, callback_kwargs: dict) -> dict:
-                progress_callback(step_index + 1, total)  # 0-based → 1-based
-                return callback_kwargs
-            kwargs["callback_on_step_end"] = _cb
-
-        result = self._pipe(**kwargs)
-        return result.images[0]  # type: ignore[index]
-
     # ── private ──────────────────────────────────────────────────────────────
 
     def _is_sd3(self) -> bool:
@@ -95,16 +70,15 @@ class StableDiffusionBackend(BasePipeline):
         # dtype selection per architecture and device:
         # - CUDA: float16 universally safe and fast
         # - SD3 + MPS: float16 recommended (float32 OOMs on 16 GB)
-        # - SDXL + MPS: float16 works correctly on PyTorch ≥ 2.3 (NaN bug fixed);
-        #   saves ~3.5 GB vs float32 on 16 GB unified memory
-        # - SD 1.5 + MPS: float16 can still produce NaN in the UNet attention layers
-        #   on some PyTorch versions → use float32 for safety
+        # - SDXL + MPS: float32 required — float16 causes NaN in the UNet
+        #   attention layers on MPS (confirmed PyTorch 2.11 / Apple Silicon),
+        #   producing all-black images regardless of VAE dtype.  With
+        #   sequential_cpu_offload the ~12 GB float32 peak fits in 16 GB RAM.
+        # - SD 1.5 + MPS: float32 for safety (float16 NaN risk on some versions)
         if device.type == "cuda":
             dtype = torch.float16
         elif is_sd3 and device.type == "mps":
             dtype = torch.float16
-        elif is_xl and device.type == "mps":
-            dtype = torch.float16  # PyTorch ≥ 2.3 fixes MPS NaN for SDXL
         else:
             dtype = torch.float32
 
@@ -113,13 +87,12 @@ class StableDiffusionBackend(BasePipeline):
             load_kwargs["safety_checker"] = None
             load_kwargs["requires_safety_checker"] = False
 
+        # No VAE fix needed — SDXL now runs in float32 on MPS, so overflow
+        # cannot occur.  vae_needs_fix kept as False so the upcast block below
+        # is skipped cleanly.
+        vae_needs_fix = False
+
         if self.weight_name and not self.lora_id:
-            # Single-file checkpoint — download to local cache first, then load
-            # from the local path. from_single_file() with a URL internally calls
-            # _get_model_file(repo_id, weights_name) which re-appends resolve/main/,
-            # causing a double-path 404. Using hf_hub_download avoids this.
-            # Note: when lora_id is also set, weight_name refers to the LoRA file
-            # (passed to load_lora_weights below), not to the base model checkpoint.
             self._log(f"Downloading single-file checkpoint: {self.model_id}/{self.weight_name} ...")
             local_path = hf_hub_download(
                 repo_id=self.model_id,
@@ -130,6 +103,12 @@ class StableDiffusionBackend(BasePipeline):
             pipe = pipeline_cls.from_single_file(local_path, **load_kwargs)
         else:
             pipe = pipeline_cls.from_pretrained(self.model_id, **load_kwargs)
+
+        # Upcast VAE to float32 so NaN latents from the float16 UNet are not
+        # silently decoded as black pixels.  Must happen before device placement /
+        # sequential_cpu_offload so the hooks capture the correct dtype.
+        if vae_needs_fix:
+            pipe.vae = pipe.vae.to(dtype=torch.float32)
 
         if self.sequential_cpu_offload:
             # Offloads submodules to CPU between ops; cuts peak memory ~50 %.

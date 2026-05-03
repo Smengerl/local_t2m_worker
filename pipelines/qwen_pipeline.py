@@ -57,37 +57,23 @@ class QwenImageBackend(BasePipeline):
 
     # ── public ───────────────────────────────────────────────────────────────
 
-    def generate(
+    def _before_inference(
         self,
-        prompt: str,
-        negative_prompt: str = "",
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> Image.Image:
-        total = self.num_inference_steps
+        progress_callback: Optional[Callable[[int, int], None]],
+        total: int,
+    ) -> None:
+        # Signal total immediately so the web-UI shows the progress bar
+        # before the first denoising step completes.
+        if progress_callback is not None:
+            progress_callback(0, total)
+
+    def _build_generate_kwargs(self, prompt: str, negative_prompt: str, total: int) -> dict:
+        kwargs = super()._build_generate_kwargs(prompt, negative_prompt, total)
         # Qwen-Image uses true_cfg_scale; fall back to guidance_scale for
         # configs that still specify only guidance_scale.
-        true_cfg = self.true_cfg_scale or self.guidance_scale
-        kwargs: dict = dict(
-            prompt=prompt,
-            height=self.height,
-            width=self.width,
-            num_inference_steps=total,
-            true_cfg_scale=true_cfg,
-        )
-        if negative_prompt:
-            kwargs["negative_prompt"] = negative_prompt
-
-        if progress_callback is not None:
-            # Signal total immediately so the web-UI shows the progress bar
-            # before the first denoising step completes.
-            progress_callback(0, total)
-            def _cb(pipe, step_index: int, timestep, callback_kwargs: dict) -> dict:
-                progress_callback(step_index + 1, total)
-                return callback_kwargs
-            kwargs["callback_on_step_end"] = _cb
-
-        result = self._pipe(**kwargs)
-        return result.images[0]  # type: ignore[index]
+        kwargs.pop("guidance_scale", None)
+        kwargs["true_cfg_scale"] = self.true_cfg_scale or self.guidance_scale
+        return kwargs
 
     # ── private ──────────────────────────────────────────────────────────────
 

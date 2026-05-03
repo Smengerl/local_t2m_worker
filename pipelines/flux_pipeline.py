@@ -63,35 +63,13 @@ class FluxBackend(BasePipeline):
 
     # ── public ───────────────────────────────────────────────────────────────
 
-    def generate(
-        self,
-        prompt: str,
-        negative_prompt: str = "",
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> Image.Image:
-        total = self.num_inference_steps
-
-        kwargs: dict = dict(
-            prompt=prompt,
-            num_inference_steps=total,
-            guidance_scale=self.guidance_scale,
-            width=self.width,
-            height=self.height,
-        )
-
+    def _build_generate_kwargs(self, prompt: str, negative_prompt: str, total: int) -> dict:
+        kwargs = super()._build_generate_kwargs(prompt, negative_prompt, total)
         # T5 context-length override is a FLUX.1-only parameter.
         # FLUX.2 [klein] does not expose max_sequence_length.
         if not self._is_klein:
             kwargs["max_sequence_length"] = self._max_seq_len
-
-        if progress_callback is not None:
-            def _cb(pipe, step_index: int, timestep, callback_kwargs: dict) -> dict:
-                progress_callback(step_index + 1, total)
-                return callback_kwargs
-            kwargs["callback_on_step_end"] = _cb
-
-        result = self._pipe(**kwargs)
-        return result.images[0]  # type: ignore[index]
+        return kwargs
 
     # ── private ──────────────────────────────────────────────────────────────
 
