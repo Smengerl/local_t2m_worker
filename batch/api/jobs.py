@@ -12,6 +12,7 @@ Routes:
   GET    /api/stats                 – job counts per status
 """
 
+import logging
 import os
 import signal
 import sys
@@ -21,6 +22,8 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent.parent.parent
 if str(_ROOT) not in sys.path:
@@ -123,17 +126,32 @@ def api_stats() -> dict[str, int]:
 
 
 def _sanitise_result_path(job: dict[str, Any]) -> dict[str, Any]:
-    """Clear ``result_path`` if the referenced output file no longer exists.
+    """Log a debug message if ``result_path`` points outside outputs/ or is missing.
 
-    Prevents 404 noise in logs and broken thumbnails in the UI when an output
-    file is deleted from disk while the job entry is still in the queue.
+    The path is intentionally **not** cleared here so that Re-run and other
+    operations that read ``result_path`` from the queue continue to work even
+    when the file lives outside the outputs/ directory.  Access control
+    (403 / 404) is enforced server-side in the /api/outputs endpoints.
     """
     rp = job.get("result_path")
-    if rp:
-        output_file = _ROOT / rp
-        if not output_file.exists():
-            job = dict(job)  # shallow copy — do not mutate the in-memory store
-            job["result_path"] = None
+    if not rp:
+        return job
+
+    _OUTPUTS_DIR = (_ROOT / "outputs").resolve()
+    rp_resolved = (Path(rp) if Path(rp).is_absolute() else _ROOT / rp).resolve()
+
+    if not rp_resolved.exists():
+        logger.debug(
+            "result_path for job %s not found on disk: %s",
+            job.get("id", "?"),
+            rp_resolved,
+        )
+    elif not str(rp_resolved).startswith(str(_OUTPUTS_DIR)):
+        logger.debug(
+            "result_path for job %s is outside outputs/ (%s) — /api/outputs will return 403",
+            job.get("id", "?"),
+            rp_resolved,
+        )
     return job
 
 

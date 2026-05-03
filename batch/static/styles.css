@@ -730,6 +730,30 @@ details[open] .cfg-toggle-arrow {
     display: block;
 }
 
+/* Placeholder shown when a completed job's output file is missing on disk */
+.job-thumb-missing {
+    flex: 1;
+    min-height: 60px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: var(--color-surface-card);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    color: var(--color-text-muted, #aaa);
+    font-size: 0.78em;
+    text-align: center;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.job-thumb-missing .material-icons-round {
+    font-size: 1.8em;
+    opacity: 0.5;
+}
+
 /* Drag-and-drop reorder handle */
 .drag-handle {
     cursor: grab;

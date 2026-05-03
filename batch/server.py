@@ -66,7 +66,7 @@ app = FastAPI(title="Image Generation Queue", version="1.0", docs_url="/docs", r
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(jobs_router.router,    prefix="/api")
 app.include_router(configs_router.router, prefix="/api")
-app.include_router(outputs_router.router)
+app.include_router(outputs_router.router, prefix="/api")
 
 # ── Reordering API ───────────────────────────────────────────────────────────
 class ReorderRequest(BaseModel):

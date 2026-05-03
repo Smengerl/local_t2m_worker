@@ -93,10 +93,10 @@ async function cancelJob(id, evt) {
     refresh();
 }
 
-async function deleteImage(filename, jobId, evt) {
+async function deleteImage(resultPath, jobId, evt) {
     if (evt) evt.stopPropagation();
     if (!confirm('Permanently delete this image?')) return;
-    await apiFetch(`/outputs/${filename}`, { method: 'DELETE' });
+    await apiFetch(`/api/outputs/${encodeURIComponent(resultPath)}`, { method: 'DELETE' });
     try { await apiFetch(`/api/jobs/${jobId}`, { method: 'DELETE' }); } catch (e) { /* ignore */ }
     refresh();
 }
@@ -156,8 +156,7 @@ function renderJobCard(j) {
     if (j.status === 'failed' || (j.status === 'done' && !j.result_path))
         actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)"><span class="material-icons-round">delete</span>Delete</button>`);
     if (j.status === 'done' && j.result_path) {
-        const fname = j.result_path.split('/').pop();
-        actions.push(`<button class="btn-sm btn-danger" onclick="deleteImage('${fname}','${j.id}',event)"><span class="material-icons-round">hide_image</span>Delete image</button>`);
+        actions.push(`<button class="btn-sm btn-danger" onclick="deleteImage(${JSON.stringify(j.result_path)},'${j.id}',event)"><span class="material-icons-round">hide_image</span>Delete image</button>`);
     }
     if (j.status === 'running')
         actions.push(`<button class="btn-sm btn-cancel" onclick="cancelJob('${j.id}',event)"><span class="material-icons-round">cancel</span>Cancel</button>`);
@@ -178,9 +177,11 @@ function renderJobCard(j) {
 
     // Thumbnail (done jobs with a saved result only)
     const thumbSrc = j.status === 'done' && j.result_path
-        ? `/outputs/${j.result_path.split('/').pop()}` : null;
-    const inlineThumb = thumbSrc
-        ? `<img class="job-thumb" src="${thumbSrc}" onclick="event.stopPropagation(); openLightbox('${thumbSrc}')" onerror="this.style.display='none'">`
+        ? `/api/outputs/${encodeURIComponent(j.result_path)}` : null;
+    const inlineThumb = j.status === 'done'
+        ? (thumbSrc
+            ? `<img class="job-thumb" src="${thumbSrc}" onclick="event.stopPropagation(); openLightbox('${thumbSrc}')" onerror="this.replaceWith(document.querySelector('#tpl-thumb-missing').content.cloneNode(true))">`
+            : `<div class="job-thumb-missing"><span class="material-icons-round">broken_image</span><span>Image file not available</span></div>`)
         : '';
 
     // Expanded detail panel
