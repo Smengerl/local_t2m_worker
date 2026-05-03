@@ -49,12 +49,6 @@ enqueue \
     "fantasy portrait of an elf warrior in enchanted armour, dramatic rim lighting, detailed digital painting" \
     "sd15_dreamshaper8"
 
-# Realistic Vision v6 (photorealism)
-enqueue \
-    "configs/sd15_realistic_vision_v6.json" \
-    "RAW photo, portrait of a young woman with auburn hair, soft studio lighting, sharp focus, 85mm lens" \
-    "sd15_realistic_vision_v6"
-
 # Inkpunk Diffusion DreamBooth LoRA
 enqueue \
     "configs/sd15_inkpunk_lora.json" \
@@ -118,6 +112,12 @@ echo
 # ===========================================================================
 
 echo "── Stable Diffusion 2.1 ────────────────────────────────────"
+
+# SD 2.1 default (vanilla base)
+enqueue \
+    "configs/sd21_default.json" \
+    "a solitary lighthouse on a rocky cliff at dusk, dramatic storm clouds, crashing waves, cinematic lighting" \
+    "sd21_default"
 
 # SD 2.1 Coloring Book LoRA
 enqueue \
