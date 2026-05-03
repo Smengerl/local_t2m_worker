@@ -37,13 +37,13 @@ enqueue \
 # Z-Image Turbo + Classic Painting Z LoRA (Old Masters oil-painting style)
 enqueue \
     "configs/zimage_turbo_classic_painting_lora.json" \
-    "A pensive woman in 17th-century attire riding a motorcycle flicking off viewer with middle finger" \
+    "class1cpa1nt, a 19th-century oil painting by Jan van Eyck, ethereal elegance, dark wavy updo, ruffled white lace, blue accents, pearl detail, dark textured backdrop, poised and wise." \
     "zimage_turbo_classic_painting_lora"
 
 # Z-Image Turbo + 1950s American Dream LoRA (vintage Americana painting style)
 enqueue \
     "configs/zimage_turbo_1950s_american_dream_lora.json" \
-    "a cheerful american family at a drive-in diner, nuclear explosion mushroom cloud on the horizon" \
+    "a cheerful american family at a drive-in diner, nuclear explosion mushroom cloud on the horizon seen through the window" \
     "zimage_turbo_1950s_american_dream_lora"
 
 echo
