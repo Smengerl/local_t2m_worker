@@ -26,6 +26,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo
 fi
 
+_sd3_standalone_wait() { wait_for_queue; }
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && trap '_sd3_standalone_wait' EXIT
+
 echo "── Stable Diffusion 3 ──────────────────────────────────────"
 
 # SD3 Medium — high-quality generation with accurate text rendering

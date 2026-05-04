@@ -26,6 +26,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo
 fi
 
+_zimage_standalone_wait() { wait_for_queue; }
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && trap '_zimage_standalone_wait' EXIT
+
 echo "── Z-Image Turbo ───────────────────────────────────────────"
 
 # Z-Image Turbo (8-step GGUF, photorealistic)

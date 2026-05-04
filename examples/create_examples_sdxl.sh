@@ -26,6 +26,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo
 fi
 
+_sdxl_standalone_wait() { wait_for_queue; }
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && trap '_sdxl_standalone_wait' EXIT
+
 echo "── SDXL ────────────────────────────────────────────────────"
 
 # SDXL Turbo (1–4 steps, adversarial distillation)

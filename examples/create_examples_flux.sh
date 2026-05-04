@@ -26,6 +26,14 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo
 fi
 
+# ---------------------------------------------------------------------------
+# Standalone footer — wait for queue only when executed directly
+# ---------------------------------------------------------------------------
+_flux_standalone_wait() {
+    wait_for_queue
+}
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && trap '_flux_standalone_wait' EXIT
+
 echo "── FLUX ────────────────────────────────────────────────────"
 
 # FLUX.1-schnell (4-step, fast general-purpose)

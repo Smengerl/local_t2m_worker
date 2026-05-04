@@ -57,3 +57,4 @@ source "${SCRIPT_DIR}/create_examples_sdxl.sh"
 # shellcheck source=create_examples_zimage.sh
 source "${SCRIPT_DIR}/create_examples_zimage.sh"
 
+wait_for_queue
