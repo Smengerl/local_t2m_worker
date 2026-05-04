@@ -62,18 +62,18 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="flux_schnell.png" width="320" alt="flux_schnell"></td>
+<td width="320"><img src="flux_schnell.png" width="320" vspace="0" hspace="0" alt="flux_schnell"></td>
 <td width="8"></td>
-<td width="320"><img src="flux_cute_comic_lora.png" width="320" alt="flux_cute_comic_lora"></td>
+<td width="320"><img src="flux_cute_comic_lora.png" width="320" vspace="0" hspace="0" alt="flux_cute_comic_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="flux_miniature_people_lora.png" width="320" alt="flux_miniature_people_lora"></td>
+<td width="320"><img src="flux_miniature_people_lora.png" width="320" vspace="0" hspace="0" alt="flux_miniature_people_lora"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a misty forest at dawn, sunrays filtering through tall pine trees, volumetric light, photorealistic<br><br></td>
@@ -95,14 +95,14 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="flux_dev.png" width="320" alt="flux_dev"></td>
+<td width="320"><img src="flux_dev.png" width="320" vspace="0" hspace="0" alt="flux_dev"></td>
 <td width="8"></td>
-<td width="320"><img src="flux_dev_wong_kar_wai_fallen_angels_lora.png" width="320" alt="flux_dev_wong_kar_wai_fallen_angels_lora"></td>
+<td width="320"><img src="flux_dev_wong_kar_wai_fallen_angels_lora.png" width="320" vspace="0" hspace="0" alt="flux_dev_wong_kar_wai_fallen_angels_lora"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a majestic snow-capped mountain reflected in a crystal-clear alpine lake, golden hour, hyperrealistic photography<br><br></td>
@@ -120,10 +120,10 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="flux2_klein_4b.png" width="320" alt="flux2_klein_4b"></td>
+<td width="320"><img src="flux2_klein_4b.png" width="320" vspace="0" hspace="0" alt="flux2_klein_4b"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a golden sunset over mountain peaks, warm light painting the clouds in shades of orange and purple, cinematic<br><br></td>
@@ -139,42 +139,42 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd15_default.png" width="320" alt="sd15_default"></td>
+<td width="320"><img src="sd15_default.png" width="320" vspace="0" hspace="0" alt="sd15_default"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_inkpunk_lora.png" width="320" alt="sd15_inkpunk_lora"></td>
+<td width="320"><img src="sd15_inkpunk_lora.png" width="320" vspace="0" hspace="0" alt="sd15_inkpunk_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_pixel_art_lora.png" width="320" alt="sd15_pixel_art_lora"></td>
+<td width="320"><img src="sd15_pixel_art_lora.png" width="320" vspace="0" hspace="0" alt="sd15_pixel_art_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_andreasrocha.png" width="320" alt="sd15_comic_diffusion_andreasrocha"></td>
+<td width="320"><img src="sd15_comic_diffusion_andreasrocha.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_andreasrocha"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_charliebo.png" width="320" alt="sd15_comic_diffusion_charliebo"></td>
+<td width="320"><img src="sd15_comic_diffusion_charliebo.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_charliebo"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_holliemengert.png" width="320" alt="sd15_comic_diffusion_holliemengert"></td>
+<td width="320"><img src="sd15_comic_diffusion_holliemengert.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_holliemengert"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_jamesdaly.png" width="320" alt="sd15_comic_diffusion_jamesdaly"></td>
+<td width="320"><img src="sd15_comic_diffusion_jamesdaly.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_jamesdaly"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_marioalberti.png" width="320" alt="sd15_comic_diffusion_marioalberti"></td>
+<td width="320"><img src="sd15_comic_diffusion_marioalberti.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_marioalberti"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_pepelarraz.png" width="320" alt="sd15_comic_diffusion_pepelarraz"></td>
+<td width="320"><img src="sd15_comic_diffusion_pepelarraz.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_pepelarraz"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a photorealistic portrait of a young woman with freckles, soft natural window light, shallow depth of field<br><br></td>
@@ -220,10 +220,10 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd15_dreamshaper8.png" width="320" alt="sd15_dreamshaper8"></td>
+<td width="320"><img src="sd15_dreamshaper8.png" width="320" vspace="0" hspace="0" alt="sd15_dreamshaper8"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>fantasy portrait of an elf warrior in enchanted armour, dramatic rim lighting, detailed digital painting<br><br></td>
@@ -239,14 +239,14 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd21_default.png" width="320" alt="sd21_default"></td>
+<td width="320"><img src="sd21_default.png" width="320" vspace="0" hspace="0" alt="sd21_default"></td>
 <td width="8"></td>
-<td width="320"><img src="sd21_coloringbook_redmond_lora.png" width="320" alt="sd21_coloringbook_redmond_lora"></td>
+<td width="320"><img src="sd21_coloringbook_redmond_lora.png" width="320" vspace="0" hspace="0" alt="sd21_coloringbook_redmond_lora"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a solitary lighthouse on a rocky cliff at dusk, dramatic storm clouds, crashing waves, cinematic lighting<br><br></td>
@@ -266,10 +266,10 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd3_medium.png" width="320" alt="sd3_medium"></td>
+<td width="320"><img src="sd3_medium.png" width="320" vspace="0" hspace="0" alt="sd3_medium"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a vibrant street market in Marrakech at golden hour, detailed textures, rich colours, cinematic composition<br><br></td>
@@ -285,55 +285,55 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sdxl_turbo.png" width="320" alt="sdxl_turbo"></td>
+<td width="320"><img src="sdxl_turbo.png" width="320" vspace="0" hspace="0" alt="sdxl_turbo"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_hypersd_lora.png" width="320" alt="sdxl_hypersd_lora"></td>
+<td width="320"><img src="sdxl_hypersd_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_hypersd_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_analog_redmond_lora.png" width="320" alt="sdxl_analog_redmond_lora"></td>
+<td width="320"><img src="sdxl_analog_redmond_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_analog_redmond_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_bandw_manga_lora.png" width="320" alt="sdxl_bandw_manga_lora"></td>
+<td width="320"><img src="sdxl_bandw_manga_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_bandw_manga_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_graffiti_lora.png" width="320" alt="sdxl_graffiti_lora"></td>
+<td width="320"><img src="sdxl_graffiti_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_graffiti_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_ikea_lora.png" width="320" alt="sdxl_ikea_lora"></td>
+<td width="320"><img src="sdxl_ikea_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_ikea_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_littletinies_lora.png" width="320" alt="sdxl_littletinies_lora"></td>
+<td width="320"><img src="sdxl_littletinies_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_littletinies_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_papercut_lora.png" width="320" alt="sdxl_papercut_lora"></td>
+<td width="320"><img src="sdxl_papercut_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_papercut_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_pokemon_sprite_lora.png" width="320" alt="sdxl_pokemon_sprite_lora"></td>
+<td width="320"><img src="sdxl_pokemon_sprite_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_pokemon_sprite_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_storyboard_sketch_lora.png" width="320" alt="sdxl_storyboard_sketch_lora"></td>
+<td width="320"><img src="sdxl_storyboard_sketch_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_storyboard_sketch_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_watercolor_lora.png" width="320" alt="sdxl_watercolor_lora"></td>
+<td width="320"><img src="sdxl_watercolor_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_watercolor_lora"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a photorealistic tabby cat sitting on a windowsill in warm afternoon light<br><br></td>
 <td></td>
-<td align="center" valign="top"><br>hyperrealistic close-up of an elderly fisherman with deeply weathered skin and piercing blue eyes, dramatic rembrandt lighting, sharp focus on facial texture, shallow depth of field, 8K portrait photography<br><br></td>
+<td align="center" valign="top"><br>a photorealistic portrait of a woman with green eyes, professional studio lighting, bokeh background<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>AnalogRedmAF portrait of a young man at golden hour, film grain, warm tones, 35mm photograph<br><br></td>
 <td></td>
@@ -341,7 +341,7 @@ Images appear automatically once the scripts have been run and the images genera
 <td></td>
 <td align="center" valign="top"><br>graarg graffiti mural of a roaring lion on a brick wall, vibrant spray-paint colours<br><br></td>
 <td></td>
-<td align="center" valign="top"><br>a bicycle<br><br></td>
+<td align="center" valign="top"><br>a bicycle, flat minimalist assembly diagram illustration, black lines on white background<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>a tiny witch child riding a broomstick over a moonlit village, soft pastel colours, hand-drawn style<br><br></td>
 <td></td>
@@ -384,18 +384,18 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="zimage_turbo.png" width="320" alt="zimage_turbo"></td>
+<td width="320"><img src="zimage_turbo.png" width="320" vspace="0" hspace="0" alt="zimage_turbo"></td>
 <td width="8"></td>
-<td width="320"><img src="zimage_turbo_classic_painting_lora.png" width="320" alt="zimage_turbo_classic_painting_lora"></td>
+<td width="320"><img src="zimage_turbo_classic_painting_lora.png" width="320" vspace="0" hspace="0" alt="zimage_turbo_classic_painting_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="zimage_turbo_1950s_american_dream_lora.png" width="320" alt="zimage_turbo_1950s_american_dream_lora"></td>
+<td width="320"><img src="zimage_turbo_1950s_american_dream_lora.png" width="320" vspace="0" hspace="0" alt="zimage_turbo_1950s_american_dream_lora"></td>
 </tr>
 <tr>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">BASE MODEL</font></b></td>
+<td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#dbeafe"><b><font color="#1e40af">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a photorealistic portrait of a woman in soft evening light, warm golden background, sharp focus<br><br></td>
