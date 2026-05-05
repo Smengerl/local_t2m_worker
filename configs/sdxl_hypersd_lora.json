@@ -23,7 +23,7 @@
         "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
     },
     "notes": {
-        "about": "Generates high-quality images in only 8 steps using Hyper-SD — a CFG-preserved acceleration LoRA from ByteDance. Significantly faster than standard SDXL without quality loss.",
-        "prompt_guide": "No trigger word. Write standard SDXL-style descriptive prompts. Examples: 'a photorealistic portrait of a woman, studio lighting', 'a fantasy landscape with mountains and a dragon, epic lighting', 'a still life of fruits on a wooden table, oil painting'."
+        "about": "Generates high-quality 1024×1024 images in only 8 steps using Hyper-SD — a CFG-preserved trajectory-segmented consistency LoRA from ByteDance (arxiv:2404.13686). Up to 8× faster than standard SDXL with minimal quality loss.",
+        "prompt_guide": "No trigger word needed. Use rich, descriptive SDXL-style prompts — the 8-step CFG-preserved variant handles complex scenes and fine detail well. Examples: 'hyperrealistic close-up of an elderly fisherman with weathered skin and piercing blue eyes, dramatic rembrandt lighting, 8K portrait photography' | 'a futuristic neon-lit cityscape at night reflected in wet cobblestones, cinematic, ultra-detailed' | 'a majestic golden eagle in mid-flight over snow-capped mountains, hyperrealistic feather detail, dramatic sunlight, wildlife photography'"
     }
 }

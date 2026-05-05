@@ -37,10 +37,10 @@ enqueue \
     "a photorealistic tabby cat sitting on a windowsill in warm afternoon light" \
     "sdxl_turbo"
 
-# SDXL Hyper-SD LoRA (8-step distillation)
+# SDXL Hyper-SD LoRA (8-step CFG-preserved distillation)
 enqueue \
     "configs/sdxl_hypersd_lora.json" \
-    "a photorealistic portrait of a woman with green eyes, professional studio lighting, bokeh background" \
+    "hyperrealistic close-up of an elderly fisherman with deeply weathered skin and piercing blue eyes, dramatic rembrandt lighting, sharp focus on facial texture, shallow depth of field, 8K portrait photography" \
     "sdxl_hypersd_lora"
 
 # SDXL Analog Redmond LoRA (analog film photography look)
@@ -60,12 +60,6 @@ enqueue \
     "configs/sdxl_graffiti_lora.json" \
     "graarg graffiti mural of a roaring lion on a brick wall, vibrant spray-paint colours" \
     "sdxl_graffiti_lora"
-
-# SDXL IKEA LoRA (minimalist flat assembly-style illustration)
-enqueue \
-    "configs/sdxl_ikea_lora.json" \
-    "a bicycle, flat minimalist assembly diagram illustration, black lines on white background" \
-    "sdxl_ikea_lora"
 
 # SDXL LittleTinies LoRA (soft childlike hand-drawn)
 enqueue \

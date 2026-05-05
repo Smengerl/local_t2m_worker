@@ -295,8 +295,6 @@ Images appear automatically once the scripts have been run and the images genera
 <td width="8"></td>
 <td width="320"><img src="sdxl_graffiti_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_graffiti_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_ikea_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_ikea_lora"></td>
-<td width="8"></td>
 <td width="320"><img src="sdxl_littletinies_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_littletinies_lora"></td>
 <td width="8"></td>
 <td width="320"><img src="sdxl_papercut_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_papercut_lora"></td>
@@ -327,8 +325,6 @@ Images appear automatically once the scripts have been run and the images genera
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
-<td></td>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
 <td align="center" valign="top"><br>a photorealistic tabby cat sitting on a windowsill in warm afternoon light<br><br></td>
@@ -340,8 +336,6 @@ Images appear automatically once the scripts have been run and the images genera
 <td align="center" valign="top"><br>a boy in a sailor school uniform standing on a rooftop at sunset, manga illustration, bold ink lines<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>graarg graffiti mural of a roaring lion on a brick wall, vibrant spray-paint colours<br><br></td>
-<td></td>
-<td align="center" valign="top"><br>a bicycle, flat minimalist assembly diagram illustration, black lines on white background<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>a tiny witch child riding a broomstick over a moonlit village, soft pastel colours, hand-drawn style<br><br></td>
 <td></td>
