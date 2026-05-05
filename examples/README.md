@@ -329,7 +329,7 @@ Images appear automatically once the scripts have been run and the images genera
 <tr>
 <td align="center" valign="top"><br>a photorealistic tabby cat sitting on a windowsill in warm afternoon light<br><br></td>
 <td></td>
-<td align="center" valign="top"><br>a photorealistic portrait of a woman with green eyes, professional studio lighting, bokeh background<br><br></td>
+<td align="center" valign="top"><br>hyperrealistic close-up of an elderly fisherman with deeply weathered skin and piercing blue eyes, dramatic rembrandt lighting, sharp focus on facial texture<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>AnalogRedmAF portrait of a young man at golden hour, film grain, warm tones, 35mm photograph<br><br></td>
 <td></td>
