@@ -62,11 +62,11 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="flux_schnell.png" width="320" vspace="0" hspace="0" alt="flux_schnell"></td>
+<td width="240"><img src="flux_schnell.png" width="240" vspace="0" hspace="0" alt="flux_schnell"></td>
 <td width="8"></td>
-<td width="320"><img src="flux_cute_comic_lora.png" width="320" vspace="0" hspace="0" alt="flux_cute_comic_lora"></td>
+<td width="240"><img src="flux_cute_comic_lora.png" width="240" vspace="0" hspace="0" alt="flux_cute_comic_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="flux_miniature_people_lora.png" width="320" vspace="0" hspace="0" alt="flux_miniature_people_lora"></td>
+<td width="240"><img src="flux_miniature_people_lora.png" width="240" vspace="0" hspace="0" alt="flux_miniature_people_lora"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -95,9 +95,9 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="flux_dev.png" width="320" vspace="0" hspace="0" alt="flux_dev"></td>
+<td width="240"><img src="flux_dev.png" width="240" vspace="0" hspace="0" alt="flux_dev"></td>
 <td width="8"></td>
-<td width="320"><img src="flux_dev_wong_kar_wai_fallen_angels_lora.png" width="320" vspace="0" hspace="0" alt="flux_dev_wong_kar_wai_fallen_angels_lora"></td>
+<td width="240"><img src="flux_dev_wong_kar_wai_fallen_angels_lora.png" width="240" vspace="0" hspace="0" alt="flux_dev_wong_kar_wai_fallen_angels_lora"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -120,7 +120,7 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="flux2_klein_4b.png" width="320" vspace="0" hspace="0" alt="flux2_klein_4b"></td>
+<td width="240"><img src="flux2_klein_4b.png" width="240" vspace="0" hspace="0" alt="flux2_klein_4b"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -139,23 +139,23 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd15_default.png" width="320" vspace="0" hspace="0" alt="sd15_default"></td>
+<td width="240"><img src="sd15_default.png" width="240" vspace="0" hspace="0" alt="sd15_default"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_inkpunk_lora.png" width="320" vspace="0" hspace="0" alt="sd15_inkpunk_lora"></td>
+<td width="240"><img src="sd15_inkpunk_lora.png" width="240" vspace="0" hspace="0" alt="sd15_inkpunk_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_pixel_art_lora.png" width="320" vspace="0" hspace="0" alt="sd15_pixel_art_lora"></td>
+<td width="240"><img src="sd15_pixel_art_lora.png" width="240" vspace="0" hspace="0" alt="sd15_pixel_art_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_andreasrocha.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_andreasrocha"></td>
+<td width="240"><img src="sd15_comic_diffusion_andreasrocha.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_andreasrocha"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_charliebo.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_charliebo"></td>
+<td width="240"><img src="sd15_comic_diffusion_charliebo.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_charliebo"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_holliemengert.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_holliemengert"></td>
+<td width="240"><img src="sd15_comic_diffusion_holliemengert.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_holliemengert"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_jamesdaly.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_jamesdaly"></td>
+<td width="240"><img src="sd15_comic_diffusion_jamesdaly.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_jamesdaly"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_marioalberti.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_marioalberti"></td>
+<td width="240"><img src="sd15_comic_diffusion_marioalberti.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_marioalberti"></td>
 <td width="8"></td>
-<td width="320"><img src="sd15_comic_diffusion_pepelarraz.png" width="320" vspace="0" hspace="0" alt="sd15_comic_diffusion_pepelarraz"></td>
+<td width="240"><img src="sd15_comic_diffusion_pepelarraz.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_pepelarraz"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -220,7 +220,7 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd15_dreamshaper8.png" width="320" vspace="0" hspace="0" alt="sd15_dreamshaper8"></td>
+<td width="240"><img src="sd15_dreamshaper8.png" width="240" vspace="0" hspace="0" alt="sd15_dreamshaper8"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -239,9 +239,9 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd21_default.png" width="320" vspace="0" hspace="0" alt="sd21_default"></td>
+<td width="240"><img src="sd21_default.png" width="240" vspace="0" hspace="0" alt="sd21_default"></td>
 <td width="8"></td>
-<td width="320"><img src="sd21_coloringbook_redmond_lora.png" width="320" vspace="0" hspace="0" alt="sd21_coloringbook_redmond_lora"></td>
+<td width="240"><img src="sd21_coloringbook_redmond_lora.png" width="240" vspace="0" hspace="0" alt="sd21_coloringbook_redmond_lora"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -266,7 +266,7 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sd3_medium.png" width="320" vspace="0" hspace="0" alt="sd3_medium"></td>
+<td width="240"><img src="sd3_medium.png" width="240" vspace="0" hspace="0" alt="sd3_medium"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -285,25 +285,25 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="sdxl_turbo.png" width="320" vspace="0" hspace="0" alt="sdxl_turbo"></td>
+<td width="240"><img src="sdxl_turbo.png" width="240" vspace="0" hspace="0" alt="sdxl_turbo"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_hypersd_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_hypersd_lora"></td>
+<td width="240"><img src="sdxl_hypersd_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_hypersd_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_analog_redmond_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_analog_redmond_lora"></td>
+<td width="240"><img src="sdxl_analog_redmond_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_analog_redmond_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_bandw_manga_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_bandw_manga_lora"></td>
+<td width="240"><img src="sdxl_bandw_manga_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_bandw_manga_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_graffiti_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_graffiti_lora"></td>
+<td width="240"><img src="sdxl_graffiti_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_graffiti_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_littletinies_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_littletinies_lora"></td>
+<td width="240"><img src="sdxl_littletinies_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_littletinies_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_papercut_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_papercut_lora"></td>
+<td width="240"><img src="sdxl_papercut_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_papercut_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_pokemon_sprite_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_pokemon_sprite_lora"></td>
+<td width="240"><img src="sdxl_pokemon_sprite_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_pokemon_sprite_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_storyboard_sketch_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_storyboard_sketch_lora"></td>
+<td width="240"><img src="sdxl_storyboard_sketch_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_storyboard_sketch_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="sdxl_watercolor_lora.png" width="320" vspace="0" hspace="0" alt="sdxl_watercolor_lora"></td>
+<td width="240"><img src="sdxl_watercolor_lora.png" width="240" vspace="0" hspace="0" alt="sdxl_watercolor_lora"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
@@ -358,8 +358,6 @@ Images appear automatically once the scripts have been run and the images genera
 <td></td>
 <td align="center"><code>sdxl_graffiti_lora.json</code></td>
 <td></td>
-<td align="center"><code>sdxl_ikea_lora.json</code></td>
-<td></td>
 <td align="center"><code>sdxl_littletinies_lora.json</code></td>
 <td></td>
 <td align="center"><code>sdxl_papercut_lora.json</code></td>
@@ -378,11 +376,11 @@ Images appear automatically once the scripts have been run and the images genera
 
 <table cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td width="320"><img src="zimage_turbo.png" width="320" vspace="0" hspace="0" alt="zimage_turbo"></td>
+<td width="240"><img src="zimage_turbo.png" width="240" vspace="0" hspace="0" alt="zimage_turbo"></td>
 <td width="8"></td>
-<td width="320"><img src="zimage_turbo_classic_painting_lora.png" width="320" vspace="0" hspace="0" alt="zimage_turbo_classic_painting_lora"></td>
+<td width="240"><img src="zimage_turbo_classic_painting_lora.png" width="240" vspace="0" hspace="0" alt="zimage_turbo_classic_painting_lora"></td>
 <td width="8"></td>
-<td width="320"><img src="zimage_turbo_1950s_american_dream_lora.png" width="320" vspace="0" hspace="0" alt="zimage_turbo_1950s_american_dream_lora"></td>
+<td width="240"><img src="zimage_turbo_1950s_american_dream_lora.png" width="240" vspace="0" hspace="0" alt="zimage_turbo_1950s_american_dream_lora"></td>
 </tr>
 <tr>
 <td align="center" bgcolor="#dbeafe"><b><font color="#000000">BASE MODEL</font></b></td>
