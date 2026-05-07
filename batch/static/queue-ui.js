@@ -96,7 +96,12 @@ async function cancelJob(id, evt) {
 async function deleteImage(resultPath, jobId, evt) {
     if (evt) evt.stopPropagation();
     if (!confirm('Permanently delete this image?')) return;
-    await apiFetch(`/api/outputs/${encodeURIComponent(resultPath)}`, { method: 'DELETE' });
+    try {
+        await apiFetch(`/api/outputs/${encodeURIComponent(resultPath)}`, { method: 'DELETE' });
+    } catch (e) {
+        alert('Could not delete image: ' + e.message);
+        return;
+    }
     try { await apiFetch(`/api/jobs/${jobId}`, { method: 'DELETE' }); } catch (e) { /* ignore */ }
     refresh();
 }
@@ -148,16 +153,17 @@ function renderJobCard(j) {
         : '';
 
     // Build action buttons for this job's status
+    // result_path is "serveable" only if it's a relative path inside outputs/ (not an absolute path)
+    const isServeable = j.result_path && !j.result_path.startsWith('/');
     const actions = [];
     if (isPending)
         actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)"><span class="material-icons-round">delete</span>Delete</button>`);
     if (j.status === 'failed' || j.status === 'done')
         actions.push(`<button class="btn-sm btn-retry" onclick="retryJob('${j.id}',event)"><span class="material-icons-round">replay</span>Re-run</button>`);
-    if (j.status === 'failed' || (j.status === 'done' && !j.result_path))
-        actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)"><span class="material-icons-round">delete</span>Delete</button>`);
-    if (j.status === 'done' && j.result_path) {
+    if (j.status === 'failed' || j.status === 'done')
+        actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)"><span class="material-icons-round">delete</span>Delete entry</button>`);
+    if (j.status === 'done' && isServeable)
         actions.push(`<button class="btn-sm btn-danger" onclick="deleteImage(${JSON.stringify(j.result_path)},'${j.id}',event)"><span class="material-icons-round">hide_image</span>Delete image</button>`);
-    }
     if (j.status === 'running')
         actions.push(`<button class="btn-sm btn-cancel" onclick="cancelJob('${j.id}',event)"><span class="material-icons-round">cancel</span>Cancel</button>`);
 
@@ -175,8 +181,8 @@ function renderJobCard(j) {
             <div class="job-progress-steps">${total > 0 ? `${step} / ${total} Steps (${pct}%)` : '…'}</div>
         </div>` : '';
 
-    // Thumbnail (done jobs with a saved result only)
-    const thumbSrc = j.status === 'done' && j.result_path
+    // Thumbnail (done jobs with a serveable result_path inside outputs/ only)
+    const thumbSrc = j.status === 'done' && isServeable
         ? `/api/outputs/${encodeURIComponent(j.result_path)}` : null;
     const inlineThumb = j.status === 'done'
         ? (thumbSrc
