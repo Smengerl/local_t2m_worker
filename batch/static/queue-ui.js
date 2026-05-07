@@ -291,17 +291,17 @@ async function refreshJobs() {
 
     const parts = [];
 
+    // ── Running (shown first — active job always at the top) ───────────────
+    if (running.length > 0) {
+        parts.push(`<div class="queue-section">${running.map(renderJobCard).join('')}</div>`);
+        parts.push(`<div class="queue-section-divider"><span>Up next</span></div>`);
+    }
+
     // ── Pending (draggable) ────────────────────────────────────────────────
     if (pending.length > 0) {
         parts.push(`<div id="queue-pending-list">${pending.map(renderJobCard).join('')}</div>`);
     } else {
         parts.push(`<div id="queue-pending-list"></div>`);
-    }
-
-    // ── Running ────────────────────────────────────────────────────────────
-    if (running.length > 0) {
-        parts.push(`<div class="queue-section-divider"></div>`);
-        parts.push(`<div class="queue-section">${running.map(renderJobCard).join('')}</div>`);
     }
 
     // ── Done / Failed ──────────────────────────────────────────────────────
