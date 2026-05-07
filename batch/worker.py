@@ -218,7 +218,11 @@ def process_job(
         def _progress(step: int, total: int) -> None:
             if _cancel_event.is_set():
                 raise _CancellationError(f"Cancelled by user request (job {job_id[:8]})")
-            update_job(job_id, progress_step=step, progress_total=total)
+            # Clamp step to total so the progress bar never exceeds 100 %.
+            # Some schedulers (e.g. SD) fire the callback twice on the last
+            # step, which would produce "31/30" without this guard.
+            clamped = min(step, total) if total > 0 else step
+            update_job(job_id, progress_step=clamped, progress_total=total)
 
         generate_image(
             cfg, output_path,
