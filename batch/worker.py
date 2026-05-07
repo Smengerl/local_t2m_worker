@@ -374,10 +374,22 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
                 request_cancel()
                 log.info("Worker cancelled — waiting for current job thread...")
                 try:
-                    # Dem Thread Zeit geben, das Abbruch-Flag zu sehen und sich sauber zu beenden.
+                    # Give the thread time to see the cancel flag and stop cleanly.
                     await asyncio.wait_for(fut, timeout=_SHUTDOWN_TIMEOUT_S)
-                except (asyncio.TimeoutError, Exception):
-                    # Falls es zu lange dauert, fahren wir trotzdem mit dem Shutdown fort.
+                except asyncio.TimeoutError:
+                    # Thread is still running (e.g. blocked in a HuggingFace download).
+                    # asyncio.run() would hang in shutdown_default_executor() waiting
+                    # for this thread forever.  Clean up and force a hard exit instead.
+                    log.warning(
+                        "Job thread did not stop within %ss (likely blocked in a download) "
+                        "— forcing hard exit.",
+                        _SHUTDOWN_TIMEOUT_S,
+                    )
+                    _finish_job(job, None, _CancellationError("Worker shutdown"), pipeline_cache)
+                    _release_pipeline_cache(pipeline_cache)
+                    notify.reset()
+                    os._exit(0)
+                except Exception:
                     pass
 
                 _finish_job(job, None, _CancellationError("Worker shutdown"), pipeline_cache)
