@@ -233,7 +233,7 @@ def main() -> None:
             if role == "model_id" and _is_gguf_repo(cfg):
                 # GGUF transformer repo: only fetch the single quantised file,
                 # then the lightweight metadata (no other large tensors here).
-                gguf_file = cfg.get("gguf_file")
+                gguf_file = cfg.model.gguf_file
 
             elif role == "model_id" and not _is_gguf_repo(cfg):
                 # Full diffusers pipeline repo (non-GGUF).
