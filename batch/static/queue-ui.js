@@ -163,7 +163,7 @@ function renderJobCard(j) {
     if (j.status === 'failed' || j.status === 'done')
         actions.push(`<button class="btn-sm btn-danger" onclick="deleteJob('${j.id}',event)"><span class="material-icons-round">delete</span>Delete entry</button>`);
     if (j.status === 'done' && isServeable)
-        actions.push(`<button class="btn-sm btn-danger" onclick="deleteImage(${JSON.stringify(j.result_path)},'${j.id}',event)"><span class="material-icons-round">hide_image</span>Delete image</button>`);
+        actions.push(`<button class="btn-sm btn-danger" onclick="deleteImage('${escHtml(j.result_path)}','${j.id}',event)"><span class="material-icons-round">hide_image</span>Delete image</button>`);
     if (j.status === 'running')
         actions.push(`<button class="btn-sm btn-cancel" onclick="cancelJob('${j.id}',event)"><span class="material-icons-round">cancel</span>Cancel</button>`);
 
