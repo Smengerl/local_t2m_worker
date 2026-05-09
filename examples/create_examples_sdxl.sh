@@ -40,7 +40,7 @@ enqueue \
 # SDXL Hyper-SD LoRA (8-step CFG-preserved distillation)
 enqueue \
     "configs/sdxl_hypersd_lora.json" \
-    "hyperrealistic close-up of an elderly fisherman with deeply weathered skin and piercing blue eyes, dramatic rembrandt lighting, sharp focus on facial texture, shallow depth of field, 8K portrait photography" \
+    "hyperrealistic close-up of an elderly fisherman with deeply weathered skin and piercing blue eyes, dramatic rembrandt lighting, sharp focus on facial texture" \
     "sdxl_hypersd_lora"
 
 # SDXL Analog Redmond LoRA (analog film photography look)
