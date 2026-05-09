@@ -20,7 +20,11 @@
     "system": {
         "cpu_offload": true,
         "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)",
-        "trigger": "papercut"
+        "triggers": [
+            {
+                "word": "papercut"
+            }
+        ]
     },
     "notes": {
         "about": "Generates decorative paper-cut (scherenschnitt) style illustrations — intricate layered silhouettes, folk-art inspired compositions, and the handcrafted aesthetic of paper collage.",

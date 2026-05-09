@@ -23,7 +23,11 @@
     "system": {
         "cpu_offload": false,
         "_hint": "~7.22 GB peak (Q8_0 GGUF) — fits comfortably in 16 GB unified memory without cpu_offload. All layers stay on MPS throughout inference, avoiding CPU↔GPU roundtrips between denoising steps.",
-        "trigger": "class1cpa1nt"
+        "triggers": [
+            {
+                "word": "class1cpa1nt"
+            }
+        ]
     },
     "notes": {
         "about": "Generates images in the style of historical Old Masters oil paintings using Z-Image-Turbo with the Classic Painting Z LoRA. Trained on public domain masterpieces from the Art Institute of Chicago — captures brushwork textures, canvas grain, dramatic chiaroscuro lighting, and classical composition. Best for portraits, landscapes, still life, and surreal classical concepts.",

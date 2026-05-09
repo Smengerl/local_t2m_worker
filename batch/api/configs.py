@@ -8,7 +8,12 @@ Response shape per config entry:
     description: "Fast 4-step …",
     hints:       {model: "…", lora: "…", generation: "…", system: "…"},
     defaults:    {model_id: "…", lora_id: "…", lora_scale: 0.9, …},
-    extras:      {trigger_word: "…"},
+    extras:      {
+      triggers: [
+        {word: "nvinkpunk", description: "…", is_default: true},
+        {word: "cyberpunk style", description: "…", is_default: false},
+      ]
+    },
     notes:       {about: "…", prompt_guide: "…", warnings: "…"},
   }
 """
@@ -88,11 +93,16 @@ def api_list_configs() -> list[dict[str, Any]]:
                 "width":           cfg.generation.width,
                 "height":          cfg.generation.height,
             }.items() if v is not None}
-            extras: dict[str, Any] = (
-                {"trigger_word": cfg.system.trigger}
-                if cfg.system.trigger
-                else {}
-            )
+            extras: dict[str, Any] = {}
+            if cfg.system.triggers:
+                extras["triggers"] = [
+                    {
+                        "word": t.word,
+                        "description": t.description,
+                        "is_default": i == 0,
+                    }
+                    for i, t in enumerate(cfg.system.triggers)
+                ]
             notes = cfg.notes.to_dict() if cfg.notes else None
 
         except Exception:

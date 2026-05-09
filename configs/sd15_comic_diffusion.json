@@ -1,0 +1,49 @@
+{
+    "description": "Comic-Diffusion — all 6 artstyles",
+    "backend": "sd",
+    "model": {
+        "repo": "ogkalu/Comic-Diffusion",
+        "_hint": "Fine-tune: ogkalu/Comic-Diffusion v2 (SD 1.5 base). All 6 comic styles trained simultaneously. ~2 GB; no sequential offload needed."
+    },
+    "generation": {
+        "steps": 25,
+        "cfg_scale": 7.5,
+        "width": 512,
+        "height": 512,
+        "_hint": "20–30 steps. 25 is a good default. | CFG 7–8 recommended. | SD 1.5 native 512×512. 768×512 works for landscape compositions."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)",
+        "triggers": [
+            {
+                "word": "charliebo artstyle",
+                "description": "Charlie Bo style — clean geometric shapes, bold outlines, vibrant flat colours"
+            },
+            {
+                "word": "holliemengert artstyle",
+                "description": "Hollie Mengert style — soft rounded shapes, warm pastel tones, storybook illustration feel"
+            },
+            {
+                "word": "marioalberti artstyle",
+                "description": "Mario Alberti style — detailed linework, rich colours, classic European comic aesthetic"
+            },
+            {
+                "word": "pepelarraz artstyle",
+                "description": "Pepe Larraz style — dynamic action compositions, precise anatomy, Marvel/DC superhero style"
+            },
+            {
+                "word": "andreasrocha artstyle",
+                "description": "Andreas Rocha style — painterly landscapes, rich atmospheric lighting, fantasy environments"
+            },
+            {
+                "word": "jamesdaly artstyle",
+                "description": "James Daly style — expressive character portraits, bold contrast, classic comic storytelling"
+            }
+        ]
+    },
+    "notes": {
+        "about": "Generates comic illustrations in one of 6 distinct artstyles, all baked into a single SD 1.5 fine-tune (ogkalu/Comic-Diffusion v2). Mix multiple style tokens in one prompt to blend styles.",
+        "prompt_guide": "TRIGGER WORD REQUIRED — pick one (or combine several):\n• charliebo artstyle — geometric flat colour\n• holliemengert artstyle — storybook pastels\n• marioalberti artstyle — European comic detail\n• pepelarraz artstyle — superhero action\n• andreasrocha artstyle — painterly fantasy\n• jamesdaly artstyle — expressive portraits\n\nExamples: 'a superhero in action, pepelarraz artstyle', 'foggy forest path, andreasrocha artstyle', 'portrait of a spy, charliebo artstyle marioalberti artstyle'."
+    }
+}

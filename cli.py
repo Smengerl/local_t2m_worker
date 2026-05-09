@@ -197,12 +197,13 @@ def build_config(args: argparse.Namespace) -> tuple[PipelineConfig, str, str, st
         cache_dir=args.cache_dir,
     )
 
-    # 3. Trigger-word check — prepend automatically if missing from the prompt.
+    # 3. Trigger-word check — prepend the default trigger automatically when
+    #    none of the configured trigger words is found in the prompt.
     effective_prompt: str = args.prompt
-    if pipeline_cfg.trigger_word and pipeline_cfg.trigger_word.lower() not in effective_prompt.lower():
+    if not pipeline_cfg.any_trigger_in_prompt(effective_prompt):
         print(
-            f"⚠️  Trigger word {pipeline_cfg.trigger_word!r} not found in prompt — "
-            f"prepending it automatically."
+            f"⚠️  No trigger word found in prompt — "
+            f"prepending default {pipeline_cfg.trigger_word!r} automatically."
         )
         effective_prompt = f"{pipeline_cfg.trigger_word} {effective_prompt}"
 

@@ -22,7 +22,11 @@
     "system": {
         "cpu_offload": false,
         "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)",
-        "trigger": "in the style of TOK"
+        "triggers": [
+            {
+                "word": "in the style of TOK"
+            }
+        ]
     },
     "notes": {
         "about": "Generates warm, flat children's-book-style comic illustrations — bold outlines, simplified shapes, cheerful characters, and soft pastel tones. Well-suited for greeting cards, story illustrations, and character portraits.",

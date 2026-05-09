@@ -23,11 +23,28 @@
     "system": {
         "cpu_offload": false,
         "_hint": "~7.22 GB peak (Q8_0 GGUF) — fits comfortably in 16 GB unified memory without cpu_offload. All layers stay on MPS throughout inference, avoiding CPU↔GPU roundtrips between denoising steps.",
-        "trigger": "5os4m3r1c4n4"
+        "triggers": [
+            {
+                "word": "5os4m3r1c4n4",
+                "description": "Primary DreamBooth token — required, always auto-prepended"
+            },
+            {
+                "word": "1950s",
+                "description": "Era keyword — adds period-accurate styling"
+            },
+            {
+                "word": "painting",
+                "description": "Medium keyword — reinforces painterly aesthetic"
+            },
+            {
+                "word": "a painting of",
+                "description": "Full opening phrase — strongest style activation"
+            }
+        ]
     },
     "notes": {
         "about": "Generates images in a stylised 1950s American painting aesthetic using Z-Image-Turbo with the 1950s American Dream LoRA. Captures vintage poster and advertisement art, Americana colour palettes, retro illustration style, and period-typical compositions. Works well for travel posters, product labels, portraits, and satirical scenes.",
-        "prompt_guide": "Always include all three trigger words at the start: 5os4m3r1c4n4, 1950s, painting\n\nExamples:\n  5os4m3r1c4n4, 1950s, painting, a painting of a cheerful american family at a drive-in diner, pastel colours, chrome details\n  5os4m3r1c4n4, 1950s, painting, a painting of a 1950s travel poster for Route 66, bold typography, sunny desert landscape\n  5os4m3r1c4n4, 1950s, painting, a painting of a 1950s housewife in a colourful kitchen, vintage appliances, warm lighting\n  5os4m3r1c4n4, 1950s, painting, 1950s logo text at bottom says 'SUBURBIA', a painting of a perfect american suburb with white picket fences\n\nFor better composition at lower LoRA strength: set strength to 0.25–0.50 for the first pass, then run img2img with strength 0.85 and denoise 0.50–0.75.\n\nNegative prompt: generally not effective at cfg_scale=0.0 (CFG-distilled model).",
+        "prompt_guide": "TRIGGER WORDS: Start every prompt with all four tokens for strongest activation:\n5os4m3r1c4n4, 1950s, painting, a painting of ...\n\nExample: '5os4m3r1c4n4, 1950s, painting, a painting of a 1950s american diner at night'\n\nWorks best at LoRA weight 0.75. For better composition, use 0.25–0.50 for the first pass, then run through img2img at 0.85 with denoise 0.50–0.75.",
         "warnings": "CRITICAL: guidance_scale MUST be 0.0. | Include all three trigger words: 5os4m3r1c4n4, 1950s, painting — omitting them weakens the style significantly. | LoRA is applied via set_adapters() in GGUF mode — effect is comparable to fuse_lora() but applied dynamically each forward pass."
     }
 }

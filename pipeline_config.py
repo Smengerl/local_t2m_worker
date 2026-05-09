@@ -21,6 +21,7 @@ from config_types import (
     ModelConfig,
     NotesConfig,
     SystemConfig,
+    TriggerEntry,
     _DEFAULT_LORA_STRENGTH,
 )
 
@@ -103,8 +104,33 @@ class PipelineConfig(ConfigFile):
 
     @property
     def trigger_word(self) -> Optional[str]:
-        """Alias for ``system.trigger`` (None when no trigger word is configured)."""
-        return self.system.trigger
+        """First trigger word — auto-prepended when no trigger is found in the prompt.
+
+        Returns None when no triggers are configured.
+        """
+        return self.system.triggers[0].word if self.system.triggers else None
+
+    @property
+    def trigger_words(self) -> list[str]:
+        """All configured trigger words as a flat list of strings."""
+        return [t.word for t in self.system.triggers]
+
+    def any_trigger_in_prompt(self, prompt: str) -> bool:
+        """Return True if at least one configured trigger word appears in *prompt*.
+
+        The check is case-insensitive substring matching.  When True, no
+        auto-prepend is needed.
+
+        Args:
+            prompt: The user-supplied prompt string.
+
+        Returns:
+            True when any trigger word is found in the prompt.
+        """
+        if not self.system.triggers:
+            return True  # nothing to check → no prepend needed
+        prompt_lower = prompt.lower()
+        return any(t.word.lower() in prompt_lower for t in self.system.triggers)
 
     @property
     def true_cfg_scale(self) -> Optional[float]:
@@ -180,9 +206,11 @@ class PipelineConfig(ConfigFile):
             "cpu_offload": self.system.cpu_offload,
             "cache_dir":   self.system.cache_dir,
             "output_dir":  self.system.output_dir,
+            "triggers": [
+                {"word": t.word, **({"description": t.description} if t.description else {})}
+                for t in self.system.triggers
+            ],
         }
-        if self.system.trigger:
-            system_dict["trigger"] = self.system.trigger
 
         result: dict[str, Any] = {
             "backend":     self.backend,
@@ -243,13 +271,17 @@ class PipelineConfig(ConfigFile):
             cfg_scale_secondary=g.get("cfg_scale_secondary"),
         )
         s = d.get("system") or {}
+        triggers: list[TriggerEntry] = []
+        for t in s.get("triggers") or []:
+            if isinstance(t, dict) and t.get("word"):
+                triggers.append(TriggerEntry(word=t["word"], description=t.get("description") or None))
+            elif isinstance(t, str) and t:
+                triggers.append(TriggerEntry(word=t))
         system = SystemConfig(
             cpu_offload=bool(s.get("cpu_offload", False)),
             cache_dir=s.get("cache_dir") or None,
             output_dir=str(s.get("output_dir", "outputs")),
-            # Backward-compat: if trigger was serialised under lora (old format),
-            # fall back to that value when system.trigger is absent.
-            trigger=s.get("trigger") or (lo.get("trigger") if lo and isinstance(lo, dict) else None) or None,
+            triggers=triggers,
         )
         notes_dict = d.get("notes")
         notes: Optional[NotesConfig] = None

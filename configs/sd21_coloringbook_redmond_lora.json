@@ -20,7 +20,16 @@
     "system": {
         "cpu_offload": false,
         "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)",
-        "trigger": "Coloring Book, ColoringBookAF"
+        "triggers": [
+            {
+                "word": "Coloring Book",
+                "description": "Primary style trigger — both tokens must be used together"
+            },
+            {
+                "word": "ColoringBookAF",
+                "description": "Secondary activation token — use alongside 'Coloring Book'"
+            }
+        ]
     },
     "notes": {
         "about": "Generates clean black-and-white coloring book line art with blank fill areas — suitable for printing and colouring by hand. Outputs crisp outlines with no shading.",

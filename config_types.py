@@ -20,6 +20,22 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional, Self
 
+
+@dataclass
+class TriggerEntry:
+    """A single trigger word or phrase for a model or LoRA.
+
+    Attributes:
+        word:        The trigger word or phrase that activates a particular
+                     style or concept in the model.  This is the string that
+                     is checked against the user prompt and — when the first
+                     entry — auto-prepended when no trigger is found.
+        description: Optional human-readable explanation of what this trigger
+                     activates.  Shown as a tooltip in the GUI.
+    """
+
+    word: str
+    description: Optional[str] = None
 # ── Section-level defaults that are referenced in more than one place ─────────
 _DEFAULT_LORA_STRENGTH: float = 0.9
 
@@ -76,7 +92,8 @@ class SystemConfig:
     cpu_offload: bool = False
     cache_dir: Optional[str] = None
     output_dir: str = "outputs"
-    trigger: Optional[str] = None           # → PipelineConfig.trigger_word
+    triggers: list[TriggerEntry] = field(default_factory=list)
+    # → PipelineConfig.trigger_word / trigger_words / any_trigger_in_prompt()
 
 
 @dataclass
@@ -249,12 +266,21 @@ class ConfigFile:
         # ── system ────────────────────────────────────────────────────────────
         _sys = SystemConfig()       # instance carries field defaults
         raw_sys = _strip(raw.get("system") or {})
+
+        triggers: list[TriggerEntry] = []
+        for t in raw_sys.get("triggers") or []:
+            if isinstance(t, dict):
+                word = t.get("word") or ""
+                if word:
+                    triggers.append(TriggerEntry(word=word, description=t.get("description") or None))
+            elif isinstance(t, str) and t:
+                triggers.append(TriggerEntry(word=t))
+
         system = SystemConfig(
             cpu_offload=bool(raw_sys["cpu_offload"]) if "cpu_offload" in raw_sys else _sys.cpu_offload,
             cache_dir=raw_sys.get("cache_dir") or None,
             output_dir=str(raw_sys["output_dir"]) if "output_dir" in raw_sys else _sys.output_dir,
-            # Fall back to legacy lora.trigger when system.trigger is absent.
-            trigger=raw_sys.get("trigger") or None,
+            triggers=triggers,
         )
 
         # ── notes (optional GUI metadata) ─────────────────────────────────────

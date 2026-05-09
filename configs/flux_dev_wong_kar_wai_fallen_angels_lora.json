@@ -24,7 +24,11 @@
     "system": {
         "cpu_offload": false,
         "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)",
-        "trigger": "WKW style"
+        "triggers": [
+            {
+                "word": "WKW style"
+            }
+        ]
     },
     "notes": {
         "about": "Generates images in the bold neo-noir visual style of Wong Kar Wai's 1995 film 'Fallen Angels': extreme wide-angle compositions, tilted/Dutch angles, vivid neon colour grading, rain-slicked city streets, moody tunnels, and a surreal cinematic atmosphere. Trained on stills from the film using DreamBooth LoRA on FLUX.1-dev.",

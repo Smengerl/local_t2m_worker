@@ -521,6 +521,70 @@ details[open] .cfg-toggle-arrow {
     color: var(--color-text-primary);
 }
 
+/* ── Trigger word badges ──────────────────────────────────────────────────── */
+#f-trigger-section {
+    margin-top: var(--space-md);
+}
+
+.trigger-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+#f-trigger-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.trigger-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0.2em 0.6em;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    cursor: default;
+    user-select: text;
+    border: 1px solid transparent;
+    transition: opacity 0.15s;
+}
+
+.trigger-badge code {
+    font-family: var(--font-mono, monospace);
+    font-size: inherit;
+    background: transparent;
+    padding: 0;
+}
+
+/* Default trigger — amber / gold */
+.trigger-badge--default {
+    background: #fff8e1;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.trigger-badge__star {
+    font-style: normal;
+}
+
+/* Optional trigger — neutral grey */
+.trigger-badge--optional {
+    background: var(--color-bg-tertiary, #2a2a2a);
+    border-color: var(--color-border, #444);
+    color: var(--color-text-secondary, #aaa);
+}
+
+/* Tooltip affordance — slight glow on hover */
+.trigger-badge[title]:hover {
+    opacity: 0.85;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
 
 /* ── 10. Queue Header ────────────────────────────────────────────────────── */
 .queue-header {

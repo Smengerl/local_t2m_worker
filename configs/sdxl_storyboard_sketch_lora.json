@@ -20,7 +20,11 @@
     "system": {
         "cpu_offload": true,
         "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)",
-        "trigger": "storyboard sketch of"
+        "triggers": [
+            {
+                "word": "storyboard sketch of"
+            }
+        ]
     },
     "notes": {
         "about": "Generates grayscale storyboard sketches in the style of film and TV pre-production artwork — loose gestural lines, rough shading, and the functional visual language of professional storyboards.",

@@ -63,7 +63,10 @@ CLI flags mirror the config file key paths (section.field) using the same names,
         "cpu_offload": false,
         "cache_dir": "models",
         "output_dir": "outputs",
-        "trigger": "my trigger word",
+        "triggers": [
+            {"word": "my trigger word", "description": "Primary trigger — auto-prepended when missing"},
+            {"word": "alt trigger",     "description": "Optional secondary keyword"}
+        ],
         "_hint": "Tooltip shown next to the System section header in the GUI"
     },
 
@@ -138,7 +141,7 @@ CLI flags mirror the config file key paths (section.field) using the same names,
 | `cpu_offload` | bool | `false` | Offload pipeline sub-modules to CPU between operations — reduces peak VRAM by ~50 %. Recommended for SDXL / FLUX / SD3 on ≤ 16 GB RAM. **Must be `false` for GGUF configs** (incompatible with quantised tensors). |
 | `cache_dir` | string | `"models"` | Directory for downloaded model weights |
 | `output_dir` | string | `"outputs"` | Directory for generated images |
-| `trigger` | string | `null` | Trigger word required by the model or LoRA. Automatically prepended to the prompt with a warning if missing. Works for both LoRA-based and fine-tuned model configs. |
+| `triggers` | array | `[]` | List of trigger word objects `{"word": "...", "description": "..."}`. The **first entry is the default**: it is automatically prepended to the prompt (with a warning) when none of the listed words are found in the user's prompt. All entries are shown as read-only badges in the web GUI — the default badge is highlighted in amber with ⭐, optional badges in grey. `description` is optional and appears as a tooltip on the badge. |
 | `_hint` | string | — | Tooltip displayed next to the System section in the GUI. Not used by the pipeline. |
 
 ---

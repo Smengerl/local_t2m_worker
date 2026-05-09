@@ -148,15 +148,88 @@ function applyConfig(cfg) {
     // ── Trigger word hint on prompt label ────────────────────────────────
     const promptIcon = document.getElementById('f-prompt-icon');
     const promptTip = document.getElementById('f-prompt-tooltip');
-    const trigger = cfg.extras?.trigger_word;
+    const triggers = cfg.extras?.triggers ?? [];
+    const defaultTrigger = triggers.find(t => t.is_default);
     if (promptIcon) {
-        if (trigger) {
+        if (defaultTrigger) {
             promptIcon.classList.remove('hidden');
-            if (promptTip) promptTip.textContent = `Trigger word: ${trigger}`;
+            if (promptTip) promptTip.textContent = `Default trigger: "${defaultTrigger.word}" — added automatically when missing`;
         } else {
             promptIcon.classList.add('hidden');
         }
     }
+
+    // ── Trigger word badges ───────────────────────────────────────────────
+    renderTriggerBadges(triggers);
+}
+
+// ── Trigger word badges ────────────────────────────────────────────────────
+
+/**
+ * Render trigger word badges in the #f-trigger-section area.
+ *
+ * The default trigger (is_default === true) is highlighted in amber with a
+ * star icon and a tooltip explaining it will be auto-prepended.
+ * All other triggers are rendered in neutral grey with an optional
+ * description tooltip.
+ *
+ * @param {Array<{word: string, description: string|null, is_default: boolean}>} triggers
+ */
+function renderTriggerBadges(triggers) {
+    const section = document.getElementById('f-trigger-section');
+    const container = document.getElementById('f-trigger-badges');
+    if (!section || !container) return;
+
+    container.innerHTML = '';
+
+    if (!triggers || triggers.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    triggers.forEach(t => {
+        const badge = document.createElement('span');
+
+        // Build tooltip text
+        const lines = [];
+        if (t.is_default) lines.push('⭐ Default — added automatically when missing from prompt');
+        if (t.description) lines.push(t.description);
+        if (lines.length) badge.title = lines.join('\n');
+
+        if (t.is_default) {
+            badge.className = 'trigger-badge trigger-badge--default';
+            badge.innerHTML = '<span class="trigger-badge__star" aria-hidden="true">⭐</span>'
+                + '<code>' + escHtml(t.word) + '</code>';
+        } else {
+            badge.className = 'trigger-badge trigger-badge--optional';
+            badge.innerHTML = '<code>' + escHtml(t.word) + '</code>';
+        }
+
+        container.appendChild(badge);
+    });
+
+    section.classList.remove('hidden');
+}
+
+/**
+ * Escape HTML special characters to prevent XSS when building innerHTML.
+ *
+ * @param {string} str
+ * @returns {string}
+ */
+function escHtmlFull(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Use the existing escHtml from queue-ui.js if available, otherwise fall back.
+if (typeof escHtml === 'undefined') {
+    // eslint-disable-next-line no-global-assign
+    escHtml = escHtmlFull;
 }
 
 async function loadConfigs() {

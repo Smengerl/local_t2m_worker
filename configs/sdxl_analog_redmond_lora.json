@@ -20,7 +20,11 @@
     "system": {
         "cpu_offload": true,
         "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)",
-        "trigger": "AnalogRedmAF"
+        "triggers": [
+            {
+                "word": "AnalogRedmAF"
+            }
+        ]
     },
     "notes": {
         "about": "Generates images with the look of analog film photography — grain texture, warm tones, slight vignetting, and the imperfect charm of vintage camera shots.",

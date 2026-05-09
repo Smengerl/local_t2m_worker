@@ -190,9 +190,10 @@ def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
         height=req.height,
     )
 
-    # Prepend trigger word automatically if missing from the prompt.
+    # Prepend the default trigger word automatically when none of the configured
+    # trigger words is found in the prompt.
     effective_prompt = req.prompt
-    if pipeline_cfg.trigger_word and pipeline_cfg.trigger_word.lower() not in effective_prompt.lower():
+    if not pipeline_cfg.any_trigger_in_prompt(effective_prompt):
         effective_prompt = f"{pipeline_cfg.trigger_word} {effective_prompt}"
 
     job = enqueue(

@@ -14,7 +14,13 @@
     },
     "system": {
         "cpu_offload": false,
-        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)"
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)",
+        "triggers": [
+            {
+                "word": "nvinkpunk",
+                "description": "DreamBooth subject token — required for all prompts"
+            }
+        ]
     },
     "notes": {
         "about": "Generates ink-style illustrations with a punk aesthetic — loose gestural lines, textured surfaces, and a raw expressive quality vaguely inspired by Gorillaz, FLCL, and Yoji Shinkawa.",

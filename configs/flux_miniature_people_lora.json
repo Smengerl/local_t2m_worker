@@ -23,7 +23,20 @@
     "system": {
         "cpu_offload": false,
         "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)",
-        "trigger": "miniature people"
+        "triggers": [
+            {
+                "word": "miniature people",
+                "description": "General group — default auto-prepended trigger"
+            },
+            {
+                "word": "miniature man",
+                "description": "Male miniature person"
+            },
+            {
+                "word": "miniature woman",
+                "description": "Female miniature person"
+            }
+        ]
     },
     "notes": {
         "about": "Generates photorealistic images of miniature-scale people placed in real-world scenes — tiny figures next to everyday objects like keyboards, coins, or cups. Solves the 'plastic figure' problem typical of AI miniature images. V1 — further iterations planned.",
