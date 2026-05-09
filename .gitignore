@@ -26,3 +26,4 @@ queue.jsonl
 # batch worker runtime files
 batch/worker.log
 batch/worker.pid
+batch.lock
