@@ -20,6 +20,7 @@ A growing collection of ready-to-use JSON config files covers a wide range of mo
 <td style="padding:0;"><img src="examples/sd15_pixel_art_lora.png" alt="" style="width:100%;display:block;"></td>
 <td style="padding:0;"><img src="examples/sd15_comic_diffusion_andreasrocha.png" alt="" style="width:100%;display:block;"></td>
 <td style="padding:0;"><img src="examples/sd15_comic_diffusion_charliebo.png" alt="" style="width:100%;display:block;"></td>
+<td style="padding:0;"><img src="examples/sd15_elden_ring.png" alt="" style="width:100%;display:block;"></td>
 </tr><tr>
 <td style="padding:0;"><img src="examples/sd3_medium.png" alt="" style="width:100%;display:block;"></td>
 <td style="padding:0;"><img src="examples/sdxl_turbo.png" alt="" style="width:100%;display:block;"></td>
