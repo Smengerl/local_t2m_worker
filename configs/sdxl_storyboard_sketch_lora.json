@@ -8,7 +8,6 @@
     "lora": {
         "repo": "blink7630/storyboard-sketch",
         "strength": 0.8,
-        "trigger": "storyboard sketch of",
         "_hint": "1.0 = most abstract sketch style; 0.8 = best balance of style + coherence; 0.5 = more detailed/realistic."
     },
     "generation": {
@@ -20,7 +19,8 @@
     },
     "system": {
         "cpu_offload": true,
-        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)",
+        "trigger": "storyboard sketch of"
     },
     "notes": {
         "about": "Generates grayscale storyboard sketches in the style of film and TV pre-production artwork — loose gestural lines, rough shading, and the functional visual language of professional storyboards.",

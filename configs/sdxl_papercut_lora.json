@@ -8,7 +8,6 @@
     "lora": {
         "repo": "TheLastBen/Papercut_SDXL",
         "strength": 0.9,
-        "trigger": "papercut",
         "_hint": "0.9 default. 1.0 gives maximum papercut effect."
     },
     "generation": {
@@ -20,7 +19,8 @@
     },
     "system": {
         "cpu_offload": true,
-        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)",
+        "trigger": "papercut"
     },
     "notes": {
         "about": "Generates decorative paper-cut (scherenschnitt) style illustrations — intricate layered silhouettes, folk-art inspired compositions, and the handcrafted aesthetic of paper collage.",

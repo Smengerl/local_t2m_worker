@@ -48,7 +48,6 @@ class LoraConfig:
     repo: str
     file: Optional[str] = None              # → PipelineConfig.weight_name (takes precedence over model.file)
     strength: float = _DEFAULT_LORA_STRENGTH  # → PipelineConfig.lora_scale
-    trigger: Optional[str] = None           # → PipelineConfig.trigger_word
 
 
 @dataclass
@@ -77,6 +76,7 @@ class SystemConfig:
     cpu_offload: bool = False
     cache_dir: Optional[str] = None
     output_dir: str = "outputs"
+    trigger: Optional[str] = None           # → PipelineConfig.trigger_word
 
 
 @dataclass
@@ -217,6 +217,7 @@ class ConfigFile:
 
         # ── lora (optional — omit entirely when not used) ─────────────────────
         lora: Optional[LoraConfig] = None
+        _lora_trigger_legacy: Optional[str] = None
         raw_lora = raw.get("lora")
         if isinstance(raw_lora, dict):
             lo = _strip(raw_lora)
@@ -230,7 +231,6 @@ class ConfigFile:
                 repo=lo["repo"],
                 file=lo.get("file") or None,
                 strength=float(lo["strength"]) if "strength" in lo else _DEFAULT_LORA_STRENGTH,
-                trigger=lo.get("trigger") or None,
             )
 
         # ── generation ────────────────────────────────────────────────────────
@@ -253,6 +253,8 @@ class ConfigFile:
             cpu_offload=bool(raw_sys["cpu_offload"]) if "cpu_offload" in raw_sys else _sys.cpu_offload,
             cache_dir=raw_sys.get("cache_dir") or None,
             output_dir=str(raw_sys["output_dir"]) if "output_dir" in raw_sys else _sys.output_dir,
+            # Fall back to legacy lora.trigger when system.trigger is absent.
+            trigger=raw_sys.get("trigger") or None,
         )
 
         # ── notes (optional GUI metadata) ─────────────────────────────────────

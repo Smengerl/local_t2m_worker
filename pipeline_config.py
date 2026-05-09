@@ -103,8 +103,8 @@ class PipelineConfig(ConfigFile):
 
     @property
     def trigger_word(self) -> Optional[str]:
-        """Alias for ``lora.trigger`` (None when no LoRA is configured)."""
-        return self.lora.trigger if self.lora else None
+        """Alias for ``system.trigger`` (None when no trigger word is configured)."""
+        return self.system.trigger
 
     @property
     def true_cfg_scale(self) -> Optional[float]:
@@ -181,6 +181,8 @@ class PipelineConfig(ConfigFile):
             "cache_dir":   self.system.cache_dir,
             "output_dir":  self.system.output_dir,
         }
+        if self.system.trigger:
+            system_dict["trigger"] = self.system.trigger
 
         result: dict[str, Any] = {
             "backend":     self.backend,
@@ -197,8 +199,6 @@ class PipelineConfig(ConfigFile):
             }
             if self.lora.file:
                 lora_dict["file"] = self.lora.file
-            if self.lora.trigger:
-                lora_dict["trigger"] = self.lora.trigger
             result["lora"] = lora_dict
 
         if self.notes:
@@ -231,7 +231,6 @@ class PipelineConfig(ConfigFile):
                 repo=lo["repo"],
                 strength=float(lo.get("strength", _DEFAULT_LORA_STRENGTH)),
                 file=lo.get("file") or None,
-                trigger=lo.get("trigger") or None,
             )
         g = d.get("generation") or {}
         generation = GenerationConfig(
@@ -248,6 +247,9 @@ class PipelineConfig(ConfigFile):
             cpu_offload=bool(s.get("cpu_offload", False)),
             cache_dir=s.get("cache_dir") or None,
             output_dir=str(s.get("output_dir", "outputs")),
+            # Backward-compat: if trigger was serialised under lora (old format),
+            # fall back to that value when system.trigger is absent.
+            trigger=s.get("trigger") or (lo.get("trigger") if lo and isinstance(lo, dict) else None) or None,
         )
         notes_dict = d.get("notes")
         notes: Optional[NotesConfig] = None

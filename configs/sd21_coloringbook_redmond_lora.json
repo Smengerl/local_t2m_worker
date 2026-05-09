@@ -8,7 +8,6 @@
     "lora": {
         "repo": "artificialguybr/coloringbook-redmond-2-1v-coloring-book-lora-for-freedomredmond-sd-2-1",
         "strength": 0.9,
-        "trigger": "Coloring Book, ColoringBookAF",
         "_hint": "0.9 default. Lower (0.7) reduces line-art effect; 1.0 gives maximum coloring-book look."
     },
     "generation": {
@@ -20,7 +19,8 @@
     },
     "system": {
         "cpu_offload": false,
-        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)"
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (model fits in unified memory)",
+        "trigger": "Coloring Book, ColoringBookAF"
     },
     "notes": {
         "about": "Generates clean black-and-white coloring book line art with blank fill areas — suitable for printing and colouring by hand. Outputs crisp outlines with no shading.",

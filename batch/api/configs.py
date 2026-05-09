@@ -89,8 +89,8 @@ def api_list_configs() -> list[dict[str, Any]]:
                 "height":          cfg.generation.height,
             }.items() if v is not None}
             extras: dict[str, Any] = (
-                {"trigger_word": cfg.lora.trigger}
-                if cfg.lora and cfg.lora.trigger
+                {"trigger_word": cfg.system.trigger}
+                if cfg.system.trigger
                 else {}
             )
             notes = cfg.notes.to_dict() if cfg.notes else None

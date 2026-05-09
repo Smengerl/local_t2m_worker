@@ -8,7 +8,6 @@
     "lora": {
         "repo": "linoyts/lora-xl-graffiti-0.0001-5e-05-1000-1-None",
         "strength": 0.9,
-        "trigger": "graarg graffiti",
         "_hint": "0.9 default. 1.0 gives maximum graffiti effect."
     },
     "generation": {
@@ -20,7 +19,8 @@
     },
     "system": {
         "cpu_offload": true,
-        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)"
+        "_hint": "~6 GB peak; sequential_cpu_offload: enabled (required for large models)",
+        "trigger": "graarg graffiti"
     },
     "notes": {
         "about": "Generates graffiti-style illustrations — stylised lettering, spray paint textures, bold outlines, and the raw urban aesthetic of street art and murals.",

@@ -11,7 +11,6 @@
         "repo": "iliketoasters/miniature-people",
         "file": "Miniature People - v1-0.safetensors",
         "strength": 0.9,
-        "trigger": "miniature people",
         "_hint": "0.9 default. Range: 0.7–1.0. Lower values blend with base FLUX aesthetics."
     },
     "generation": {
@@ -23,7 +22,8 @@
     },
     "system": {
         "cpu_offload": false,
-        "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)"
+        "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)",
+        "trigger": "miniature people"
     },
     "notes": {
         "about": "Generates photorealistic images of miniature-scale people placed in real-world scenes — tiny figures next to everyday objects like keyboards, coins, or cups. Solves the 'plastic figure' problem typical of AI miniature images. V1 — further iterations planned.",

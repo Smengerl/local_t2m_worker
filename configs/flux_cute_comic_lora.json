@@ -10,7 +10,6 @@
     "lora": {
         "repo": "fffiloni/cute-comic-800",
         "strength": 0.9,
-        "trigger": "in the style of TOK",
         "_hint": "0.9 default. Range: 0.7–1.0. Lower values blend LoRA style with base FLUX aesthetics."
     },
     "generation": {
@@ -22,7 +21,8 @@
     },
     "system": {
         "cpu_offload": false,
-        "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)"
+        "_hint": "~12 GB peak; sequential_cpu_offload: disabled (incompatible with GGUF)",
+        "trigger": "in the style of TOK"
     },
     "notes": {
         "about": "Generates warm, flat children's-book-style comic illustrations — bold outlines, simplified shapes, cheerful characters, and soft pastel tones. Well-suited for greeting cards, story illustrations, and character portraits.",

@@ -46,7 +46,6 @@ CLI flags mirror the config file key paths (section.field) using the same names,
         "repo": "some-org/some-lora",
         "file": "lora-weights.safetensors",
         "strength": 0.9,
-        "trigger": "my trigger word",
         "_hint": "Tooltip shown next to the LoRA section header in the GUI"
     },
 
@@ -64,6 +63,7 @@ CLI flags mirror the config file key paths (section.field) using the same names,
         "cpu_offload": false,
         "cache_dir": "models",
         "output_dir": "outputs",
+        "trigger": "my trigger word",
         "_hint": "Tooltip shown next to the System section header in the GUI"
     },
 
@@ -112,7 +112,6 @@ CLI flags mirror the config file key paths (section.field) using the same names,
 | `repo` | string | **(required)** | HuggingFace repo ID or local path for the LoRA weights |
 | `file` | string | `null` | Specific `.safetensors` filename inside `repo` — required for multi-file repos (e.g. `ByteDance/Hyper-SD`) |
 | `strength` | float | `0.9` | LoRA blend strength `0.0`–`1.0` |
-| `trigger` | string | `null` | Trigger word required by the LoRA. Automatically prepended to the prompt with a warning if missing. |
 | `_hint` | string | — | Tooltip displayed next to the LoRA section in the GUI. Not used by the pipeline. |
 
 ---
@@ -139,6 +138,7 @@ CLI flags mirror the config file key paths (section.field) using the same names,
 | `cpu_offload` | bool | `false` | Offload pipeline sub-modules to CPU between operations — reduces peak VRAM by ~50 %. Recommended for SDXL / FLUX / SD3 on ≤ 16 GB RAM. **Must be `false` for GGUF configs** (incompatible with quantised tensors). |
 | `cache_dir` | string | `"models"` | Directory for downloaded model weights |
 | `output_dir` | string | `"outputs"` | Directory for generated images |
+| `trigger` | string | `null` | Trigger word required by the model or LoRA. Automatically prepended to the prompt with a warning if missing. Works for both LoRA-based and fine-tuned model configs. |
 | `_hint` | string | — | Tooltip displayed next to the System section in the GUI. Not used by the pipeline. |
 
 ---
