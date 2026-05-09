@@ -145,6 +145,8 @@ Images appear automatically once the scripts have been run and the images genera
 <td width="8"></td>
 <td width="240"><img src="sd15_pixel_art_lora.png" width="240" vspace="0" hspace="0" alt="sd15_pixel_art_lora"></td>
 <td width="8"></td>
+<td width="240"><img src="sd15_elden_ring.png" width="240" vspace="0" hspace="0" alt="sd15_elden_ring"></td>
+<td width="8"></td>
 <td width="240"><img src="sd15_comic_diffusion_andreasrocha.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_andreasrocha"></td>
 <td width="8"></td>
 <td width="240"><img src="sd15_comic_diffusion_charliebo.png" width="240" vspace="0" hspace="0" alt="sd15_comic_diffusion_charliebo"></td>
@@ -164,7 +166,7 @@ Images appear automatically once the scripts have been run and the images genera
 <td></td>
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
-<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">FINETUNED</font></b></td>
 <td></td>
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
@@ -176,12 +178,16 @@ Images appear automatically once the scripts have been run and the images genera
 <td></td>
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
+<td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
+</tr>
 <tr>
 <td align="center" valign="top"><br>a photorealistic portrait of a young woman with freckles, soft natural window light, shallow depth of field<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>nvinkpunk portrait of a samurai warrior, ink brush strokes, cyberpunk city in the background<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>pixel art dragon on a mountain peak, 16-bit retro game style, sunset colours<br><br></td>
+<td></td>
+<td align="center" valign="top"><br>elden ring style, tarnished warrior in ornate golden armor standing before the Erdtree at dusk<br><br></td>
 <td></td>
 <td align="center" valign="top"><br>a castle on a cliff overlooking a misty valley at sunset, andreasrocha artstyle<br><br></td>
 <td></td>

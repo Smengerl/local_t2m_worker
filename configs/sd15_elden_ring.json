@@ -1,0 +1,23 @@
+{
+    "description": "Elden Ring game art style — dark fantasy illustration",
+    "backend": "sd",
+    "model": {
+        "repo": "nitrosocke/elden-ring-diffusion",
+        "_hint": "DreamBooth fine-tune on SD 1.5, trained on Elden Ring game art (3000 steps, prior-preservation loss). ~2 GB. Trigger word: 'elden ring style'. Recommended sampler: DDIM. No VAE override needed."
+    },
+    "generation": {
+        "steps": 30,
+        "cfg_scale": 7.0,
+        "width": 512,
+        "height": 704,
+        "_hint": "Model card: 35 steps / CFG 7 for portraits (512×704), 30 steps for landscapes (1024×576). DDIM sampler. Range: 25–40 steps. 512 base resolution — SD 1.5 native."
+    },
+    "system": {
+        "cpu_offload": false,
+        "_hint": "~2 GB peak; sequential_cpu_offload: disabled (fits comfortably in 16 GB unified memory)"
+    },
+    "notes": {
+        "about": "DreamBooth fine-tune of Stable Diffusion 1.5 on Elden Ring game art by nitrosocke. Generates dark fantasy illustrations in the distinctive Elden Ring aesthetic — ornate armour, moody landscapes, dramatic lighting, FromSoftware character style.",
+        "prompt_guide": "TRIGGER WORD REQUIRED: include 'elden ring style' in every prompt.\n\nPortrait examples:\n'elden ring style portrait of a beautiful woman highly detailed 8k'\n'a magical princess with golden hair, elden ring style'\n'elden ring style knight in ornate armour, dramatic lighting, highly detailed'\n\nLandscape examples:\n'elden ring style dark blue night castle on a cliff, dark night, giant birds'\n'elden ring style ruined cathedral at dusk, fog, epic scale'\n\nNegative prompt: 'bright day' works well for moody landscapes. General: 'blurry, low quality, out of frame, deformed'."
+    }
+}

@@ -64,6 +64,12 @@ enqueue \
     "pixel art dragon on a mountain peak, 16-bit retro game style, sunset colours" \
     "sd15_pixel_art_lora"
 
+# One representative showcase image for the README gallery
+enqueue \
+    "configs/sd15_elden_ring.json" \
+    "elden ring style, tarnished warrior in ornate golden armor standing before the Erdtree at dusk" \
+    "sd15_elden_ring"
+
 echo
 
 # ===========================================================================
