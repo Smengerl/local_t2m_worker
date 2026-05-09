@@ -177,7 +177,7 @@ Images appear automatically once the scripts have been run and the images genera
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 <td></td>
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
-</tr>
+<td></td>
 <td align="center" bgcolor="#1e40af"><b><font color="#ffffff">LORA</font></b></td>
 </tr>
 <tr>
