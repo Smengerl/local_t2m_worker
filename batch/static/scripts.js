@@ -190,19 +190,24 @@ function renderTriggerBadges(triggers) {
     triggers.forEach(t => {
         const badge = document.createElement('span');
 
-        // Build tooltip text
-        const lines = [];
-        if (t.is_default) lines.push('⭐ Default — added automatically when missing from prompt');
-        if (t.description) lines.push(t.description);
-        if (lines.length) badge.title = lines.join('\n');
+        const descHtml = t.description
+            ? '<span class="trigger-badge__desc">' + escHtml(t.description) + '</span>'
+            : '';
 
         if (t.is_default) {
             badge.className = 'trigger-badge trigger-badge--default';
+            badge.title = 'Added automatically when missing from prompt';
             badge.innerHTML = '<span class="trigger-badge__star" aria-hidden="true">⭐</span>'
-                + '<code>' + escHtml(t.word) + '</code>';
+                + '<span class="trigger-badge__body">'
+                + '<code>' + escHtml(t.word) + '</code>'
+                + descHtml
+                + '</span>';
         } else {
             badge.className = 'trigger-badge trigger-badge--optional';
-            badge.innerHTML = '<code>' + escHtml(t.word) + '</code>';
+            badge.innerHTML = '<span class="trigger-badge__body">'
+                + '<code>' + escHtml(t.word) + '</code>'
+                + descHtml
+                + '</span>';
         }
 
         container.appendChild(badge);

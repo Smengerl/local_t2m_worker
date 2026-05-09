@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Image Generation Queue</title>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20250507">
+  <link rel="stylesheet" href="/static/styles.css?v=20250510b">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="/static/queue-ui.js?v=20250507"></script>
-  <script src="/static/scripts.js?v=20250507"></script>
+  <script src="/static/queue-ui.js?v=20250510"></script>
+  <script src="/static/scripts.js?v=20250510"></script>
 </head>
 
 <body>
@@ -22,7 +22,7 @@
       <!-- Enqueue form -->
       <div class="card">
         <form id="enqueue-form">
-          <div class="label-row"><label>Prompt *</label><span id="f-prompt-icon" class="hint-icon hidden">?<span
+          <div class="label-row"><label>Prompt</label><span id="f-prompt-icon" class="hint-icon hidden">?<span
                 class="hint-tooltip" id="f-prompt-tooltip"></span></span></div>
           <textarea id="f-prompt" required placeholder="a sunset over mountains"></textarea>
 
@@ -37,16 +37,18 @@
           <!-- Notes boxes: about (grey), warnings (yellow), prompt guide (collapsible) -->
           <div id="f-notes-about" class="notes-about hidden"></div>
           <div id="f-notes-warning" class="notes-warning hidden"></div>
+
+          <!-- Trigger words — readonly info badges, shown below the config selector -->
+          <div id="f-trigger-section" class="notes-about hidden">
+            <div class="label-row"><label>Trigger words</label></div>
+            <div id="f-trigger-badges"></div>
+          </div>
+
           <details id="f-notes-guide" class="notes-guide hidden">
             <summary>Prompt guide</summary>
             <div id="f-notes-guide-body" class="notes-guide-body"></div>
           </details>
 
-          <!-- Trigger words — readonly info badges, shown below the config selector -->
-          <div id="f-trigger-section" class="hidden">
-            <div class="trigger-label">Trigger words</div>
-            <div id="f-trigger-badges"></div>
-          </div>
 
           <details class="cfg-section">
             <summary class="cfg-section-header">
