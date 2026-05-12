@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-t2m-worker"
+version = "0.1.0"
+description = "Local text-to-image inference worker with batch queue and web UI"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "torch",
+    "torchvision",
+    "diffusers>=0.27.0",
+    "transformers",
+    "accelerate",
+    "peft",
+    "Pillow",
+    "huggingface_hub",  # for hf_hub_download used by the Anima pipeline
+    "gguf",             # required for GGUF quantized model loading via diffusers
+    "fastapi",
+    "uvicorn[standard]",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["batch*", "pipelines*"]
