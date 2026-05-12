@@ -46,13 +46,28 @@ bash scripts/quickstart.sh
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -e .
 echo "hf_..." > .hf_token  # Optional: for gated models
 ```
+
+After installation, entry points are available directly in your activated venv:
+
+| Command | Purpose |
+| --- | --- |
+| `t2m-generate` | Single image (Layer 1) |
+| `t2m-server` | Web UI + in-process worker (Layer 3) |
+| `t2m-worker` | Standalone batch worker (Layer 2) |
+| `t2m-enqueue` | Add a job to the queue |
+| `t2m-cancel` | Cancel a queued or running job |
+| `t2m-preload` | Pre-download model weights |
 
 Then generate an image:
 
 ```bash
+# With activated venv:
+t2m-generate -c configs/sd15_default.json "a misty forest at dawn"
+
+# Or via the wrapper script (activates venv + sets MPS/HF env vars automatically):
 ./scripts/run.sh "a misty forest at dawn"
 ```
 
@@ -116,9 +131,13 @@ For generating multiple images unattended, a background worker and a web dashboa
 ./scripts/run_batch_server.sh --offline    # skip HuggingFace update checks (models must be cached)
 PORT=9000 ./scripts/run_batch_server.sh    # custom port
 
-# Or start them separately
-python -m batch.worker &           # background worker
-python -m batch.server             # web server (default port: 8000)
+# Or directly with the entry point (venv must be active, env vars set manually):
+t2m-server --port 8000
+PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 HF_TOKEN=$(cat .hf_token) t2m-server
+
+# Or start worker and server separately
+t2m-worker &   # background worker
+t2m-server     # web server (default port: 8000)
 ```
 
 ### Health check

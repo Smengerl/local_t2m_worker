@@ -27,3 +27,5 @@ queue.jsonl
 batch/worker.log
 batch/worker.pid
 batch.lock
+
+local_t2m_worker.egg-info/

@@ -21,7 +21,12 @@ fi
 
 # Step 3: Print usage instructions
 printf "\n[3/3] Setup complete!\n"
-echo "To generate an image, run:"
+echo "Entry points are now available in .venv/bin/. Examples:"
+echo "    source .venv/bin/activate"
+echo "    t2m-generate -c configs/sd15_default.json \"a misty forest at dawn\""
+echo "    t2m-server                  # web UI + worker at http://localhost:8000"
+echo ""
+echo "Or use the wrapper script (handles env vars automatically):"
 if is_windows; then
   echo "    .\\scripts\\run.sh \"a misty forest at dawn\""
 else

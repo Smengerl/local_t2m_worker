@@ -23,6 +23,14 @@ dependencies = [
     "uvicorn[standard]",
 ]
 
+[project.scripts]
+t2m-generate = "generate:main"
+t2m-worker   = "batch.worker:main"
+t2m-server   = "batch.server:main"
+t2m-enqueue  = "batch.enqueue:main"
+t2m-cancel   = "batch.cancel:main"
+t2m-preload  = "scripts.preload_model:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["batch*", "pipelines*"]

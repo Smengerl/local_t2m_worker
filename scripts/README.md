@@ -1,15 +1,26 @@
 # Scripts
 
-All executable entry points for the project live in this directory.
+All executable entry points for the project live either as **installed commands** (after `pip install -e .`) or in this directory for cases that require shell-level setup (venv activation, env vars, process management).
 
 | Script | Type | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | [`quickstart.sh`](#quickstartsh) | Shell | First-time setup: venv, dependencies, HF token |
-| [`run.sh`](#runsh) | Shell | Generate a single image via CLI |
-| [`run_batch_server.sh`](#run_batch_serversh) | Shell | Start worker + web server together |
+| [`run.sh`](#runsh) | Shell | Generate a single image via CLI (handles venv + env vars) |
+| [`run_batch_server.sh`](#run_batch_serversh) | Shell | Start worker + web server (sets MPS/HF env vars, then calls `t2m-server`) |
 | [`health_check.sh`](#health_checksh) | Shell | Check server system status at a glance |
 | [`preload_model.sh`](#preload_modelsh) | Shell | Pre-download model weights (resume-safe) |
-| [`preload_model.py`](preload_model.py) | Python | Implementation — called by `preload_model.sh` |
+| [`preload_model.py`](preload_model.py) | Python | Implementation — also available as `t2m-preload` entry point |
+
+**Installed entry points** (available after `pip install -e .` with venv active):
+
+| Command | Replaces | Notes |
+| --- | --- | --- |
+| `t2m-generate` | `python generate.py` | Requires env vars set manually |
+| `t2m-server` | `python -m batch.server` | Use `run_batch_server.sh` to set MPS/HF env vars |
+| `t2m-worker` | `python -m batch.worker` | |
+| `t2m-enqueue` | `python -m batch.enqueue` | |
+| `t2m-cancel` | `python -m batch.cancel` | |
+| `t2m-preload` | `python scripts/preload_model.py` | |
 
 All scripts are run from the **project root** or from this directory — they resolve their own paths automatically.
 
@@ -26,6 +37,7 @@ bash scripts/quickstart.sh
 ```
 
 What it does:
+
 1. Creates `.venv` and installs `requirements.txt` (skipped if already present).
 2. Optionally saves your HuggingFace token to `.hf_token` (required for gated models like FLUX, SD3).
 3. Prints the command to generate your first image.
