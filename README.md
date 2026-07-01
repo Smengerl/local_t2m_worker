@@ -88,7 +88,7 @@ t2m-generate -c configs/sd15_default.json "a misty forest at dawn"
 ./scripts/run.sh -c configs/sd15_default.json --steps 50 --guidance-scale 8 "a cat"
 
 # Save to a specific file
-./scripts/run.sh -c configs/flux1_schnell.json -o outputs/my_image.png "neon city"
+./scripts/run.sh -c configs/flux_schnell.json -o outputs/my_image.png "neon city"
 
 # Add to batch queue instead of generating immediately
 ./scripts/run.sh --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
@@ -108,7 +108,7 @@ If the worker is not yet running, `scripts/run.sh` starts it automatically in th
 # Queue a job — worker is started automatically if not already running
 ./scripts/run.sh --queue "a neon city"
 ./scripts/run.sh --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
-./scripts/run.sh --queue -c configs/flux1_schnell.json --steps 4 "a futuristic skyline"
+./scripts/run.sh --queue -c configs/flux_schnell.json --steps 4 "a futuristic skyline"
 ```
 
 `scripts/run.sh` prints the assigned job ID and current queue stats after adding the job. Alternatively, you can enqueue jobs directly via `batch.enqueue` (same flags, no venv handling):
