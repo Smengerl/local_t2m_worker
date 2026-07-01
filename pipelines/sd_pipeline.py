@@ -131,6 +131,18 @@ class StableDiffusionBackend(BasePipeline):
             lora_loaded_via_attn_procs = False
             try:
                 pipe.load_lora_weights(self.lora_id, **lora_kwargs)
+            except IndexError as exc:
+                if "list index out of range" not in str(exc):
+                    raise
+                # Some LoRAs are UNet-only. Certain diffusers versions still try
+                # to build a text-encoder LoRA config from an empty key set,
+                # which raises IndexError in get_peft_kwargs().
+                self._log("⚠️  Diffusers text-encoder LoRA bug hit (empty rank dict). Retrying with UNet-safe loader ...")
+                if hasattr(pipe, "unload_lora_weights"):
+                    # The first attempt may have attached a partial adapter
+                    # before failing on text-encoder loading.
+                    pipe.unload_lora_weights()
+                self._load_lora_weights_unet_safe(pipe, self.lora_id, lora_kwargs)
             except RuntimeError as exc:
                 if "size mismatch" not in str(exc):
                     raise
@@ -170,6 +182,60 @@ class StableDiffusionBackend(BasePipeline):
             self._log("LoRA weights fused successfully.")
 
         return pipe
+
+    def _load_lora_weights_unet_safe(self, pipe: _DiffusersPipe, source: str, lora_kwargs: dict) -> None:
+        """Load LoRA safely when text-encoder keys are absent.
+
+        This works around a diffusers bug where load_lora_weights() can call
+        text-encoder loaders even when no text-encoder LoRA tensors exist.
+        """
+        state_dict, network_alphas, metadata = pipe.lora_state_dict(
+            source,
+            unet_config=pipe.unet.config,
+            return_lora_metadata=True,
+            **lora_kwargs,
+        )
+
+        pipe.load_lora_into_unet(
+            state_dict,
+            network_alphas=network_alphas,
+            unet=pipe.unet,
+            metadata=metadata,
+            _pipeline=pipe,
+        )
+
+        text_encoder_prefix = f"{pipe.text_encoder_name}."
+        text_encoder_2_prefix = f"{pipe.text_encoder_name}_2."
+        has_text_encoder_lora = any(k.startswith(text_encoder_prefix) for k in state_dict)
+        has_text_encoder_2_lora = any(k.startswith(text_encoder_2_prefix) for k in state_dict)
+
+        if has_text_encoder_lora and getattr(pipe, "text_encoder", None) is not None:
+            try:
+                pipe.load_lora_into_text_encoder(
+                    state_dict,
+                    network_alphas=network_alphas,
+                    text_encoder=pipe.text_encoder,
+                    prefix=pipe.text_encoder_name,
+                    lora_scale=pipe.lora_scale,
+                    metadata=metadata,
+                    _pipeline=pipe,
+                )
+            except IndexError:
+                self._log("⚠️  Skipping text_encoder LoRA: incompatible adapter key format for this diffusers/peft version.")
+
+        if has_text_encoder_2_lora and getattr(pipe, "text_encoder_2", None) is not None:
+            try:
+                pipe.load_lora_into_text_encoder(
+                    state_dict,
+                    network_alphas=network_alphas,
+                    text_encoder=pipe.text_encoder_2,
+                    prefix=f"{pipe.text_encoder_name}_2",
+                    lora_scale=pipe.lora_scale,
+                    metadata=metadata,
+                    _pipeline=pipe,
+                )
+            except IndexError:
+                self._log("⚠️  Skipping text_encoder_2 LoRA: incompatible adapter key format for this diffusers/peft version.")
 
     def _download_and_patch_lora(self, lora_id: str) -> str:
         """Download a legacy LoRA (4-D conv proj weights) and return a path to a
