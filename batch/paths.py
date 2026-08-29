@@ -10,6 +10,11 @@ from pathlib import Path
 PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 OUTPUTS_DIR: Path = PROJECT_ROOT / "outputs"
 
+# Written by a *standalone* ``batch.worker`` process (never by the embedded
+# server worker).  ``batch.cancel`` uses it to tell "safe to signal this PID"
+# from "that PID is the web server — don't kill it".
+WORKER_PID_FILE: Path = PROJECT_ROOT / "batch" / "worker.pid"
+
 
 def is_within(candidate: Path | str, base: Path | str) -> bool:
     """Return True if *candidate* resolves to a path inside *base*.

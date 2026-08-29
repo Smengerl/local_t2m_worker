@@ -437,7 +437,12 @@ def main() -> None:
 
     async def _run() -> None:
         from batch.instance_lock import acquire_exclusive
+        from batch.paths import WORKER_PID_FILE
         _instance_lock = acquire_exclusive("worker")  # exits if server/worker already running  # noqa: F841
+
+        # Record our PID so `batch.cancel` can distinguish "standalone worker,
+        # safe to signal" from "embedded in the web server, do NOT signal".
+        WORKER_PID_FILE.write_text(str(os.getpid()))
 
         loop = asyncio.get_running_loop()
         task = asyncio.current_task()
@@ -452,6 +457,8 @@ def main() -> None:
             await run_worker_async(keep_alive=args.keep_alive)
         except asyncio.CancelledError:
             pass  # normal shutdown path — already handled inside run_worker_async
+        finally:
+            WORKER_PID_FILE.unlink(missing_ok=True)
 
     asyncio.run(_run())
 

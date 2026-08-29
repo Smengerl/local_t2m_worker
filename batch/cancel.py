@@ -1,10 +1,14 @@
 """
 CLI tool for cancelling a running (or stuck) job in the batch queue.
 
-Sends SIGTERM to the worker process recorded in the job's worker_pid field,
-then waits briefly for the process to exit.  If the process is already gone
-(or no PID is stored), the job is still marked failed so the queue stays
-consistent.
+For a job owned by a *standalone* ``batch.worker`` process, this sends SIGTERM
+(or SIGKILL with --force) to that process and marks the job failed.
+
+For a job owned by the ``batch.server`` process (embedded worker), signalling
+the PID would kill the whole web server.  This tool refuses to do that and
+tells you to cancel via the dashboard or ``POST /api/jobs/{id}/cancel``
+instead.  The two are told apart via ``batch/worker.pid``, which only a
+standalone worker writes.
 
 Usage:
     python -m batch.cancel <job-id>
@@ -24,6 +28,31 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from batch.queue import get_job, list_jobs, mark_failed
+from batch.paths import WORKER_PID_FILE
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def _standalone_worker_pid() -> int | None:
+    """Return the PID of the running standalone worker, or None.
+
+    None means: no standalone worker is running (the queue is being served by
+    ``batch.server`` with an embedded worker, or nothing is running, or the
+    pidfile is stale).
+    """
+    try:
+        pid = int(WORKER_PID_FILE.read_text().strip())
+    except (FileNotFoundError, ValueError):
+        return None
+    return pid if _pid_alive(pid) else None
 
 
 def _cancel_job(job_id: str, force: bool = False) -> int:
@@ -46,6 +75,32 @@ def _cancel_job(job_id: str, force: bool = False) -> int:
 
     # ── Running job: try to terminate the worker process ─────────────────────
     pid = job.get("worker_pid")
+
+    # If the recorded PID is already dead, the worker crashed — just clean up
+    # the stale "running" entry, don't try to signal anything.
+    if pid is not None and not _pid_alive(pid):
+        mark_failed(job_id, f"Cancelled by user (worker PID {pid} was already gone).")
+        print(f"✅  Worker PID {pid} is gone; job {job_id[:8]}… marked as cancelled.")
+        return 0
+
+    # Only signal a PID we can positively identify as a standalone worker.
+    # Otherwise that PID is the web server (embedded worker) or something we
+    # don't recognise — killing it would take the whole server down.
+    standalone_pid = _standalone_worker_pid()
+    if pid is not None and pid != standalone_pid:
+        print(
+            f"⚠️   Job {job_id[:8]}… is owned by PID {pid}, which is not the "
+            "standalone worker.\n"
+            "     It is most likely the web server's embedded worker — "
+            "signalling it would kill the server.\n"
+            "     Cancel it from the dashboard, or:\n"
+            f"       curl -X POST http://<host>:<port>/api/jobs/{job['id']}/cancel\n"
+            "     (If you are sure no server is running, the job is stale — "
+            "delete it from the dashboard.)",
+            file=sys.stderr,
+        )
+        return 1
+
     sig = signal.SIGKILL if force else signal.SIGTERM
     sig_name = "SIGKILL" if force else "SIGTERM"
 
