@@ -40,6 +40,31 @@ from pipeline_config import PipelineConfig
 from pipelines import create_pipeline
 
 
+def _evict_pipeline_cache(pipeline_cache: dict[Any, Any]) -> None:
+    """Drop every cached pipeline and hand the memory back to the allocator.
+
+    Must run *before* the replacement model is loaded: on 16 GB unified-memory
+    Macs, holding the old and new model simultaneously OOM-kills the process.
+    Python GC alone does not release the Metal / CUDA heap, so the allocator
+    caches are emptied explicitly.
+    """
+    if not pipeline_cache:
+        return
+    pipeline_cache.clear()
+    import gc
+
+    gc.collect()
+    try:
+        import torch
+
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+        elif torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass  # best-effort; never fail generation on cleanup
+
+
 def generate_image(
     cfg: PipelineConfig,
     output_path: str,
@@ -77,6 +102,12 @@ def generate_image(
     if pipeline_cache is not None and cache_key in pipeline_cache:
         pipeline = pipeline_cache[cache_key]
     else:
+        # Cache miss.  Free the previously loaded model *before* loading the new
+        # one — otherwise both are resident at once and a 16 GB Mac OOM-kills
+        # the process on a config switch between two large models.
+        if pipeline_cache is not None:
+            _evict_pipeline_cache(pipeline_cache)
+
         # HF_HUB_OFFLINE is honoured if set externally (e.g. via --offline in
         # run.sh / run_batch_server.sh).  huggingface_hub reads the variable
         # once at import time, so toggling it inside the process is unreliable.
@@ -85,21 +116,6 @@ def generate_image(
         pipeline = create_pipeline(cfg)
 
         if pipeline_cache is not None:
-            if pipeline_cache:
-                pipeline_cache.clear()   # free memory before storing new model
-                # On MPS (Apple Silicon) the Metal heap is not released by
-                # Python GC alone — explicitly empty the MPS allocator cache
-                # so the old model's memory is reclaimed *before* the new model
-                # is stored.  Without this, both models coexist briefly in the
-                # 16 GB unified memory pool and the OS kills the process.
-                import gc
-                gc.collect()
-                try:
-                    import torch
-                    if torch.backends.mps.is_available():
-                        torch.mps.empty_cache()
-                except Exception:
-                    pass
             pipeline_cache[cache_key] = pipeline
 
 
