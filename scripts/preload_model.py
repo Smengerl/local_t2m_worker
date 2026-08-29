@@ -128,8 +128,10 @@ def _download_repo(
     except RepositoryNotFoundError:
         log.error("✖  Repository not found: %s", repo_id)
         log.error("   Check the model ID or accept the license on huggingface.co")
+        raise
     except EntryNotFoundError as exc:
         log.error("✖  Entry not found in %s: %s", repo_id, exc)
+        raise
     except Exception as exc:
         log.error("✖  Download failed for %s: %s", repo_id, exc)
         raise
