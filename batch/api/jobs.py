@@ -152,7 +152,6 @@ def _sanitise_result_path(job: dict[str, Any]) -> dict[str, Any]:
     if not rp:
         return job
 
-    _OUTPUTS_DIR = (_ROOT / "outputs").resolve()
     rp_resolved = (Path(rp) if Path(rp).is_absolute() else _ROOT / rp).resolve()
 
     if not rp_resolved.exists():
@@ -161,7 +160,7 @@ def _sanitise_result_path(job: dict[str, Any]) -> dict[str, Any]:
             job.get("id", "?"),
             rp_resolved,
         )
-    elif not str(rp_resolved).startswith(str(_OUTPUTS_DIR)):
+    elif not is_within(rp_resolved, OUTPUTS_DIR):
         logger.debug(
             "result_path for job %s is outside outputs/ (%s) — /api/outputs will return 403",
             job.get("id", "?"),
