@@ -23,6 +23,11 @@ dependencies = [
     "uvicorn[standard]",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
 [project.scripts]
 t2m-generate = "generate:main"
 t2m-worker   = "batch.worker:main"
@@ -34,3 +39,7 @@ t2m-preload  = "scripts.preload_model:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["batch*", "pipelines*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -42,9 +42,24 @@ from batch.queue import (
 )
 from batch import notify
 from batch import worker as _worker
+from batch.paths import OUTPUTS_DIR, is_within
 from pipeline_config import PipelineConfig
 
 router = APIRouter()
+
+
+def _validate_output_path(output: Optional[str]) -> None:
+    """Reject a caller-supplied output path that escapes the outputs/ directory.
+
+    The worker writes the generated PNG to ``job["output"]`` verbatim, so an
+    unrestricted value here is an arbitrary-file-overwrite primitive for any
+    client that can reach the API.  The dashboard never sends ``output``.
+    """
+    if output and not is_within(output, OUTPUTS_DIR):
+        raise HTTPException(
+            status_code=400,
+            detail="output must be a path inside the outputs/ directory",
+        )
 
 
 def _is_pid_alive(pid: int) -> bool:
@@ -178,6 +193,7 @@ def api_get_job(job_id: str) -> dict[str, Any]:
 
 @router.post("/jobs")
 def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
+    _validate_output_path(req.output)
     pipeline_cfg = PipelineConfig.from_json(req.config)
     pipeline_cfg.apply_overrides(
         model_repo=req.model_repo,
@@ -230,6 +246,9 @@ def api_retry_job(job_id: str) -> dict[str, Any]:
     cfg = PipelineConfig.from_dict(pc_dict) if pc_dict else None
     if cfg is None:
         raise HTTPException(status_code=500, detail="Original job has no pipeline config")
+
+    # A job enqueued before this check existed may carry an unsafe output path.
+    _validate_output_path(job.get("output"))
 
     new_job = enqueue(
         cfg=cfg,
