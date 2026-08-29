@@ -84,9 +84,10 @@ def request_cancel() -> None:
 # and read by the health endpoint.  All are set before/after process_job so
 # no additional locking is required beyond the GIL.
 
-# Key of the currently loaded pipeline, or None when the cache is empty.
-# Matches the key format used in pipeline_cache: (config_hash, ...).
-# Exposed as a human-readable model repo string for the health endpoint.
+# Model repo of the currently loaded pipeline, or None when the cache is
+# empty.  Derived from element 1 of the pipeline_cache key
+# (PipelineConfig.pipeline_cache_key() == (backend, model_repo, ...)).
+# Read by the /api/health endpoint.
 _cached_model: str | None = None
 
 # Job ID currently being executed, or None when idle.
@@ -238,6 +239,18 @@ def process_job(
         root_logger.removeHandler(job_handler)
 
 
+def _derive_cached_model(pipeline_cache: dict[tuple, Any]) -> str | None:
+    """Model repo of the loaded pipeline for /api/health, or None if empty.
+
+    The cache key is ``PipelineConfig.pipeline_cache_key()`` —
+    ``(backend, model_repo, ...)`` — so the repo is element 1.
+    """
+    return next(
+        (k[1] for k in pipeline_cache if isinstance(k, tuple) and len(k) > 1),
+        None,
+    )
+
+
 def _release_pipeline_cache(pipeline_cache: dict[tuple, Any]) -> None:
     """Explicitly release cached pipeline objects and free GPU/MPS memory.
 
@@ -358,15 +371,11 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
             result_path: str | None = None
             caught: BaseException | None = None
 
-            # Check if this job requires a different model than the one currently cached.
-            # If so, clear the cache beforehand to free up memory for the new model.
-            # This is critical on devices with limited RAM (like MacBook Air).
-            job_config = job.get("pipeline_config", {})
-            target_model = job_config.get("model", {}).get("repo")
-            if target_model and _cached_model and target_model != _cached_model:
-                log.info("Model change detected (%s -> %s). Clearing cache...", 
-                         _cached_model, target_model)
-                _release_pipeline_cache(pipeline_cache)
+            # Pipeline caching (reuse between consecutive same-config jobs, and
+            # eviction of the old model *before* a different one is loaded) is
+            # handled entirely inside generate_image() — the single authoritative
+            # place that owns pipeline_cache.  The worker only reads it for
+            # /api/health and releases it on shutdown/error.
 
             try:
                 fut = loop.run_in_executor(None, process_job, job, pipeline_cache)
@@ -402,14 +411,8 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
                 caught = exc
             _finish_job(job, result_path, caught, pipeline_cache)
 
-            # Update cached-model indicator from the pipeline_cache key.
-            # The cache maps (model_repo, ...) tuples → pipeline objects.
-            # After _finish_job the cache may be empty (on error) or still
-            # populated (on success); reflect the current state.
-            _cached_model = next(
-                (k[0] for k in pipeline_cache if isinstance(k, tuple) and k),
-                None,
-            )
+            # Refresh the /api/health indicator from the live cache contents.
+            _cached_model = _derive_cached_model(pipeline_cache)
 
     except asyncio.CancelledError:
         log.info("Worker task cancelled — shutting down.")
