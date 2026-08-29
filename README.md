@@ -85,7 +85,7 @@ t2m-generate -c configs/sd15_default.json "a misty forest at dawn"
 ./scripts/run.sh -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
 
 # Override config parameters on the fly
-./scripts/run.sh -c configs/sd15_default.json --steps 50 --guidance-scale 8 "a cat"
+./scripts/run.sh -c configs/sd15_default.json --steps 50 --cfg-scale 8 "a cat"
 
 # Save to a specific file
 ./scripts/run.sh -c configs/flux_schnell.json -o outputs/my_image.png "neon city"

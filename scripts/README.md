@@ -68,7 +68,7 @@ This mechanism prevents race conditions and guarantees that jobs in the queue ar
 ./scripts/run.sh -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
 
 # Override config parameters on the fly
-./scripts/run.sh -c configs/sd15_default.json --steps 50 --guidance-scale 8 "a cat"
+./scripts/run.sh -c configs/sd15_default.json --steps 50 --cfg-scale 8 "a cat"
 
 # Save to a specific file
 ./scripts/run.sh -c configs/flux1_schnell.json -o outputs/my_image.png "neon city"
@@ -88,11 +88,15 @@ This mechanism prevents race conditions and guarantees that jobs in the queue ar
 | `--config FILE` | `-c` | JSON config file. Default: `configs/sd15_default.json` |
 | `--negative-prompt TEXT` | `-n` | Negative prompt — what to avoid |
 | `--output FILE` | `-o` | Output PNG path. Default: `outputs/YYYYMMDD_HHMMSS.png` |
-| `--model-id REPO_ID` | | Override `model_id` from config |
-| `--lora-id REPO_ID` | | Override `lora_id` from config |
-| `--lora-scale FLOAT` | | Override `lora_scale` from config |
-| `--steps N` | | Override `num_inference_steps` from config |
-| `--guidance-scale FLOAT` | | Override `guidance_scale` from config |
+| `--model-repo REPO_ID` | | Override `model.repo` from config |
+| `--model-gguf-file FILENAME` | | Override `model.gguf_file` from config |
+| `--lora-repo REPO_ID` | | Override `lora.repo` from config |
+| `--lora-strength FLOAT` | | Override `lora.strength` from config |
+| `--steps N` | | Override `generation.steps` from config |
+| `--cfg-scale FLOAT` | | Override `generation.cfg_scale` from config |
+| `--width N` | | Override `generation.width` from config |
+| `--height N` | | Override `generation.height` from config |
+| `--cache-dir DIR` | | Override the model download cache directory |
 | `--queue` | | Add job to batch queue instead of generating immediately |
 | `--offline` | | Set `HF_HUB_OFFLINE=1` — skip all HuggingFace network calls. Fails if model is not cached. LoRA configs must have `weight_name` set. |
 | `--help` | `-h` | Show help and exit |

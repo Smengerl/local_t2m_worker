@@ -16,11 +16,13 @@ Options:
   -c, --config FILE          JSON config file (default: configs/sd15_default.json)
   -n, --negative-prompt TEXT Negative prompt
   -o, --output FILE          Output PNG path (default: outputs/<timestamp>.png)
-      --model-id REPO_ID     Override model ID from config
-      --lora-id REPO_ID      Override LoRA weights from config
-      --lora-scale FLOAT     Override LoRA scale from config
-      --steps N              Override inference steps from config
-      --guidance-scale FLOAT Override guidance scale from config
+      --model-repo REPO_ID   Override model.repo from config
+      --lora-repo REPO_ID    Override lora.repo from config
+      --lora-strength FLOAT  Override lora.strength from config
+      --steps N              Override generation.steps from config
+      --cfg-scale FLOAT      Override generation.cfg_scale from config
+      --width N              Override generation.width from config
+      --height N             Override generation.height from config
       --queue                Add job to batch queue instead of generating immediately
       --offline              Skip HuggingFace update checks (use local cache only,
                              no network calls). Faster startup when models are
@@ -30,7 +32,7 @@ Options:
 Examples:
   $0 "a sunset over the ocean"
   $0 -c configs/sdxl_graffiti_lora.json -o outputs/dragon.png "graffiti mural of a dragon"
-  $0 -c configs/sd15_default.json --steps 50 --guidance-scale 8.0 "a cat"
+  $0 -c configs/sd15_default.json --steps 50 --cfg-scale 8.0 "a cat"
   $0 --queue -c configs/sdxl_graffiti_lora.json "graffiti mural of a dragon"
 EOF
   exit 0
