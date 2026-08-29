@@ -89,10 +89,15 @@ def _is_pid_alive(pid: int) -> bool:
 
 
 def _heal_stale_running_jobs() -> None:
-    """Mark any 'running' job as failed if its worker process is no longer alive.
+    """Mark any 'running' job as failed if the worker owning it is gone.
 
     Called on every GET /api/jobs so the UI always reflects reality without
     requiring a manual cancel action from the user.
+
+    Two cases:
+    - external worker process: stale when its PID is no longer alive.
+    - embedded worker (worker_pid == this server's PID): its PID is always
+      alive, so we instead check whether the worker loop is still running.
     """
     for job in list_jobs():
         if job.get("status") != "running":
@@ -101,6 +106,12 @@ def _heal_stale_running_jobs() -> None:
         if pid is None:
             # No PID recorded — job may have just been picked up by the worker;
             # give it a grace period by leaving it alone.
+            continue
+        if pid == os.getpid():
+            if not _worker.worker_is_alive():
+                msg = "Embedded worker is no longer running — marked as failed by server."
+                append_log(job["id"], f"[server] {msg}")
+                mark_failed(job["id"], msg)
             continue
         if not _is_pid_alive(pid):
             msg = f"Worker process (PID {pid}) no longer exists — marked as failed by server."

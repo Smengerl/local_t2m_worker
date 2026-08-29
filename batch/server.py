@@ -15,6 +15,7 @@ Usage:
 
 import argparse
 import asyncio
+import logging
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -38,16 +39,49 @@ from batch.api import jobs as jobs_router
 from batch.api import outputs as outputs_router
 from batch.queue import stats as queue_stats, reorder_pending
 
+log = logging.getLogger(__name__)
+
+# How many times to restart the embedded worker after an unexpected crash
+# before giving up and leaving the server in a "degraded" state.
+_MAX_WORKER_RESTARTS = 3
+
+
+async def _worker_supervisor() -> None:
+    """Run the embedded worker, restarting it if it crashes.
+
+    A clean return or a CancelledError (server shutdown) ends the supervisor.
+    An unhandled exception is logged and the worker is restarted with a short
+    backoff, up to ``_MAX_WORKER_RESTARTS`` times; after that the supervisor
+    returns and ``/api/health`` reports ``degraded`` until the server is
+    restarted.
+    """
+    restarts = 0
+    while True:
+        try:
+            await _worker.run_worker_async(keep_alive=True)
+            return  # loop exited cleanly — nothing left to do
+        except asyncio.CancelledError:
+            raise  # normal shutdown
+        except Exception:
+            log.exception("Embedded worker crashed")
+            if restarts >= _MAX_WORKER_RESTARTS:
+                log.error(
+                    "Embedded worker crashed %d times — giving up. The queue is "
+                    "stalled; restart the server to recover.", restarts + 1,
+                )
+                return
+            restarts += 1
+            await asyncio.sleep(min(2 ** restarts, 10))
+            log.warning("Restarting embedded worker (attempt %d/%d).",
+                        restarts, _MAX_WORKER_RESTARTS)
+
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ANN001
-    """Start the in-process worker task; tear it down on server shutdown."""
-    task = asyncio.create_task(
-        _worker.run_worker_async(keep_alive=True),
-        name="image-worker",
-    )
+    """Start the supervised in-process worker; tear it down on server shutdown."""
+    task = asyncio.create_task(_worker_supervisor(), name="image-worker-supervisor")
     app.state.worker_task = task
     try:
         yield
@@ -104,9 +138,13 @@ async def api_health(request: Request) -> dict[str, Any]:
       queue           Job counts per status (pending/running/done/failed).
     """
     task: asyncio.Task | None = getattr(request.app.state, "worker_task", None)
-    worker_alive = task is not None and not task.done()
+    supervisor_running = task is not None and not task.done()
+    # The worker loop itself is the source of truth — the supervisor task can
+    # be alive (backoff sleep) while the loop is down, or done (gave up) with
+    # no exception of its own.
+    worker_alive = supervisor_running and _worker.worker_is_alive()
 
-    worker_error: str | None = None
+    worker_error: str | None = _worker._last_error
     if task is not None and task.done() and not task.cancelled():
         exc = task.exception()
         if exc is not None:

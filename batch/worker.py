@@ -93,6 +93,21 @@ _cached_model: str | None = None
 # Job ID currently being executed, or None when idle.
 _current_job_id: str | None = None
 
+# True while run_worker_async() is running its loop (including while idle),
+# False before it starts and after it exits — for any reason.  Read by the
+# server's /api/jobs healer to tell "embedded worker is fine" from "embedded
+# worker died, its running job is stale".
+_alive: bool = False
+
+# Last unhandled exception that killed the worker loop, as a string. Surfaced
+# via /api/health.
+_last_error: str | None = None
+
+
+def worker_is_alive() -> bool:
+    """True while the worker loop is running (idle or busy)."""
+    return _alive
+
 
 # ── Logging helpers ───────────────────────────────────────────────────────────
 
@@ -314,7 +329,7 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
     """
     loop = asyncio.get_running_loop()
     pipeline_cache: dict[tuple, Any] = {}
-    global _cached_model
+    global _cached_model, _alive, _last_error, _current_job_id
 
     # Register with the notification module so POST /api/jobs (and the CLI
     # equivalent) can wake this loop without polling.
@@ -334,6 +349,8 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
         log.info("Pre-existing pending jobs found — worker starting immediately.")
 
     log.info("Worker started (keep_alive=%s).", keep_alive)
+    _alive = True
+    _last_error = None
 
     try:
         while True:
@@ -416,7 +433,18 @@ async def run_worker_async(*, keep_alive: bool = True) -> None:
 
     except asyncio.CancelledError:
         log.info("Worker task cancelled — shutting down.")
+    except Exception as exc:
+        _last_error = f"{type(exc).__name__}: {exc}"
+        log.exception("Worker loop crashed")
+        if _current_job_id:
+            try:
+                mark_failed(_current_job_id, f"Worker loop crashed: {_last_error}")
+            except Exception:
+                log.exception("Could not mark in-flight job failed after crash")
+        raise
     finally:
+        _alive = False
+        _current_job_id = None
         _release_pipeline_cache(pipeline_cache)
         notify.reset()
         log.info("Worker shut down cleanly.")
