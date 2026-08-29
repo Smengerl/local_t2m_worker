@@ -55,6 +55,11 @@ class FluxBackend(BasePipeline):
     # Overridden per-config via max_sequence_length in the JSON config.
     _DEFAULT_MAX_SEQUENCE_LENGTH: int = 256
 
+    # FLUX.2 [klein] is distilled but — unlike FLUX.1-schnell — keeps a small
+    # positive CFG.  Its guidance default is 1.0, not the 0.0 in
+    # GENERATION_DEFAULTS (which is correct for schnell).
+    _KLEIN_CFG_DEFAULT: float = 1.0
+
     def __init__(self, cfg: PipelineConfig) -> None:
         self._is_klein: bool = cfg.pipeline_type == "flux2_klein"
         super().__init__(cfg)  # calls apply_generation_params() below
@@ -64,6 +69,9 @@ class FluxBackend(BasePipeline):
         super().apply_generation_params(cfg)
         # T5 context-length cap is a per-call parameter, not a weight setting.
         self._max_seq_len: int = cfg.max_sequence_length or self._DEFAULT_MAX_SEQUENCE_LENGTH
+        # klein needs guidance 1.0, not the schnell default of 0.0.
+        if self._is_klein and cfg.guidance_scale is None:
+            self.guidance_scale = self._KLEIN_CFG_DEFAULT
 
     # ── public ───────────────────────────────────────────────────────────────
 
