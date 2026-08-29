@@ -292,7 +292,7 @@ inference_test/
 ├── scripts/                # Entry points and utilities — see scripts/README.md
 │
 ├── outputs/                # Generated images (auto-created)
-├── models/                 # Downloaded model weights cache (auto-created)
+├── models/                 # Model weight cache — only when a config sets system.cache_dir (see below)
 └── requirements.txt        # Python dependencies
 ```
 
@@ -300,7 +300,7 @@ inference_test/
 
 1. **Config resolution** — `cli.py` merges the JSON config file with any CLI flag overrides into a `PipelineConfig` object.
 2. **Pipeline selection** — `pipelines/__init__.py` reads `pipeline_type` from the config and lazily imports the matching backend class from `_REGISTRY`. Heavy dependencies (torch, diffusers) are only imported when a pipeline is actually created, keeping server startup fast.
-3. **Model loading** — The backend downloads and caches model weights from HuggingFace on first use (stored in `models/`). LoRA weights are loaded and fused into the base model in memory.
+3. **Model loading** — The backend downloads and caches model weights from HuggingFace on first use. By default they land in the standard HuggingFace cache (`~/.cache/huggingface/hub`, or `$HF_HOME`); set `system.cache_dir` in the config (or pass `--cache-dir`) to redirect them, e.g. to a local `models/` folder. LoRA weights are loaded and fused into the base model in memory.
 4. **Inference** — `generate_image()` in `generate.py` calls `pipeline.generate(prompt, negative_prompt)` and saves the result as a PNG. This is the **single authorised entry point** for all generation — both CLI and batch worker call only this function.
 5. **Batch mode** — `batch/worker.py` runs as an asyncio coroutine (inside the FastAPI server process or as a standalone CLI worker). It dequeues pending jobs from `queue.jsonl` and calls `generate_image()` in a thread pool so the event loop stays free. The pipeline instance is cached between consecutive jobs that share the same config, avoiding redundant model reloads. Only one model is held in memory at a time.
 6. **Web server** — `batch/server.py` embeds the worker as an in-process asyncio task and exposes the queue and results via a REST API and browser dashboard.
@@ -343,7 +343,8 @@ See **[scripts/README.md](scripts/README.md#preload_modelsh)** for full usage, a
 
 ## Notes
 
-- Model weights are downloaded automatically on first run and cached in `models/`.
+- Model weights are downloaded automatically on first run. They are cached in the standard HuggingFace location (`~/.cache/huggingface/hub`, override with `$HF_HOME`) unless a config sets `system.cache_dir` or you pass `--cache-dir` (e.g. `--cache-dir models/`).
+- **Disk usage adds up fast** — each base model is multiple GB (FLUX/SD3 ≈ 20–30 GB), so the cache can reach tens of GB after trying a handful of configs. Check with `du -sh ~/.cache/huggingface`, and prune unused models with `huggingface-cli delete-cache` (or just delete the matching `models--*` directory).
 - On Apple Silicon the MPS backend is selected automatically; CUDA is used on NVIDIA GPUs.
 - Output filenames default to `YYYYMMDD_HHMMSS.png` unless `--output` is specified.
 - **FLUX / SD3:** Gated models on HuggingFace — accept the license on the model page and store your token in `.hf_token`.
