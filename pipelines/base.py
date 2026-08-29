@@ -66,15 +66,6 @@ class BasePipeline(ABC):
 
     # ── shared GGUF / LoRA helpers ────────────────────────────────────────────
 
-    def _build_gguf_url(self) -> str:
-        """Return the HuggingFace HTTPS URL for the configured GGUF file.
-
-        Diffusers detects the ``.gguf`` extension in the URL and routes to the
-        correct GGUF loader automatically.  Using the URL (rather than a local
-        cache path) avoids hash-based symlink layouts that may strip the suffix.
-        """
-        return f"https://huggingface.co/{self.model_id}/blob/main/{self.gguf_file}"
-
     def _load_gguf_transformer(
         self,
         transformer_cls: type,
@@ -82,8 +73,12 @@ class BasePipeline(ABC):
     ) -> Any:
         """Load a GGUF-quantised transformer via ``transformer_cls.from_single_file``.
 
-        Builds the HuggingFace URL from ``self.model_id`` + ``self.gguf_file``,
-        then calls ``from_single_file`` with a ``GGUFQuantizationConfig``.
+        Downloads ``self.gguf_file`` from ``self.model_id`` into the configured
+        cache (``self.cache_dir``, or the HuggingFace default), then loads it
+        from that local path.  The snapshot path keeps the ``.gguf`` suffix, so
+        diffusers still routes to its GGUF loader.  Downloading via
+        ``hf_hub_download`` (rather than handing ``from_single_file`` a URL)
+        means ``system.cache_dir`` and ``--offline`` are both honoured.
 
         Args:
             transformer_cls: Diffusers transformer class to instantiate
@@ -96,11 +91,16 @@ class BasePipeline(ABC):
             ``Pipeline.from_pretrained(..., transformer=transformer)``.
         """
         from diffusers import GGUFQuantizationConfig  # type: ignore[attr-defined]
+        from huggingface_hub import hf_hub_download
 
-        gguf_url = self._build_gguf_url()
-        self._log(f"Loading GGUF transformer from: {gguf_url} ...")
+        gguf_local = hf_hub_download(
+            repo_id=self.model_id,
+            filename=self.gguf_file,
+            cache_dir=self.cache_dir or None,
+        )
+        self._log(f"Loading GGUF transformer from: {gguf_local} ...")
         return transformer_cls.from_single_file(
-            gguf_url,
+            gguf_local,
             quantization_config=GGUFQuantizationConfig(compute_dtype=dtype),
             torch_dtype=dtype,
         )
