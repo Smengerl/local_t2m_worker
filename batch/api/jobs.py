@@ -42,7 +42,7 @@ from batch.queue import (
 )
 from batch import notify
 from batch import worker as _worker
-from batch.paths import OUTPUTS_DIR, is_within
+from batch.paths import CONFIGS_DIR, OUTPUTS_DIR, is_within, resolve_within
 from pipeline_config import PipelineConfig
 
 router = APIRouter()
@@ -193,7 +193,16 @@ def api_get_job(job_id: str) -> dict[str, Any]:
 @router.post("/jobs")
 def api_enqueue(req: EnqueueRequest) -> dict[str, Any]:
     _validate_output_path(req.output)
-    pipeline_cfg = PipelineConfig.from_json(req.config)
+    try:
+        cfg_path = resolve_within(req.config, CONFIGS_DIR)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="config must be a path inside the configs/ directory",
+        )
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"config not found: {req.config}")
+    pipeline_cfg = PipelineConfig.from_json(str(cfg_path))
     pipeline_cfg.apply_overrides(
         model_repo=req.model_repo,
         model_gguf_file=req.model_gguf_file,
@@ -242,9 +251,12 @@ def api_retry_job(job_id: str) -> dict[str, Any]:
     # Create a new pending job with the same pipeline config and prompts.
     # Leave the original job untouched.
     pc_dict = job.get("pipeline_config") or {}
-    cfg = PipelineConfig.from_dict(pc_dict) if pc_dict else None
-    if cfg is None:
+    if not pc_dict:
         raise HTTPException(status_code=500, detail="Original job has no pipeline config")
+    try:
+        cfg = PipelineConfig.from_dict(pc_dict)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Original job has an invalid pipeline config")
 
     # A job enqueued before this check existed may carry an unsafe output path.
     _validate_output_path(job.get("output"))

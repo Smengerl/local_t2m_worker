@@ -9,6 +9,7 @@ from pathlib import Path
 
 PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 OUTPUTS_DIR: Path = PROJECT_ROOT / "outputs"
+CONFIGS_DIR: Path = PROJECT_ROOT / "configs"
 
 # Written by a *standalone* ``batch.worker`` process (never by the embedded
 # server worker).  ``batch.cancel`` uses it to tell "safe to signal this PID"
