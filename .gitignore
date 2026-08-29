@@ -22,6 +22,7 @@ models/
 
 # internal cache
 queue.jsonl
+queue.jsonl.tmp
 
 # batch worker runtime files
 batch/worker.log

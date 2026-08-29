@@ -24,6 +24,7 @@ worker can access the queue file concurrently without corruption.
 """
 
 import json
+import os
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -60,19 +61,37 @@ def _read_all() -> list[dict[str, Any]]:
     if not QUEUE_FILE.exists():
         return []
     jobs = []
-    for line in QUEUE_FILE.read_text(encoding="utf-8").splitlines():
+    for lineno, line in enumerate(QUEUE_FILE.read_text(encoding="utf-8").splitlines(), 1):
         line = line.strip()
-        if line:
+        if not line:
+            continue
+        try:
             jobs.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"{QUEUE_FILE} is corrupt at line {lineno}: {exc}. "
+                f"Fix or remove the file to recover the queue."
+            ) from exc
     return jobs
 
 
 def _write_all(jobs: list[dict[str, Any]]) -> None:
-    """Rewrite the entire queue file (no lock — caller must hold it)."""
-    QUEUE_FILE.write_text(
-        "\n".join(json.dumps(j, ensure_ascii=False) for j in jobs) + "\n",
-        encoding="utf-8",
-    )
+    """Atomically rewrite the entire queue file (no lock — caller must hold it).
+
+    Writes to a sibling ``.tmp`` file, fsyncs it, then ``os.replace()``s it over
+    the real file.  A crash at any point leaves either the complete old file or
+    the complete new one — never a truncated file that ``_read_all`` chokes on.
+    """
+    payload = "\n".join(json.dumps(j, ensure_ascii=False) for j in jobs) + "\n"
+    tmp = QUEUE_FILE.with_suffix(QUEUE_FILE.suffix + ".tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(payload)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, QUEUE_FILE)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
