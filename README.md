@@ -174,6 +174,29 @@ Pass `--offline` to `run_batch_server.sh` (or `run.sh`) to skip all HuggingFace 
 ./scripts/run.sh --offline "a misty forest"
 ```
 
+#### Known limitations
+
+These are deliberate trade-offs of the file-backed queue, not bugs. They only
+matter under sustained/heavy use of the batch server.
+
+- **Cancel only takes effect between denoising steps.** The cancel flag is
+  polled from the progress callback. A job that is still downloading a model,
+  encoding the prompt, or decoding the VAE will run that phase to completion
+  before it stops — cancelling a job mid-download can take minutes to register.
+  The worker loop is blocked for that time. `batch.cancel --force` (SIGKILL) is
+  the only hard stop, and only for a standalone worker (never the server).
+- **Some queue operations run on the server's event loop.** `GET /api/health`
+  and `POST /api/jobs/reorder` take the `queue.jsonl` file lock synchronously
+  (10 s timeout). If the worker is holding that lock during a burst of log
+  writes, those two endpoints — and with them the whole event loop — can stall
+  for up to that long. The regular `GET/POST/DELETE /api/jobs` routes run in a
+  threadpool and are not affected.
+- **`queue.jsonl` is never pruned automatically.** Every progress tick and log
+  line rewrites the whole file under the lock, so cost grows with the number of
+  jobs ever queued (O(n²) over a long-lived queue) and the file grows without
+  bound. Run "Clear finished" in the dashboard (or `POST /api/clear-finished`)
+  periodically, or delete `queue.jsonl` while nothing is running.
+
 ### Web dashboard (`http://localhost:8000`)
 
 - **Stats bar** — live counts of pending / running / done / failed jobs
