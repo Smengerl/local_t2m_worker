@@ -308,4 +308,9 @@ class BasePipeline(ABC):
         )
         if negative_prompt:
             kwargs["negative_prompt"] = negative_prompt
+        if self.seed is not None:
+            # CPU generator on purpose: MPS has no on-device generator, and a
+            # CPU generator is the diffusers-recommended way to get results
+            # that reproduce across devices.  seed == 0 is a valid seed.
+            kwargs["generator"] = torch.Generator(device="cpu").manual_seed(int(self.seed))
         return kwargs
