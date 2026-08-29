@@ -118,6 +118,10 @@ def generate_image(
         if pipeline_cache is not None:
             pipeline_cache[cache_key] = pipeline
 
+    # Refresh per-call sampling params (steps/size/seed/…) from this cfg.  They
+    # are not part of the cache key, so a reused pipeline would otherwise keep
+    # the previous job's values.
+    pipeline.apply_generation_params(cfg)
 
     if progress_callback is not None:
         progress_callback(0, cfg.num_inference_steps or 0)

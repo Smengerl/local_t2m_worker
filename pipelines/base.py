@@ -36,23 +36,33 @@ class BasePipeline(ABC):
     }
 
     def __init__(self, cfg: PipelineConfig) -> None:
-        d = self.GENERATION_DEFAULTS
         self.pipeline_type = cfg.pipeline_type
         self.model_id = cfg.model_id
         self.cache_dir = cfg.cache_dir
-        # Resolve None → backend default
-        self.num_inference_steps: int = cfg.num_inference_steps if cfg.num_inference_steps is not None else d["steps"]
-        self.guidance_scale: float    = cfg.guidance_scale      if cfg.guidance_scale      is not None else d["cfg_scale"]
-        self.width: int               = cfg.width               if cfg.width               is not None else d["width"]
-        self.height: int              = cfg.height              if cfg.height              is not None else d["height"]
         self.lora_id = cfg.lora_id
         self.lora_scale = cfg.lora_scale
         self.sequential_cpu_offload = cfg.sequential_cpu_offload
         self.true_cfg_scale = cfg.true_cfg_scale
-        self.seed = cfg.seed
         self.weight_name: Optional[str] = cfg.weight_name
         self.gguf_file: Optional[str] = cfg.gguf_file
         self.base_model_id: Optional[str] = cfg.base_model_id
+        self.apply_generation_params(cfg)
+
+    def apply_generation_params(self, cfg: PipelineConfig) -> None:
+        """(Re)set the per-call sampling params from *cfg*, None → backend default.
+
+        These do not change which weights are loaded, so they are deliberately
+        absent from ``PipelineConfig.pipeline_cache_key()``.  ``generate_image``
+        calls this on every generation — including when a cached pipeline is
+        reused — so a config that differs only in size/steps/seed still renders
+        with its own values.
+        """
+        d = self.GENERATION_DEFAULTS
+        self.num_inference_steps: int = cfg.num_inference_steps if cfg.num_inference_steps is not None else d["steps"]
+        self.guidance_scale: float    = cfg.guidance_scale      if cfg.guidance_scale      is not None else d["cfg_scale"]
+        self.width: int               = cfg.width               if cfg.width               is not None else d["width"]
+        self.height: int              = cfg.height              if cfg.height              is not None else d["height"]
+        self.seed = cfg.seed
 
     # ── shared GGUF / LoRA helpers ────────────────────────────────────────────
 

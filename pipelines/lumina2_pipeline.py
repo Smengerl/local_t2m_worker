@@ -42,11 +42,13 @@ class Lumina2Backend(BasePipeline):
     _DEFAULT_MAX_SEQUENCE_LENGTH: int = 256
 
     def __init__(self, cfg: PipelineConfig) -> None:
-        super().__init__(cfg)
-        self._max_seq_len: int = (
-            cfg.max_sequence_length or self._DEFAULT_MAX_SEQUENCE_LENGTH
-        )
+        super().__init__(cfg)  # calls apply_generation_params() below
         self._pipe = self._load()
+
+    def apply_generation_params(self, cfg: PipelineConfig) -> None:
+        super().apply_generation_params(cfg)
+        # T5 context-length cap is a per-call parameter, not a weight setting.
+        self._max_seq_len: int = cfg.max_sequence_length or self._DEFAULT_MAX_SEQUENCE_LENGTH
 
     # ── public ───────────────────────────────────────────────────────────────
 

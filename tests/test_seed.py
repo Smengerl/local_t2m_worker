@@ -59,3 +59,25 @@ def test_subclasses_pass_generator_through():
     for cls in (FluxBackend, QwenImageBackend, Lumina2Backend):
         kw = _kwargs(cls, 99)
         assert kw["generator"].initial_seed() == 99, cls.__name__
+
+
+def test_apply_generation_params_refreshes_from_cfg():
+    from pipeline_config import PipelineConfig
+
+    s = object.__new__(BasePipeline)
+    cfg = PipelineConfig.from_json("configs/sd15_default.json")
+    cfg.apply_overrides(width=1234, steps=7)
+    s.apply_generation_params(cfg)
+    assert (s.width, s.num_inference_steps) == (1234, 7)
+
+
+def test_flux_lumina_refresh_max_sequence_length():
+    from pipeline_config import PipelineConfig
+
+    for cls in (FluxBackend, Lumina2Backend):
+        s = object.__new__(cls)
+        s._is_klein = False
+        cfg = PipelineConfig.from_json("configs/sd15_default.json")
+        cfg.generation.max_prompt_tokens = 999
+        s.apply_generation_params(cfg)
+        assert s._max_seq_len == 999, cls.__name__
