@@ -94,11 +94,11 @@ class QwenImageBackend(BasePipeline):
         CPU offload to stay within memory limits (20B model = ~40 GB bfloat16).
         """
         from diffusers import QwenImagePipeline  # type: ignore[attr-defined]
-        # bfloat16 is recommended; fall back to float32 on CPU.
-        # Qwen-Image is a 20B model (~40 GB in bfloat16 / ~20 GB in float16).
-        # On MPS with ≤16 GB unified memory we must use float16 and CPU offload.
-        # float16 is preferred over bfloat16 on MPS: MPS has limited bfloat16
-        # support and silently upcasts some ops to float32, doubling memory use.
+        # Qwen-Image is a 20B model: ~40 GB in bfloat16 vs ~20 GB in float16.
+        # On MPS we pick float16 purely for the memory budget — a bf16 load
+        # cannot fit alongside the OS on a 16 GB unified-memory Mac.  (bf16
+        # itself works fine on Apple Silicon MPS with modern PyTorch; this is
+        # not a dtype-support workaround.)  CUDA has the headroom for bf16.
         if self.sequential_cpu_offload and device.type == "mps":
             # Load directly onto CPU in float16 so we never spike past RAM limit.
             # enable_sequential_cpu_offload() will move each layer to MPS just-
@@ -106,7 +106,7 @@ class QwenImageBackend(BasePipeline):
             dtype = torch.float16
             self._log("⚙️  Low-memory mode: loading in float16 on CPU for sequential MPS offload.")
         elif device.type == "mps":
-            dtype = torch.float16  # float16 is safer than bfloat16 on MPS
+            dtype = torch.float16  # memory budget, not a bf16 limitation
         elif device.type == "cuda":
             dtype = torch.bfloat16
         else:
@@ -152,8 +152,10 @@ class QwenImageBackend(BasePipeline):
                 '"components_repo": "Qwen/Qwen-Image-2512"'
             )
 
-        # bfloat16 is the compute dtype for GGUF dequantisation.
-        # On MPS, float16 is safer (MPS has limited bfloat16 support).
+        # Compute dtype for GGUF dequantisation and the (unquantised) text
+        # encoder / VAE loaded from base_model_id.  float16 off CUDA keeps that
+        # ~7B text encoder within a 16 GB unified-memory budget — not a bf16
+        # support issue (bf16 works on modern MPS).
         dtype = torch.bfloat16 if device.type == "cuda" else torch.float16
 
         transformer = self._load_gguf_transformer(QwenImageTransformer2DModel, dtype)

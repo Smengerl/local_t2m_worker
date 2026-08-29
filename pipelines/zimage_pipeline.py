@@ -58,8 +58,11 @@ class ZImageBackend(BasePipeline):
     def _load(self) -> _AnyZImagePipe:
         device = self._get_device()
 
-        # bfloat16 is the recommended dtype for Z-Image-Turbo;
-        # fall back to float32 on CPU (no bfloat16 support in many setups).
+        # bfloat16 on both CUDA and MPS — recommended for Z-Image-Turbo
+        # (float16 can produce artefacts), and it works on Apple Silicon MPS
+        # with modern PyTorch (~6B model, comfortably fits in 16 GB).  Do NOT
+        # "align" this with qwen's float16-on-MPS: that is a 20B memory-budget
+        # choice, not a bf16 limitation.  CPU has no usable bf16 → float32.
         dtype = torch.bfloat16 if device.type in ("cuda", "mps") else torch.float32
 
         if self.gguf_file:
