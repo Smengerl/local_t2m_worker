@@ -43,6 +43,7 @@ if str(_ROOT) not in sys.path:
 
 from batch.queue import mark_done, mark_failed, mark_running, next_pending, claim_next_pending, update_job, append_log
 from batch import notify
+from batch.paths import PROJECT_ROOT
 from generate import generate_image
 from pipeline_config import PipelineConfig
 
@@ -228,6 +229,10 @@ def process_job(
         output_path = job.get("output") or str(
             Path(cfg.output_dir) / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         )
+        save_path = Path(output_path)
+        if not save_path.is_absolute():
+            save_path = PROJECT_ROOT / save_path
+        save_path.parent.mkdir(parents=True, exist_ok=True)
 
         job_id = job["id"]
 
@@ -241,7 +246,7 @@ def process_job(
             update_job(job_id, progress_step=clamped, progress_total=total)
 
         generate_image(
-            cfg, output_path,
+            cfg, str(save_path),
             job["prompt"], job.get("negative_prompt") or "",
             pipeline_cache=pipeline_cache,
             progress_callback=_progress,
@@ -309,7 +314,10 @@ def _finish_job(
         _cancel_event.clear()
     else:
         log.error("Job %s FAILED: %s", job["id"][:8], exc)
-        mark_failed(job["id"], traceback.format_exc())
+        error_traceback = "".join(
+            traceback.format_exception(type(exc), exc, exc.__traceback__)
+        )
+        mark_failed(job["id"], error_traceback)
     # Pipeline state may be inconsistent after a cancel or unexpected error.
     _release_pipeline_cache(pipeline_cache)
 

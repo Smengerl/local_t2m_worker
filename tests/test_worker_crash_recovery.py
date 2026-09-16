@@ -51,6 +51,23 @@ def test_loop_crash_marks_inflight_job_failed(queue_env, monkeypatch):
     assert q.get_job(job["id"])["status"] == "failed"
 
 
+def test_finish_job_preserves_exception_traceback(queue_env):
+    job = _enqueue()
+
+    try:
+        raise RuntimeError("flux decode failed")
+    except RuntimeError as exc:
+        caught = exc
+
+    w._finish_job(job, None, caught, {})
+
+    error = q.get_job(job["id"])["error"]
+    assert "Traceback (most recent call last):" in error
+    assert "raise RuntimeError(\"flux decode failed\")" in error
+    assert "RuntimeError: flux decode failed" in error
+    assert error != "NoneType: None\n"
+
+
 # ── server heals in-process stale jobs ───────────────────────────────────────
 
 def test_heal_marks_embedded_job_failed_when_loop_down(queue_env, monkeypatch):

@@ -7,6 +7,7 @@ was reloaded from scratch every time — defeating the documented reuse.
 """
 
 import asyncio
+from pathlib import Path
 
 import pytest
 
@@ -35,6 +36,24 @@ def _enqueue(repo):
     cfg = PipelineConfig.from_json("configs/sd15_default.json")
     cfg.apply_overrides(model_repo=repo)
     return q.enqueue(cfg=cfg, prompt="p")
+
+
+def test_process_job_resolves_relative_output_from_project_root(queue_env, monkeypatch):
+    job = _enqueue("model/a")
+    job["output"] = "outputs/nested/result.png"
+    generated_paths: list[str] = []
+
+    def fake_generate(_cfg, output_path, *_args, **_kwargs):
+        generated_paths.append(output_path)
+
+    monkeypatch.setattr(w, "generate_image", fake_generate)
+    monkeypatch.chdir(queue_env)
+
+    result = w.process_job(job, {})
+
+    assert generated_paths == [str(w.PROJECT_ROOT / "outputs/nested/result.png")]
+    assert Path(generated_paths[0]).parent.is_dir()
+    assert result == "outputs/nested/result.png"
 
 
 def test_pipeline_reused_across_same_config_jobs(queue_env, monkeypatch):
