@@ -4,30 +4,11 @@ Run text-to-image AI models entirely on your local machine — no cloud, no API 
 
 A growing collection of ready-to-use JSON config files covers a wide range of models, styles, LoRA weights, and adapters. Adding a new model is as simple as dropping a new `.json` file into `configs/`.
 
-**Examples:**
-<table style="width:100%; border-collapse:collapse; table-layout:fixed; margin-bottom:32px;">
-<tr>
-<td style="padding:0;"><img src="examples/zimage_turbo_classic_painting_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/flux_dev.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/flux_cute_comic_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/flux_miniature_people_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/flux_dev_wong_kar_wai_fallen_angels_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/zimage_turbo_1950s_american_dream_lora.png" alt="" style="width:100%;display:block;"></td>
-</tr><tr>
-<td style="padding:0;"><img src="examples/sd15_default.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sd15_dreamshaper8.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sd15_inkpunk_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sd15_pixel_art_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sd15_comic_diffusion_andreasrocha.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sd15_comic_diffusion_charliebo.png" alt="" style="width:100%;display:block;"></td>
-</tr><tr>
-<td style="padding:0;"><img src="examples/sd3_medium.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sdxl_turbo.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sdxl_littletinies_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sdxl_storyboard_sketch_lora.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/zimage_turbo.png" alt="" style="width:100%;display:block;"></td>
-<td style="padding:0;"><img src="examples/sd21_coloringbook_redmond_lora.png" alt="" style="width:100%;display:block;"></td>
-</tr>
+**Examples** (captions follow the config names in `configs/`):
+<table>
+<tr><td align="center" width="16.6%"><img src="examples/zimage_turbo_classic_painting_lora.png" alt="Example image generated with Z-Image Turbo · classic painting LoRA"><br><sub>Z-Image Turbo · classic painting LoRA</sub></td><td align="center" width="16.6%"><img src="examples/flux_dev.png" alt="Example image generated with FLUX.1 dev"><br><sub>FLUX.1 dev</sub></td><td align="center" width="16.6%"><img src="examples/flux_cute_comic_lora.png" alt="Example image generated with FLUX · cute comic LoRA"><br><sub>FLUX · cute comic LoRA</sub></td><td align="center" width="16.6%"><img src="examples/flux_miniature_people_lora.png" alt="Example image generated with FLUX · miniature people LoRA"><br><sub>FLUX · miniature people LoRA</sub></td><td align="center" width="16.6%"><img src="examples/flux_dev_wong_kar_wai_fallen_angels_lora.png" alt="Example image generated with FLUX.1 dev · wong kar wai fallen angels LoRA"><br><sub>FLUX.1 dev · wong kar wai fallen angels LoRA</sub></td><td align="center" width="16.6%"><img src="examples/zimage_turbo_1950s_american_dream_lora.png" alt="Example image generated with Z-Image Turbo · 1950s american dream LoRA"><br><sub>Z-Image Turbo · 1950s american dream LoRA</sub></td></tr>
+<tr><td align="center" width="16.6%"><img src="examples/sd15_default.png" alt="Example image generated with SD 1.5 · default"><br><sub>SD 1.5 · default</sub></td><td align="center" width="16.6%"><img src="examples/sd15_dreamshaper8.png" alt="Example image generated with SD 1.5 · dreamshaper8"><br><sub>SD 1.5 · dreamshaper8</sub></td><td align="center" width="16.6%"><img src="examples/sd15_inkpunk_lora.png" alt="Example image generated with SD 1.5 · inkpunk LoRA"><br><sub>SD 1.5 · inkpunk LoRA</sub></td><td align="center" width="16.6%"><img src="examples/sd15_pixel_art_lora.png" alt="Example image generated with SD 1.5 · pixel art LoRA"><br><sub>SD 1.5 · pixel art LoRA</sub></td><td align="center" width="16.6%"><img src="examples/sd15_comic_diffusion_andreasrocha.png" alt="Example image generated with SD 1.5 · comic diffusion andreasrocha"><br><sub>SD 1.5 · comic diffusion andreasrocha</sub></td><td align="center" width="16.6%"><img src="examples/sd15_comic_diffusion_charliebo.png" alt="Example image generated with SD 1.5 · comic diffusion charliebo"><br><sub>SD 1.5 · comic diffusion charliebo</sub></td></tr>
+<tr><td align="center" width="16.6%"><img src="examples/sd3_medium.png" alt="Example image generated with SD 3 · medium"><br><sub>SD 3 · medium</sub></td><td align="center" width="16.6%"><img src="examples/sdxl_turbo.png" alt="Example image generated with SDXL · turbo"><br><sub>SDXL · turbo</sub></td><td align="center" width="16.6%"><img src="examples/sdxl_littletinies_lora.png" alt="Example image generated with SDXL · littletinies LoRA"><br><sub>SDXL · littletinies LoRA</sub></td><td align="center" width="16.6%"><img src="examples/sdxl_storyboard_sketch_lora.png" alt="Example image generated with SDXL · storyboard sketch LoRA"><br><sub>SDXL · storyboard sketch LoRA</sub></td><td align="center" width="16.6%"><img src="examples/zimage_turbo.png" alt="Example image generated with Z-Image Turbo"><br><sub>Z-Image Turbo</sub></td><td align="center" width="16.6%"><img src="examples/sd21_coloringbook_redmond_lora.png" alt="Example image generated with SD 2.1 · coloringbook redmond LoRA"><br><sub>SD 2.1 · coloringbook redmond LoRA</sub></td></tr>
 </table>
 
 **Supported hardware:** Apple Silicon (MPS), NVIDIA GPU (CUDA), CPU fallback.
